@@ -3,21 +3,38 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom styles for Leaflet map */
-.leaflet-container {
-  height: 100%;
-  width: 100%;
+/* Custom component styles */
+@layer components {
+  .btn-primary {
+    @apply bg-brand-primary hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50;
+  }
+
+  .btn-ghost {
+    @apply bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg transition-all duration-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50;
+  }
+
+  .card {
+    @apply bg-white rounded-lg shadow-soft border border-gray-200;
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors;
+  }
+
+  .kpi-card {
+    @apply bg-white p-4 rounded-lg border border-gray-200 shadow-soft;
+  }
+
+  .kpi-label {
+    @apply text-sm font-medium text-gray-500 mb-1;
+  }
+
+  .kpi-value {
+    @apply text-2xl font-bold text-gray-900;
+  }
 }
 
-/* Custom button styles */
-.btn-primary {
-  @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors;
-}
-
-.btn-secondary {
-  @apply bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors;
-}
-
-.btn-success {
-  @apply bg-success hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+/* Leaflet map placeholder */
+.map-placeholder {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
 }
