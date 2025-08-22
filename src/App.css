@@ -1,2 +1,23 @@
-main {
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for Leaflet map */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+
+/* Custom button styles */
+.btn-primary {
+  @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+}
+
+.btn-secondary {
+  @apply bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+}
+
+.btn-success {
+  @apply bg-success hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors;
 }
