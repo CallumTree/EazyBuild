@@ -1,0 +1,81 @@
+# LandSnap – MVP (Web PWA)
+
+LandSnap is a **lean web-first MVP** for UK property developers (2–15 unit schemes).  
+It helps you go from **standing on a plot** to a **quick feasibility + offer pack** in minutes.
+
+---
+
+## 🚀 Features
+- **GPS Walk** – walk the site perimeter on your phone, auto-draw boundary
+- **Obstacle Tagging** – mark ponds, trees, structures
+- **Basic Layout** – choose house type, estimate unit count, preview markers
+- **Finance Calc** – GDV, build costs, fees, contingency, profit, residual land value
+- **Offer Pack PDF** – one-click export (site map + financials)
+- **Local Save** – projects auto-save to browser (localStorage)
+- **PWA** – install on Android/iOS via “Add to Home Screen”
+
+---
+
+## 🛠 Tech Stack
+- React + Vite + TypeScript
+- Leaflet + Turf.js (mapping & geo calcs)
+- Zustand (state) + Zod (validation)
+- Tailwind CSS (UI)
+- pdfmake + html2canvas (PDF export)
+- vite-plugin-pwa (offline shell)
+
+---
+
+## 📦 Quick Start (Replit)
+1. Click **Run** → dev server runs at port 5173  
+2. Open preview → see map  
+3. **Create project** → give it a name  
+4. **Survey Tab**:
+   - Tap **Start GPS**, walk perimeter, tap **Stop**
+   - Add/edit points manually if needed
+   - Add **obstacles** (pond/tree/etc.)  
+5. **Layout Tab**: choose house type → see estimated units & preview dots  
+6. **Finance Tab**: tweak £/sqft, build £/sqft, fees, contingency, profit → see GDV & RLV  
+7. **Offer Tab**: preview summary → click **Export PDF**  
+8. Projects auto-save (refresh safe)
+
+---
+
+## 💰 Default Assumptions (editable)
+- Price: £300/sqft (~£3,229/m²)
+- Build cost: £180/sqft (~£1,938/m²)
+- Fees: 10% of build
+- Contingency: 10% of build
+- Profit: 20% of GDV
+- Roads/open space: 20% of site area
+- Obstacle buffer: 3m radius
+
+House type presets:
+- 2-bed semi (75 sqm GIA)
+- 3-bed semi (90 sqm GIA)
+- 3-bed det (105 sqm GIA)
+- 4-bed det (130 sqm GIA)
+
+---
+
+## ⚠️ Notes
+- **GPS ≈ feasibility only** (not survey-grade)  
+- Keep screen awake during walk (no background tracking in browser)  
+- Map tiles need data (no full offline maps yet)  
+- Market comps = user input (Rightmove/Zoopla integration is Phase 2)  
+
+---
+
+## ✅ Acceptance Criteria
+- Draw boundary via GPS or manual points  
+- Area in sqm + acres displays correctly  
+- Obstacles show as pins  
+- Layout shows estimated units  
+- Finance tab updates GDV & RLV live  
+- Offer Pack PDF exports with map + numbers  
+- Project persists on refresh  
+- App installable as PWA on mobile  
+
+---
+
+Built as **Phase 1 MVP** → next steps: cloud sync, comps data, better layouts, planning overlays
