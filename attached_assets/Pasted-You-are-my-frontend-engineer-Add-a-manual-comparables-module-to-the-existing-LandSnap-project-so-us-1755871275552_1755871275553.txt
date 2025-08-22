@@ -1,0 +1,19 @@
+You are my frontend engineer. Add a manual comparables module to the existing LandSnap project so users can sanity-check GDV on site without integrations. This module should let users enter a postcode context for the project, add individual comparable sales, auto-compute £ per sqft, show stats (median, p25, p75) with outlier rejection, produce a recommended £ per sqft that can be applied to Finance with one click, and include a short comps summary in the Offer PDF.
+
+Data model: extend Project type with compsPostcode (string), comps array, and compSettings with includeMonths (default 18), minBeds (nullable), maxBeds (nullable), and iqrK (default 1.5). Each Comp has id, address, postcode, beds, propertyType (detached, semi, terraced, flat, bungalow, other), date (ISO), priceGBP (number), giaSqft (number), optional notes, and derived pricePerSqft.
+
+UI placement: add a Comps subpanel inside the Finance tab. This panel has a header with editable postcode, buttons for Add Comp, Clear Comps, and Recompute Stats. Show a table of comps with columns for address, beds, type, date, price, GIA sqft, £ per sqft, and delete. Show settings for includeMonths, minBeds, maxBeds, and iqrK. Show a stats card with count used, median, p25, p75, and recommended £ per sqft plus a button “Apply to Finance”.
+
+Behavior: when a comp is added or edited, compute pricePerSqft = priceGBP / giaSqft rounded to nearest pound. Filter comps to include only those within includeMonths from today, and within minBeds and maxBeds if set. Postcode strict mode default off, but if on require same outward postcode. Outlier rejection: compute Q1, Q3, IQR, reject comps outside Q1 − iqrKIQR or Q3 + iqrKIQR. If fewer than 3 comps remain after rejection, fall back to pre-rejection set. Compute median, p25, p75, round to nearest pound. Recommended £ per sqft defaults to median, but user can override. Apply to Finance sets finance.pricePerSqft to this number and recalculates GDV and Residual.
+
+Persistence: comps and comp settings are saved with the project and included in Import/Export JSON.
+
+PDF export: in exportOfferPdf, add a Market Evidence section if comps exist. Show postcode context, number of comps used, months filter, and stats (median, p25, p75). List up to 5 comps with address, beds, type, month/year, and £ per sqft. Keep this concise so PDF stays short.
+
+Validation: required fields are address, date, price, giaSqft. Highlight invalid rows. Disable Apply to Finance if no valid comps. Editing fields updates derived £ per sqft in real time. Allow delete with confirmation. Provide a quick “Add Preset” row with default values (today’s date, 3 beds, semi, 900 sqft, £250000).
+
+Utility functions in comps.ts: computePricePerSqft, quantiles returning p25 median p75, filterComps with strictMode, rejectOutliers, and computeCompsStats returning count and stats. Handle months difference correctly with year*12+month.
+
+Formatting: display £ values with thousands separators, no decimals. Display dates as yyyy-mm in table, store full ISO.
+
+Acceptance: user can add multiple comps and see £ per sqft computed, stats update when settings change, Apply to Finance updates GDV and Residual, PDF includes Market Evidence section, import and export preserve comps, and zero comps does not break Finance.
