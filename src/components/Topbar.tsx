@@ -1,15 +1,39 @@
-
 import React from 'react';
+import { useProjectStore } from '../store/projectStore';
+import { exportOfferPdf } from '../utils/pdfExport';
 
 export const Topbar: React.FC = () => {
+  const { currentProject } = useProjectStore();
+
   const handleImport = () => {
-    // TODO: Implement import functionality
-    console.log('Import clicked');
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target?.result as string);
+            console.log('Import data:', data);
+            alert('Import functionality would restore project from JSON');
+          } catch (error) {
+            alert('Invalid JSON file');
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+    input.click();
   };
 
   const handleExportPDF = () => {
-    // TODO: Implement PDF export functionality
-    console.log('Export PDF clicked');
+    if (!currentProject) {
+      alert('No project selected');
+      return;
+    }
+    exportOfferPdf(currentProject);
   };
 
   return (

@@ -1,5 +1,406 @@
-
 import React, { useState } from 'react';
+
+// Assuming Comparables and Project type are defined elsewhere and imported.
+// For demonstration, let's mock them:
+
+// Mock data types
+type PropertyType = 'detached' | 'semi-detached' | 'terraced' | 'flat' | 'bungalow' | 'other';
+
+interface Comp {
+  id: string;
+  address: string;
+  postcode: string;
+  beds: number | null;
+  propertyType: PropertyType;
+  date: string; // ISO string
+  priceGBP: number;
+  giaSqft: number;
+  notes?: string;
+  pricePerSqft?: number;
+}
+
+interface CompSettings {
+  includeMonths: number;
+  minBeds: number | null;
+  maxBeds: number | null;
+  iqrK: number;
+}
+
+interface Project {
+  id: string;
+  compsPostcode?: string;
+  comps?: Comp[];
+  compSettings?: CompSettings;
+  // ... other project properties
+}
+
+// Mock Comparables component
+const Comparables: React.FC<{ projectId: string }> = ({ projectId }) => {
+  const [comps, setComps] = useState<Comp[]>([]);
+  const [settings, setSettings] = useState<CompSettings>({
+    includeMonths: 18,
+    minBeds: null,
+    maxBeds: null,
+    iqrK: 1.5,
+  });
+  const [postcode, setPostcode] = useState('');
+  const [stats, setStats] = useState({
+    countUsed: 0,
+    median: 0,
+    p25: 0,
+    p75: 0,
+    recommendedPerSqft: 0,
+  });
+
+  // Mock utility functions (these would be imported from comps.ts)
+  const computePricePerSqft = (price: number, sqft: number): number => {
+    if (sqft === 0) return 0;
+    return Math.round(price / sqft);
+  };
+
+  const formatCurrency = (value: number): string => {
+    return value.toLocaleString('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  };
+
+  const formatMonthYear = (isoDate: string): string => {
+    try {
+      const date = new Date(isoDate);
+      return date.toISOString().slice(0, 7); // YYYY-MM
+    } catch (e) {
+      return 'Invalid Date';
+    }
+  };
+
+  const addComp = () => {
+    const newComp: Comp = {
+      id: `comp-${Date.now()}`,
+      address: '1 Test Street',
+      postcode: 'SW1A 0AA',
+      beds: 3,
+      propertyType: 'semi-detached',
+      date: new Date().toISOString(),
+      priceGBP: 250000,
+      giaSqft: 1000,
+      notes: '',
+    };
+    setComps([...comps, newComp]);
+    recomputeStats(); // Recompute after adding
+  };
+
+  const deleteComp = (id: string) => {
+    setComps(comps.filter(c => c.id !== id));
+    recomputeStats(); // Recompute after deleting
+  };
+
+  const updateComp = (id: string, field: keyof Comp, value: any) => {
+    const updatedComps = comps.map(c =>
+      c.id === id ? { ...c, [field]: value } : c
+    );
+    // Ensure pricePerSqft is updated in real-time if price or sqft changes
+    if (field === 'priceGBP' || field === 'giaSqft') {
+      const compToUpdate = updatedComps.find(c => c.id === id);
+      if (compToUpdate && compToUpdate.giaSqft !== undefined && compToUpdate.giaSqft > 0) {
+        compToUpdate.pricePerSqft = computePricePerSqft(compToUpdate.priceGBP, compToUpdate.giaSqft);
+      }
+    }
+    setComps(updatedComps as Comp[]);
+    recomputeStats(); // Recompute after editing
+  };
+
+  const recomputeStats = () => {
+    // Mock implementation of filtering, outlier rejection, and stats calculation
+    let validComps = [...comps];
+
+    // Filter by months
+    const today = new Date();
+    validComps = validComps.filter(c => {
+      try {
+        const compDate = new Date(c.date);
+        const monthsDiff = (today.getFullYear() - compDate.getFullYear()) * 12 + (today.getMonth() - compDate.getMonth());
+        return monthsDiff >= 0 && monthsDiff <= settings.includeMonths;
+      } catch (e) {
+        return false; // Invalid date
+      }
+    });
+
+    // Filter by beds
+    if (settings.minBeds !== null) {
+      validComps = validComps.filter(c => c.beds !== null && c.beds >= settings.minBeds!);
+    }
+    if (settings.maxBeds !== null) {
+      validComps = validComps.filter(c => c.beds !== null && c.beds <= settings.maxBeds!);
+    }
+
+    // Compute pricePerSqft for valid comps if not already done
+    validComps = validComps.map(c => ({
+      ...c,
+      pricePerSqft: c.pricePerSqft !== undefined ? c.pricePerSqft : (c.giaSqft > 0 ? computePricePerSqft(c.priceGBP, c.giaSqft) : 0)
+    })).filter(c => c.giaSqft > 0 && c.priceGBP > 0); // Ensure valid for price per sqft calculation
+
+    // Outlier rejection
+    const pricesPerSqft = validComps.map(c => c.pricePerSqft!).filter(p => p > 0);
+    if (pricesPerSqft.length >= 3) {
+      pricesPerSqft.sort((a, b) => a - b);
+      const q1 = pricesPerSqft[Math.floor(pricesPerSqft.length / 4)];
+      const q3 = pricesPerSqft[Math.ceil(pricesPerSqft.length * 3 / 4) - 1];
+      const iqr = q3 - q1;
+      const lowerBound = q1 - settings.iqrK * iqr;
+      const upperBound = q3 + settings.iqrK * iqr;
+
+      validComps = validComps.filter(c => c.pricePerSqft! >= lowerBound && c.pricePerSqft! <= upperBound);
+    }
+
+    // Fallback if fewer than 3 comps remain
+    if (validComps.length < 3 && comps.length >= 3) {
+      validComps = comps.map(c => ({
+        ...c,
+        pricePerSqft: c.pricePerSqft !== undefined ? c.pricePerSqft : (c.giaSqft > 0 ? computePricePerSqft(c.priceGBP, c.giaSqft) : 0)
+      })).filter(c => c.giaSqft > 0 && c.priceGBP > 0);
+    }
+
+
+    const finalPricesPerSqft = validComps.map(c => c.pricePerSqft!).filter(p => p > 0);
+    const count = finalPricesPerSqft.length;
+    let median = 0, p25 = 0, p75 = 0;
+
+    if (count > 0) {
+      finalPricesPerSqft.sort((a, b) => a - b);
+      median = finalPricesPerSqft[Math.floor(count / 2)];
+      p25 = finalPricesPerSqft[Math.floor(count / 4)];
+      p75 = finalPricesPerSqft[Math.ceil(count * 3 / 4) - 1];
+    }
+
+    setStats({
+      countUsed: count,
+      median: Math.round(median),
+      p25: Math.round(p25),
+      p75: Math.round(p75),
+      recommendedPerSqft: Math.round(median), // Default to median
+    });
+  };
+
+  const handleApplyToFinance = () => {
+    console.log(`Applying £${stats.recommendedPerSqft} per sqft to finance for project ${projectId}`);
+    // In a real app, this would dispatch an action or call an API to update the project's finance settings.
+  };
+
+  const handleSettingsChange = (field: keyof CompSettings, value: any) => {
+    setSettings({ ...settings, [field]: value });
+    recomputeStats();
+  };
+
+  return (
+    <div className=" Comparables-container p-4 border rounded-lg shadow-sm bg-white">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">Market Evidence</h3>
+        <div className="flex space-x-2">
+          <button onClick={addComp} className="btn-secondary">Add Comp</button>
+          <button onClick={() => setComps([])} className="btn-ghost">Clear Comps</button>
+          <button onClick={recomputeStats} className="btn-secondary">Recompute Stats</button>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Postcode Context</label>
+        <input
+          type="text"
+          value={postcode}
+          onChange={(e) => setPostcode(e.target.value)}
+          placeholder="Enter postcode"
+          className="input-field w-full md:w-1/2"
+        />
+      </div>
+
+      {/* Comps Table */}
+      <div className="overflow-x-auto mb-6">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+              <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beds</th>
+              <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+              <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+              <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">GIA sqft</th>
+              <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">£ / sqft</th>
+              <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {comps.map((comp) => (
+              <tr key={comp.id}>
+                <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <input
+                    type="text"
+                    value={comp.address}
+                    onChange={(e) => updateComp(comp.id, 'address', e.target.value)}
+                    className="input-field-sm"
+                  />
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                  <input
+                    type="number"
+                    value={comp.beds ?? ''}
+                    onChange={(e) => updateComp(comp.id, 'beds', e.target.value === '' ? null : parseInt(e.target.value, 10))}
+                    className="input-field-sm"
+                  />
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                  <select
+                    value={comp.propertyType}
+                    onChange={(e) => updateComp(comp.id, 'propertyType', e.target.value as PropertyType)}
+                    className="input-field-sm"
+                  >
+                    <option value="detached">Detached</option>
+                    <option value="semi-detached">Semi-detached</option>
+                    <option value="terraced">Terraced</option>
+                    <option value="flat">Flat</option>
+                    <option value="bungalow">Bungalow</option>
+                    <option value="other">Other</option>
+                  </select>
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                  <input
+                    type="text" // Using text for YYYY-MM format as requested for display
+                    value={formatMonthYear(comp.date)}
+                    onChange={(e) => {
+                      const dateStr = e.target.value;
+                      if (/^\d{4}-\d{2}$/.test(dateStr)) {
+                        // Attempt to create a valid ISO date string
+                        const newDate = new Date(`${dateStr}-01T00:00:00.000Z`);
+                        if (!isNaN(newDate.getTime())) {
+                          updateComp(comp.id, 'date', newDate.toISOString());
+                        } else {
+                           // Handle invalid date input, maybe revert or show error
+                           console.error("Invalid date format input");
+                        }
+                      } else {
+                         console.error("Invalid date format input");
+                      }
+                    }}
+                    placeholder="YYYY-MM"
+                    className="input-field-sm w-24"
+                  />
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                  <input
+                    type="number"
+                    value={comp.priceGBP}
+                    onChange={(e) => updateComp(comp.id, 'priceGBP', parseInt(e.target.value, 10))}
+                    className="input-field-sm"
+                  />
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                  <input
+                    type="number"
+                    value={comp.giaSqft}
+                    onChange={(e) => updateComp(comp.id, 'giaSqft', parseInt(e.target.value, 10))}
+                    className="input-field-sm"
+                  />
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-green-600">
+                  {comp.pricePerSqft !== undefined ? formatCurrency(comp.pricePerSqft) : 'N/A'}
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                  <button onClick={() => deleteComp(comp.id)} className="text-red-600 hover:text-red-900">Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Settings and Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Settings */}
+        <div className="col-span-1 lg:col-span-2">
+          <h4 className="text-md font-semibold text-gray-900 mb-3">Settings</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Include Last Months</label>
+              <input
+                type="number"
+                value={settings.includeMonths}
+                onChange={(e) => handleSettingsChange('includeMonths', parseInt(e.target.value, 10))}
+                className="input-field"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Min Beds</label>
+              <input
+                type="number"
+                value={settings.minBeds ?? ''}
+                onChange={(e) => handleSettingsChange('minBeds', e.target.value === '' ? null : parseInt(e.target.value, 10))}
+                placeholder="Any"
+                className="input-field"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Max Beds</label>
+              <input
+                type="number"
+                value={settings.maxBeds ?? ''}
+                onChange={(e) => handleSettingsChange('maxBeds', e.target.value === '' ? null : parseInt(e.target.value, 10))}
+                placeholder="Any"
+                className="input-field"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">IQR Multiplier (k)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={settings.iqrK}
+                onChange={(e) => handleSettingsChange('iqrK', parseFloat(e.target.value))}
+                className="input-field"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="bg-blue-50 border border-blue-200 p-4 rounded-md shadow-inner">
+          <h4 className="text-md font-semibold text-blue-800 mb-3">Stats</h4>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Comps Used:</span>
+              <span className="font-medium">{stats.countUsed}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Median £/sqft:</span>
+              <span className="font-medium">{formatCurrency(stats.median)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">P25 £/sqft:</span>
+              <span className="font-medium">{formatCurrency(stats.p25)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">P75 £/sqft:</span>
+              <span className="font-medium">{formatCurrency(stats.p75)}</span>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Recommended £/sqft</label>
+            <input
+              type="number"
+              value={stats.recommendedPerSqft}
+              onChange={(e) => setStats({ ...stats, recommendedPerSqft: parseInt(e.target.value, 10) })}
+              className="input-field-lg w-full text-center font-bold"
+            />
+          </div>
+          <button
+            onClick={handleApplyToFinance}
+            disabled={stats.countUsed === 0}
+            className="mt-4 btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Apply to Finance
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 type TabType = 'survey' | 'layout' | 'finance' | 'offer';
 
@@ -14,6 +415,43 @@ export const Sidebar: React.FC = () => {
   const [feesPercent, setFeesPercent] = useState('');
   const [contingencyPercent, setContingencyPercent] = useState('');
   const [profitPercent, setProfitPercent] = useState('');
+
+  // Mock current project data
+  const currentProject: Project | null = {
+    id: 'current-project-123',
+    compsPostcode: 'SW1A 0AA',
+    comps: [
+      {
+        id: 'comp-1',
+        address: '10 Downing Street',
+        postcode: 'SW1A 2AA',
+        beds: 5,
+        propertyType: 'detached',
+        date: '2023-01-15T00:00:00.000Z',
+        priceGBP: 5000000,
+        giaSqft: 5000,
+        pricePerSqft: 1000,
+      },
+      {
+        id: 'comp-2',
+        address: '1 Parliament Street',
+        postcode: 'SW1A 2AA',
+        beds: 4,
+        propertyType: 'terraced',
+        date: '2023-03-20T00:00:00.000Z',
+        priceGBP: 1500000,
+        giaSqft: 1500,
+        pricePerSqft: 1000,
+      },
+    ],
+    compSettings: {
+      includeMonths: 18,
+      minBeds: 3,
+      maxBeds: 5,
+      iqrK: 1.5,
+    },
+  };
+
 
   const tabs = [
     { id: 'survey', label: 'Survey', icon: '📍' },
@@ -59,7 +497,7 @@ export const Sidebar: React.FC = () => {
               >
                 {isGPSActive ? 'Stop GPS' : 'Start GPS'}
               </button>
-              
+
               <button onClick={handleAddObstacle} className="btn-ghost w-full">
                 Add Obstacle
               </button>
@@ -181,16 +619,21 @@ export const Sidebar: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 gap-4">
               <div className="kpi-card">
                 <div className="kpi-label">GDV</div>
                 <div className="kpi-value">£2.4M</div>
               </div>
-              
               <div className="kpi-card">
-                <div className="kpi-label">Residual Land Value</div>
-                <div className="kpi-value">£480K</div>
+                <div className="kpi-label">Residual</div>
+                <div className="kpi-value text-green-600">£480K</div>
               </div>
+            </div>
+
+            {/* Comparables Section */}
+            <div className="border-t pt-6">
+              {currentProject && <Comparables projectId={currentProject.id} />}
             </div>
           </div>
         );
