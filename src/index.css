@@ -8,14 +8,13 @@ html, body, #root {
 }
 
 body {
-  @apply font-sans bg-slate-900 text-white;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  @apply font-sans bg-black text-white;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* App shell */
 .app-shell {
-  @apply min-h-screen pb-20; /* space for bottom nav */
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  @apply min-h-screen pb-20 bg-black; /* space for bottom nav */
 }
 
 .container {
@@ -23,11 +22,11 @@ body {
 }
 
 .card {
-  @apply bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl;
+  @apply bg-dark-950 rounded-2xl border border-dark-800 shadow-card hover:shadow-hover transition-all duration-300;
 }
 
 .card-header {
-  @apply px-6 pt-6 pb-4 border-b border-slate-700 flex items-center gap-3;
+  @apply px-6 pt-6 pb-4 border-b border-dark-800 flex items-center gap-3;
 }
 
 .card-title {
@@ -39,28 +38,28 @@ body {
 }
 
 .btn {
-  @apply bg-sky-500 text-white rounded-xl px-4 py-2 hover:bg-sky-600 inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 shadow-lg hover:shadow-xl;
+  @apply bg-primary-500 text-white rounded-2xl px-6 py-3 hover:bg-primary-600 inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 shadow-md hover:shadow-lg;
 }
 
 .btn-ghost {
-  @apply bg-transparent border border-slate-700 text-slate-200 hover:bg-slate-800/60 rounded-xl px-4 py-2 inline-flex items-center justify-center gap-2 transition-all duration-200;
+  @apply bg-transparent border border-dark-700 text-dark-300 hover:bg-dark-800/60 rounded-2xl px-6 py-3 inline-flex items-center justify-center gap-2 transition-all duration-200 font-semibold;
 }
 
 .input, .select {
-  @apply bg-slate-900/60 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:ring-2 focus:ring-sky-500 focus:outline-none focus:border-sky-500 w-full transition-all duration-200;
+  @apply bg-dark-900/80 border border-dark-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary-500 focus:outline-none focus:border-primary-500 w-full transition-all duration-200;
 }
 
 .label {
-  @apply text-slate-300 text-sm mb-1 block font-medium;
+  @apply text-dark-300 text-sm mb-2 block font-semibold;
 }
 
 .kpi {
-  @apply text-2xl font-semibold text-sky-300;
+  @apply text-2xl font-bold text-primary-400;
 }
 
 /* Bottom nav */
 .bottom-nav {
-  @apply fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-800;
+  @apply fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur border-t border-dark-800;
 }
 
 .bottom-nav ul {
@@ -68,16 +67,16 @@ body {
 }
 
 .bottom-nav button {
-  @apply flex flex-col items-center justify-center py-2 text-slate-400 hover:text-white transition;
+  @apply flex flex-col items-center justify-center py-3 text-dark-400 hover:text-white transition-colors duration-200;
 }
 
 .bottom-nav .active {
-  @apply text-sky-400;
+  @apply text-primary-400;
 }
 
 /* Additional utility classes */
 .text-muted {
-  @apply text-slate-400;
+  @apply text-dark-400;
 }
 
 .bg-success {
@@ -90,4 +89,26 @@ body {
 
 .bg-danger {
   @apply bg-red-500/20 text-red-400;
+}
+
+/* KPI Cards */
+.kpi-card {
+  @apply bg-dark-900/50 border border-dark-700 rounded-xl p-4 text-center;
+}
+
+.kpi-label {
+  @apply text-dark-400 text-sm font-medium mb-1;
+}
+
+.kpi-value {
+  @apply text-white text-xl font-bold;
+}
+
+/* Input field styles */
+.input-field {
+  @apply bg-dark-900/80 border border-dark-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary-500 focus:outline-none focus:border-primary-500 transition-all duration-200;
+}
+
+.input-field-lg {
+  @apply bg-dark-900/80 border border-dark-700 rounded-xl px-6 py-4 text-white focus:ring-2 focus:ring-primary-500 focus:outline-none focus:border-primary-500 transition-all duration-200 text-lg;
 }
