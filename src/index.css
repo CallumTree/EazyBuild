@@ -8,13 +8,13 @@ html, body, #root {
 }
 
 body {
-  @apply font-sans bg-black text-white;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  @apply font-sans bg-slate-900 text-white;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* App shell */
 .app-shell {
-  @apply min-h-screen pb-20 bg-black; /* space for bottom nav */
+  @apply min-h-screen pb-20 bg-slate-900; /* space for bottom nav */
 }
 
 .container {
@@ -22,11 +22,11 @@ body {
 }
 
 .card {
-  @apply bg-dark-950 rounded-2xl border border-dark-800 shadow-card hover:shadow-hover transition-all duration-300;
+  @apply bg-slate-800 rounded-2xl border border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300;
 }
 
 .card-header {
-  @apply px-6 pt-6 pb-4 border-b border-dark-800 flex items-center gap-3;
+  @apply px-6 pt-6 pb-4 border-b border-slate-700 flex items-center gap-3;
 }
 
 .card-title {
@@ -38,40 +38,40 @@ body {
 }
 
 .btn {
-  @apply bg-primary-500 text-white rounded-2xl px-6 py-3 hover:bg-primary-600 inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 shadow-md hover:shadow-lg;
+  @apply bg-emerald-500 text-white rounded-2xl px-6 py-3 hover:bg-emerald-600 inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 shadow-md hover:shadow-lg;
 }
 
 .btn-ghost {
-  @apply bg-transparent border border-dark-700 text-dark-300 hover:bg-dark-800/60 rounded-2xl px-6 py-3 inline-flex items-center justify-center gap-2 transition-all duration-200 font-semibold;
+  @apply bg-transparent border border-slate-600 text-slate-300 hover:bg-slate-700/60 rounded-2xl px-6 py-3 inline-flex items-center justify-center gap-2 transition-all duration-200 font-semibold;
 }
 
 .input, .select {
-  @apply bg-dark-900/80 border border-dark-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary-500 focus:outline-none focus:border-primary-500 w-full transition-all duration-200;
+  @apply bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none focus:border-emerald-500 w-full transition-all duration-200;
 }
 
 .label {
-  @apply text-dark-300 text-sm mb-2 block font-semibold;
+  @apply text-slate-300 text-sm mb-2 block font-semibold;
 }
 
 .kpi {
-  @apply text-2xl font-bold text-primary-400;
+  @apply text-2xl font-bold text-emerald-400;
 }
 
 /* Bottom nav */
 .bottom-nav {
-  @apply fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur border-t border-dark-800;
+  @apply fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-800;
 }
 
 .bottom-nav ul {
-  @apply grid grid-cols-5 max-w-md mx-auto;
+  @apply grid grid-cols-5 max-w-md mx-auto px-2;
 }
 
 .bottom-nav button {
-  @apply flex flex-col items-center justify-center py-3 text-dark-400 hover:text-white transition-colors duration-200;
+  @apply flex flex-col items-center justify-center py-2 text-slate-400 hover:text-white transition;
 }
 
 .bottom-nav .active {
-  @apply text-primary-400;
+  @apply text-emerald-400;
 }
 
 /* Additional utility classes */

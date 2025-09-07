@@ -4,6 +4,7 @@ import { Home, Map, LayoutGrid, PoundSterling, FileText } from "lucide-react";
 import "./index.css";
 
 function HomePage() {
+  const navigate = useNavigate();
   return (
     <div className="container py-8 space-y-8">
       <div className="card">
@@ -19,14 +20,14 @@ function HomePage() {
             Quick feasibility assessment for UK property developers (2-15 units). Draw your site, test a unit mix, and generate a lender-ready PDF appraisal.
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
-            <a href="/survey" className="btn">
+            <button onClick={() => navigate("/survey")} className="btn">
               <span>📍</span>
               Start Survey
-            </a>
-            <a href="/offer" className="btn-ghost">
+            </button>
+            <button onClick={() => navigate("/offer")} className="btn-ghost">
               <span>📄</span>
               View Offer Pack
-            </a>
+            </button>
           </div>
         </div>
       </div>
