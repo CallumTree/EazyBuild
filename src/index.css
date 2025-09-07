@@ -1,36 +1,29 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
-  height: 100%;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* {
+  box-sizing: border-box;
 }
 
 body {
-  @apply font-sans bg-slate-900 text-white;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-}
-
-/* App shell */
-.app-shell {
-  @apply min-h-screen pb-20 bg-slate-900; /* space for bottom nav */
-}
-
-.container {
-  @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  @apply bg-slate-900 text-white;
 }
 
 .card {
-  @apply bg-slate-800 rounded-2xl border border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300;
+  @apply bg-slate-800 rounded-2xl border border-slate-700 shadow-lg;
 }
 
 .card-header {
-  @apply px-6 pt-6 pb-4 border-b border-slate-700 flex items-center gap-3;
-}
-
-.card-title {
-  @apply text-xl font-semibold text-white;
+  @apply p-6 border-b border-slate-700;
 }
 
 .card-body {
@@ -38,23 +31,23 @@ body {
 }
 
 .btn {
-  @apply bg-emerald-500 text-white rounded-2xl px-6 py-3 hover:bg-emerald-600 inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 shadow-md hover:shadow-lg;
+  @apply bg-sky-500 text-white rounded-xl px-4 py-2 hover:bg-sky-600 transition-colors font-medium;
 }
 
 .btn-ghost {
-  @apply bg-transparent border border-slate-600 text-slate-300 hover:bg-slate-700/60 rounded-2xl px-6 py-3 inline-flex items-center justify-center gap-2 transition-all duration-200 font-semibold;
+  @apply bg-transparent border border-slate-700 text-slate-200 rounded-xl px-4 py-2 hover:bg-slate-800/60 transition-colors font-medium;
 }
 
 .input, .select {
-  @apply bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none focus:border-emerald-500 w-full transition-all duration-200;
+  @apply bg-slate-900/60 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition;
 }
 
 .label {
-  @apply text-slate-300 text-sm mb-2 block font-semibold;
+  @apply text-slate-300 text-sm mb-1 block font-medium;
 }
 
 .kpi {
-  @apply text-2xl font-bold text-emerald-400;
+  @apply text-2xl font-semibold text-sky-300;
 }
 
 /* Bottom nav */
@@ -71,61 +64,5 @@ body {
 }
 
 .bottom-nav .active {
-  @apply text-emerald-400;
-}
-
-/* Bottom nav */
-.bottom-nav {
-  @apply fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-800;
-}
-
-.bottom-nav ul {
-  @apply grid grid-cols-5 max-w-md mx-auto px-2;
-}
-
-.bottom-nav button {
-  @apply flex flex-col items-center justify-center py-2 text-slate-400 hover:text-white transition;
-}
-
-.bottom-nav .active {
-  @apply text-emerald-400;
-}
-
-/* Additional utility classes */
-.text-muted {
-  @apply text-dark-400;
-}
-
-.bg-success {
-  @apply bg-emerald-500/20 text-emerald-400;
-}
-
-.bg-warning {
-  @apply bg-amber-500/20 text-amber-400;
-}
-
-.bg-danger {
-  @apply bg-red-500/20 text-red-400;
-}
-
-/* KPI Cards */
-.kpi-card {
-  @apply bg-dark-900/50 border border-dark-700 rounded-xl p-4 text-center;
-}
-
-.kpi-label {
-  @apply text-dark-400 text-sm font-medium mb-1;
-}
-
-.kpi-value {
-  @apply text-white text-xl font-bold;
-}
-
-/* Input field styles */
-.input-field {
-  @apply bg-dark-900/80 border border-dark-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary-500 focus:outline-none focus:border-primary-500 transition-all duration-200;
-}
-
-.input-field-lg {
-  @apply bg-dark-900/80 border border-dark-700 rounded-xl px-6 py-4 text-white focus:ring-2 focus:ring-primary-500 focus:outline-none focus:border-primary-500 transition-all duration-200 text-lg;
+  @apply text-sky-400;
 }
