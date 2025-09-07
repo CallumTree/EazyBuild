@@ -5,16 +5,16 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "Arial", "sans-serif"],
+        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
       },
       colors: {
         brand: {
           50: "#ecfdf5",
-          100: "#d1fae5",
+          100: "#d1fae5", 
           200: "#a7f3d0",
           300: "#6ee7b7",
           400: "#34d399",
-          500: "#10b981",   // primary
+          500: "#10b981",   // primary emerald
           600: "#059669",
           700: "#047857",
           800: "#065f46",
@@ -22,11 +22,11 @@ export default {
         }
       },
       boxShadow: {
-        card: "0 8px 24px rgba(0,0,0,0.08)",
+        card: "0 10px 25px rgba(0,0,0,0.15)",
       },
       borderRadius: {
-        xl: "14px",
-        "2xl": "18px",
+        xl: "12px",
+        "2xl": "16px",
       }
     },
   },
