@@ -1,6 +1,5 @@
 
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
-import { Home, Map, LayoutGrid, PoundSterling, FileText } from "lucide-react";
 import "./index.css";
 
 function HomePage() {
@@ -228,12 +227,12 @@ function BottomNav() {
   const nav = useNavigate();
   const { pathname } = useLocation();
   
-  const item = (path: string, Icon: any, label: string) => (
+  const item = (path: string, icon: string, label: string) => (
     <button 
       onClick={() => nav(path)} 
       className={`${pathname === path ? "active" : ""} flex flex-col items-center justify-center py-2 text-slate-400 hover:text-white transition`}
     >
-      <Icon size={20} strokeWidth={1.5} />
+      <span className="text-lg">{icon}</span>
       <span className="text-xs mt-1 font-medium">{label}</span>
     </button>
   );
@@ -242,11 +241,11 @@ function BottomNav() {
     <nav className="bottom-nav">
       <ul className="px-2">
         <li className="contents">
-          {item("/", Home, "Home")}
-          {item("/survey", Map, "Survey")}
-          {item("/layout", LayoutGrid, "Layout")}
-          {item("/finance", PoundSterling, "Finance")}
-          {item("/offer", FileText, "Offer")}
+          {item("/", "🏠", "Home")}
+          {item("/survey", "🗺️", "Survey")}
+          {item("/layout", "🏗️", "Layout")}
+          {item("/finance", "💰", "Finance")}
+          {item("/offer", "📄", "Offer")}
         </li>
       </ul>
     </nav>
