@@ -1,9 +1,11 @@
 
 import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { HomePage } from "./pages/HomePage";
+import { ProjectPage } from "./pages/ProjectPage";
 import "./index.css";
 
-function HomePage() {
+function WelcomePage() {
   const nav = useNavigate();
   
   return (
@@ -283,6 +285,8 @@ export default function App() {
       <div className="min-h-screen bg-slate-900 text-white">
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/welcome" element={<WelcomePage />} />
+          <Route path="/project/:id" element={<ProjectPage />} />
           <Route path="/survey" element={<SurveyPage />} />
           <Route path="/layout" element={<LayoutPage />} />
           <Route path="/finance" element={<FinancePage />} />
