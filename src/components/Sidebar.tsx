@@ -415,6 +415,63 @@ export const Sidebar: React.FC = () => {
   const [feesPercent, setFeesPercent] = useState('');
   const [contingencyPercent, setContingencyPercent] = useState('');
   const [profitPercent, setProfitPercent] = useState('');
+  
+  // Mock data - in real app this would come from project store
+  const estimatedUnits = 12;
+  const avgUnitSize = 1200; // square feet
+  const totalFloorArea = estimatedUnits * avgUnitSize;
+  
+  // Calculate live totals
+  const calculateTotals = () => {
+    const price = parseFloat(pricePerSqft) || 0;
+    const buildCost = parseFloat(buildCostPerSqft) || 0;
+    const fees = parseFloat(feesPercent) || 0;
+    const contingency = parseFloat(contingencyPercent) || 0;
+    const profit = parseFloat(profitPercent) || 0;
+    
+    // Calculate GDV (Gross Development Value)
+    const gdv = price * totalFloorArea;
+    
+    // Calculate total build costs
+    const totalBuildCosts = buildCost * totalFloorArea;
+    
+    // Calculate fees as percentage of build costs
+    const totalFees = (totalBuildCosts * fees) / 100;
+    
+    // Calculate contingency as percentage of build costs
+    const totalContingency = (totalBuildCosts * contingency) / 100;
+    
+    // Calculate total costs
+    const totalCosts = totalBuildCosts + totalFees + totalContingency;
+    
+    // Calculate profit
+    const totalProfit = (gdv * profit) / 100;
+    
+    // Calculate residual land value
+    const residual = gdv - totalCosts - totalProfit;
+    
+    return {
+      gdv,
+      totalBuildCosts,
+      totalFees,
+      totalContingency,
+      totalProfit,
+      residual,
+      totalCosts
+    };
+  };
+  
+  const totals = calculateTotals();
+  
+  const formatCurrency = (amount: number): string => {
+    if (amount >= 1000000) {
+      return `£${(amount / 1000000).toFixed(1)}M`;
+    } else if (amount >= 1000) {
+      return `£${(amount / 1000).toFixed(0)}K`;
+    } else {
+      return `£${amount.toFixed(0)}`;
+    }
+  };
 
   // Mock current project data
   const currentProject: Project | null = {
@@ -619,15 +676,53 @@ export const Sidebar: React.FC = () => {
               </div>
             </div>
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="kpi-card">
-                <div className="kpi-label">GDV</div>
-                <div className="kpi-value">£2.4M</div>
+            {/* KPI Cards - Live Calculations */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="kpi-card">
+                  <div className="kpi-label">GDV</div>
+                  <div className="kpi-value text-primary-400">{formatCurrency(totals.gdv)}</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-label">Residual</div>
+                  <div className={`kpi-value ${totals.residual > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {formatCurrency(totals.residual)}
+                  </div>
+                </div>
               </div>
-              <div className="kpi-card">
-                <div className="kpi-label">Residual</div>
-                <div className="kpi-value text-green-600">£480K</div>
+              
+              {/* Additional KPIs */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="kpi-card">
+                  <div className="kpi-label">Build Costs</div>
+                  <div className="kpi-value">{formatCurrency(totals.totalBuildCosts)}</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-label">Total Profit</div>
+                  <div className="kpi-value text-primary-400">{formatCurrency(totals.totalProfit)}</div>
+                </div>
+              </div>
+              
+              {/* Project Details */}
+              <div className="bg-dark-800/50 rounded-xl p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-dark-300">Units:</span>
+                  <span className="font-semibold">{estimatedUnits}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-dark-300">Avg Unit Size:</span>
+                  <span className="font-semibold">{avgUnitSize.toLocaleString()} sqft</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-dark-300">Total Floor Area:</span>
+                  <span className="font-semibold">{totalFloorArea.toLocaleString()} sqft</span>
+                </div>
+                <div className="flex justify-between text-sm border-t border-dark-700 pt-2">
+                  <span className="text-dark-300">Profit Margin:</span>
+                  <span className={`font-semibold ${totals.gdv > 0 ? (totals.totalProfit / totals.gdv * 100 >= 20 ? 'text-emerald-400' : 'text-amber-400') : 'text-dark-400'}`}>
+                    {totals.gdv > 0 ? `${(totals.totalProfit / totals.gdv * 100).toFixed(1)}%` : '0%'}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -654,11 +749,13 @@ export const Sidebar: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">GDV:</span>
-                  <span className="font-medium">£2.4M</span>
+                  <span className="font-medium">{formatCurrency(totals.gdv)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Residual Land Value:</span>
-                  <span className="font-medium text-green-600">£480K</span>
+                  <span className={`font-medium ${totals.residual > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {formatCurrency(totals.residual)}
+                  </span>
                 </div>
               </div>
             </div>
