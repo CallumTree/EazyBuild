@@ -1,11 +1,38 @@
 
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { Home, Map, LayoutGrid, PoundSterling, FileText } from "lucide-react";
-import { HomePage } from "./pages/HomePage";
-import { MapPage } from "./pages/MapPage";
-import { ProjectPage } from "./pages/ProjectPage";
-import { FinancePage } from "./pages/FinancePage";
 import "./index.css";
+
+function HomePage() {
+  return (
+    <div className="container py-8 space-y-8">
+      <div className="card">
+        <div className="card-header">
+          <span className="text-3xl">🏗️</span>
+          <div>
+            <h1 className="card-title text-2xl">Welcome to LandSnap</h1>
+            <p className="text-slate-400 mt-1">Property development made simple</p>
+          </div>
+        </div>
+        <div className="card-body space-y-6">
+          <p className="text-slate-300 leading-relaxed">
+            Quick feasibility assessment for UK property developers (2-15 units). Draw your site, test a unit mix, and generate a lender-ready PDF appraisal.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <a href="/survey" className="btn">
+              <span>📍</span>
+              Start Survey
+            </a>
+            <a href="/offer" className="btn-ghost">
+              <span>📄</span>
+              View Offer Pack
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function SurveyPage() {
   return (
@@ -29,15 +56,10 @@ function SurveyPage() {
               <input className="input" type="number" defaultValue={65}/>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <button className="btn flex-1 sm:flex-none">
-              <span>💾</span>
-              Save & Continue
-            </button>
-            <a href="/layout" className="btn-ghost flex-1 sm:flex-none text-center">
-              Go to Layout
-            </a>
-          </div>
+          <button className="btn">
+            <span>💾</span>
+            Save & Continue
+          </button>
         </div>
       </div>
     </div>
@@ -53,34 +75,39 @@ function LayoutPage() {
           <h2 className="card-title">Unit Mix & Layout</h2>
         </div>
         <div className="card-body space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <label className="label">House Type</label>
-              <select className="select">
-                <option>4-bed detached</option>
-                <option>3-bed detached</option>
-                <option>3-bed semi</option>
-                <option>2-bed semi</option>
-              </select>
-            </div>
-            <div>
-              <label className="label">Count</label>
-              <input className="input" type="number" defaultValue={4}/>
-            </div>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <label className="label">Floor area (m²)</label>
-              <input className="input" type="number" defaultValue={120}/>
-            </div>
-            <div>
-              <label className="label">GDV per unit (£)</label>
-              <input className="input" type="number" defaultValue={350000}/>
-            </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-700">
+                  <th className="text-left py-3 px-4 text-slate-300">House Type</th>
+                  <th className="text-left py-3 px-4 text-slate-300">Count</th>
+                  <th className="text-left py-3 px-4 text-slate-300">Floor area (m²)</th>
+                  <th className="text-left py-3 px-4 text-slate-300">GDV per unit (£)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-slate-700/50">
+                  <td className="py-3 px-4">4-bed detached</td>
+                  <td className="py-3 px-4">
+                    <input className="input w-20" type="number" defaultValue={2}/>
+                  </td>
+                  <td className="py-3 px-4">120</td>
+                  <td className="py-3 px-4">£350,000</td>
+                </tr>
+                <tr className="border-b border-slate-700/50">
+                  <td className="py-3 px-4">3-bed semi</td>
+                  <td className="py-3 px-4">
+                    <input className="input w-20" type="number" defaultValue={4}/>
+                  </td>
+                  <td className="py-3 px-4">95</td>
+                  <td className="py-3 px-4">£280,000</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
           <button className="btn">
             <span>➕</span>
-            Add to Mix
+            Add House Type
           </button>
         </div>
       </div>
@@ -88,7 +115,7 @@ function LayoutPage() {
   );
 }
 
-function ModernFinancePage() {
+function FinancePage() {
   return (
     <div className="container py-8 space-y-8">
       <div className="card">
@@ -99,10 +126,6 @@ function ModernFinancePage() {
         <div className="card-body space-y-6">
           <div className="grid md:grid-cols-3 gap-6">
             <div>
-              <label className="label">Build cost £/m²</label>
-              <input className="input" type="number" defaultValue={1650}/>
-            </div>
-            <div>
               <label className="label">Fees %</label>
               <input className="input" type="number" defaultValue={5}/>
             </div>
@@ -110,20 +133,51 @@ function ModernFinancePage() {
               <label className="label">Contingency %</label>
               <input className="input" type="number" defaultValue={10}/>
             </div>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <label className="label">Land acquisition costs (£)</label>
+              <label className="label">Target Profit %</label>
+              <input className="input" type="number" defaultValue={20}/>
+            </div>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div>
+              <label className="label">Land Acquisition Costs (£)</label>
               <input className="input" type="number" defaultValue={25000}/>
             </div>
             <div>
-              <label className="label">Finance rate %</label>
+              <label className="label">Finance Rate %</label>
               <input className="input" type="number" defaultValue={8.5}/>
             </div>
+            <div>
+              <label className="label">Finance Duration (months)</label>
+              <input className="input" type="number" defaultValue={18}/>
+            </div>
           </div>
-          <div className="mt-8 p-6 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
-            <div className="text-slate-300 mb-3 font-medium">Residual Land Value</div>
-            <div className="kpi">£480,000</div>
+        </div>
+      </div>
+      
+      <div className="card">
+        <div className="card-header">
+          <span className="text-2xl">📊</span>
+          <h2 className="card-title">Development Appraisal</h2>
+        </div>
+        <div className="card-body">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="p-4 bg-sky-500/10 rounded-xl border border-sky-500/20">
+              <div className="text-slate-300 mb-2 text-sm">GDV</div>
+              <div className="kpi">£1,820,000</div>
+            </div>
+            <div className="p-4 bg-amber-500/10 rounded-xl border border-amber-500/20">
+              <div className="text-slate-300 mb-2 text-sm">Build Cost</div>
+              <div className="kpi text-amber-300">£945,000</div>
+            </div>
+            <div className="p-4 bg-red-500/10 rounded-xl border border-red-500/20">
+              <div className="text-slate-300 mb-2 text-sm">Finance Cost</div>
+              <div className="kpi text-red-300">£95,000</div>
+            </div>
+            <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+              <div className="text-slate-300 mb-2 text-sm">Residual Land Value</div>
+              <div className="kpi text-emerald-300">£416,000</div>
+            </div>
           </div>
         </div>
       </div>
@@ -146,77 +200,22 @@ function OfferPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <div className="p-4 bg-slate-700/50 rounded-xl">
               <div className="text-sm text-slate-400 mb-2">Total GDV</div>
-              <div className="text-2xl font-bold text-emerald-400">£1,400,000</div>
+              <div className="text-2xl font-bold text-sky-400">£1,820,000</div>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-xl">
-              <div className="text-sm text-slate-400 mb-2">Total Build Cost</div>
-              <div className="text-2xl font-bold text-amber-400">£792,000</div>
+              <div className="text-sm text-slate-400 mb-2">Residual Land Value</div>
+              <div className="text-2xl font-bold text-emerald-400">£416,000</div>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
-            <button className="btn flex-1 sm:flex-none">
+            <button className="btn">
               <span>📄</span>
               Export PDF
             </button>
-            <button className="btn-ghost flex-1 sm:flex-none">
+            <button className="btn-ghost">
               <span>👁️</span>
               Preview
             </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ModernHomePage() {
-  return (
-    <div className="container py-8 space-y-8">
-      <div className="card">
-        <div className="card-header">
-          <span className="text-3xl">🏗️</span>
-          <div>
-            <h1 className="card-title text-2xl">Welcome to LandSnap</h1>
-            <p className="text-slate-400 mt-1">Property development made simple</p>
-          </div>
-        </div>
-        <div className="card-body space-y-6">
-          <p className="text-slate-300 leading-relaxed">
-            Quick feasibility assessment for UK property developers (2-15 units). Draw your site, test a unit mix, and generate a lender-ready PDF appraisal.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <a href="/survey" className="btn flex-1 sm:flex-none">
-              <span>📍</span>
-              Start a Survey
-            </a>
-            <a href="/offer" className="btn-ghost flex-1 sm:flex-none">
-              <span>📄</span>
-              View Offer Packs
-            </a>
-          </div>
-        </div>
-      </div>
-      
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="card">
-          <div className="card-body">
-            <h3 className="font-semibold mb-4 text-lg">Recent Projects</h3>
-            <p className="text-slate-400">No projects yet. Create your first project above.</p>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-body">
-            <h3 className="font-semibold mb-4 text-lg">Quick Stats</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-slate-300">Total projects:</span>
-                <span className="font-medium">0</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-300">Avg. margin:</span>
-                <span className="font-medium">N/A</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -257,13 +256,11 @@ function Shell() {
   return (
     <div className="app-shell">
       <Routes>
-        <Route path="/" element={<ModernHomePage/>} />
+        <Route path="/" element={<HomePage/>} />
         <Route path="/survey" element={<SurveyPage/>} />
         <Route path="/layout" element={<LayoutPage/>} />
-        <Route path="/finance" element={<ModernFinancePage/>} />
+        <Route path="/finance" element={<FinancePage/>} />
         <Route path="/offer" element={<OfferPage/>} />
-        <Route path="/project/:id" element={<ProjectPage/>} />
-        <Route path="/project/:id/map" element={<MapPage/>} />
       </Routes>
       <BottomNav />
     </div>
