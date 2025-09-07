@@ -772,17 +772,17 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col">
+    <aside className="w-80 bg-dark-950 border-r border-dark-800 flex flex-col">
       {/* Tab buttons */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-dark-800">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as TabType)}
-            className={`flex-1 px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`flex-1 px-3 py-4 text-sm font-semibold border-b-2 transition-all duration-200 ${
               activeTab === tab.id
-                ? 'border-brand-primary text-brand-primary bg-white'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-primary-500 text-primary-400 bg-dark-900/50'
+                : 'border-transparent text-dark-400 hover:text-white hover:border-dark-600'
             }`}
           >
             <div className="flex flex-col items-center space-y-1">
@@ -794,7 +794,7 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 p-4 overflow-y-auto">
+      <div className="flex-1 p-6 overflow-y-auto">
         {renderTabContent()}
       </div>
     </aside>
