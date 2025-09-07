@@ -38,17 +38,19 @@ export const ProjectPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* GPS Walk Card */}
         <Link to={`/project/${id}/map`} className="block">
-          <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200">
-            <div className="text-4xl mb-4">📍</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">GPS Walk</h3>
-            <p className="text-gray-600 mb-4">
-              Walk the site perimeter to auto-draw boundary and mark obstacles
-            </p>
-            <div className="text-sm text-gray-500">
-              {currentProject.boundary ? 
-                `✅ Boundary mapped (${currentProject.boundary.length} points)` : 
-                '📍 Start mapping'
-              }
+          <div className="card hover:shadow-lg transition-all hover:border-brand-500/50">
+            <div className="card-body">
+              <div className="text-4xl mb-4">📍</div>
+              <h3 className="text-lg font-semibold mb-2">GPS Walk</h3>
+              <p className="text-slate-300 mb-4">
+                Walk the site perimeter to auto-draw boundary and mark obstacles
+              </p>
+              <div className="text-sm text-slate-400">
+                {currentProject.boundary ? 
+                  `✅ Boundary mapped (${currentProject.boundary.length} points)` : 
+                  '📍 Start mapping'
+                }
+              </div>
             </div>
           </div>
         </Link>

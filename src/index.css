@@ -1,0 +1,80 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global look */
+:root {
+  --bg: #0b1220;          /* deep slate */
+  --panel: #0f172a;       /* slate-900 */
+  --muted: #94a3b8;       /* slate-400 */
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  @apply font-sans bg-[var(--bg)] text-white;
+}
+
+/* App shell */
+.app-shell {
+  @apply min-h-screen pb-20; /* space for bottom nav */
+  background-image: radial-gradient(90rem 50rem at 10% -10%, rgba(16,185,129,0.08), transparent 40%),
+                    radial-gradient(80rem 50rem at 110% 10%, rgba(20,184,166,0.06), transparent 40%);
+}
+
+.container {
+  @apply max-w-5xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.card {
+  @apply bg-[var(--panel)] rounded-2xl shadow-card border border-slate-800;
+}
+
+.card-header {
+  @apply px-5 pt-5 pb-3 border-b border-slate-800 flex items-center gap-2;
+}
+
+.card-title {
+  @apply text-lg font-semibold;
+}
+
+.card-body {
+  @apply p-5;
+}
+
+.btn {
+  @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700 transition font-medium;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-transparent text-slate-200 hover:bg-slate-800/60 border border-slate-700 transition;
+}
+
+.input, .select {
+  @apply w-full bg-slate-900/60 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500;
+}
+
+.label {
+  @apply text-sm text-slate-300 mb-1;
+}
+
+.kpi {
+  @apply text-2xl font-semibold text-brand-300;
+}
+
+/* Bottom nav */
+.bottom-nav {
+  @apply fixed bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur border-t border-slate-800;
+}
+.bottom-nav ul {
+  @apply grid grid-cols-5 gap-1 max-w-3xl mx-auto;
+}
+.bottom-nav button {
+  @apply flex flex-col items-center justify-center py-2 text-slate-300 hover:text-white transition;
+}
+.bottom-nav .active {
+  @apply text-brand-400;
+}
