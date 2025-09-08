@@ -1,4 +1,6 @@
+
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useProjectStore } from '../store/projectStore';
 import { ProjectCard } from '../components/ProjectCard';
 
@@ -11,12 +13,12 @@ export const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="p-4 pb-20 space-y-8">
+    <div className="container py-8 space-y-8">
       <div className="card">
         <div className="card-header">
           <span className="text-3xl">🏗️</span>
           <div>
-            <h1 className="text-2xl font-bold">Your Projects</h1>
+            <h1 className="card-title text-2xl">Your Projects</h1>
             <p className="text-slate-400 mt-1">Manage your development projects</p>
           </div>
         </div>
@@ -34,14 +36,25 @@ export const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {projects.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Recent Projects</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project) => (
-              <ProjectCard key={project.id} project={project} />
-            ))}
+      {projects.length === 0 ? (
+        <div className="card">
+          <div className="card-body text-center py-16">
+            <div className="text-6xl mb-6">📍</div>
+            <h3 className="text-2xl font-semibold mb-4">No projects yet</h3>
+            <p className="text-slate-300 mb-8 max-w-md mx-auto leading-relaxed">
+              Create your first project to start assessing land feasibility
+            </p>
+            <button onClick={handleCreateProject} className="btn">
+              <span>🚀</span>
+              Get Started
+            </button>
           </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projects.map((project) => (
+            <ProjectCard key={project.id} project={project} />
+          ))}
         </div>
       )}
     </div>
