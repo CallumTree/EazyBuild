@@ -1,5 +1,16 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+// Define the structure for a house type within the unit mix
+export interface ProjectUnitMix {
+  id: string; // Unique identifier for the unit type in this project
+  name: string; // e.g., "2-bed semi", "4-bed detached"
+  beds: number;
+  footprintM2: number;
+  buildCostPerSqm: number;
+  salesValuePerSqm: number;
+  count: number; // Number of units of this type
+  // Add other relevant properties like GDV, Build Cost, Fees, etc. as needed for calculations per unit type
+}
 
 export interface Project {
   id: string;
@@ -14,6 +25,7 @@ export interface Project {
   floorAreaPerUnit?: number; // in sqm
   gdvPerUnit?: number; // in GBP
   buildCostPerSqm?: number;
+  unitMix?: ProjectUnitMix[]; // Array to hold different house types and their counts
   finance?: {
     feesPct: number;
     contPct: number;
@@ -51,6 +63,12 @@ const defaultProject: Project = {
   floorAreaPerUnit: 120,
   gdvPerUnit: 350000,
   buildCostPerSqm: 1650,
+  unitMix: [ // Default house types
+    { id: 'default-2-bed-semi', name: '2-Bed Semi', beds: 2, footprintM2: 90, buildCostPerSqm: 1500, salesValuePerSqm: 3000, count: 1 },
+    { id: 'default-3-bed-semi', name: '3-Bed Semi', beds: 3, footprintM2: 110, buildCostPerSqm: 1600, salesValuePerSqm: 3200, count: 1 },
+    { id: 'default-3-bed-detached', name: '3-Bed Detached', beds: 3, footprintM2: 130, buildCostPerSqm: 1700, salesValuePerSqm: 3400, count: 1 },
+    { id: 'default-4-bed-detached', name: '4-Bed Detached', beds: 4, footprintM2: 160, buildCostPerSqm: 1800, salesValuePerSqm: 3600, count: 1 },
+  ],
   finance: {
     feesPct: 5,
     contPct: 10,
@@ -71,10 +89,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setProjectState({ ...defaultProject, ...parsed });
+        // Ensure default unit mix is present if not saved, or merge if necessary
+        setProjectState({ ...defaultProject, ...parsed, unitMix: parsed.unitMix || defaultProject.unitMix });
       } catch (e) {
         console.warn('Failed to load project from localStorage');
+        setProjectState(defaultProject); // Fallback to default if parsing fails
       }
+    } else {
+      setProjectState(defaultProject); // Set default if nothing is saved
     }
 
     const savedScenarios = localStorage.getItem('landsnap.scenarios');
@@ -95,10 +117,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProject = (updates: Partial<Project>) => {
-    const updated = { 
-      ...project, 
-      ...updates, 
-      updatedAt: new Date().toISOString() 
+    const updated = {
+      ...project,
+      ...updates,
+      updatedAt: new Date().toISOString()
     };
     setProjectState(updated);
     localStorage.setItem('landsnap.project', JSON.stringify(updated));

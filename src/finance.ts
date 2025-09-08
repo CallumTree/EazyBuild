@@ -23,16 +23,35 @@ export interface FinanceInputs {
   landAcqCosts: number;
 }
 
-export function computeTotals(project: Project, inputs: FinanceInputs): FinanceResult {
-  const units = project.estimatedUnits || 0;
-  const floorAreaPerUnit = project.floorAreaPerUnit || 0;
-  const gdvPerUnit = project.gdvPerUnit || 0;
-  const buildCostPerSqm = project.buildCostPerSqm || 0;
+export function computeTotals(project: Project, inputs: FinanceInputs, houseTypes?: any[]): FinanceResult {
+  let units = 0;
+  let totalFloorArea = 0;
+  let gdv = 0;
+  let build = 0;
 
-  // Core calculations
-  const gdv = units * gdvPerUnit;
-  const totalFloorArea = units * floorAreaPerUnit;
-  const build = totalFloorArea * buildCostPerSqm;
+  // If unitMix exists and houseTypes are provided, use those for calculations
+  if (project.unitMix && project.unitMix.length > 0 && houseTypes) {
+    project.unitMix.forEach(mix => {
+      const houseType = houseTypes.find(ht => ht.id === mix.houseTypeId);
+      if (houseType) {
+        const unitCount = mix.count;
+        units += unitCount;
+        totalFloorArea += unitCount * houseType.floorAreaSqm;
+        gdv += unitCount * (houseType.floorAreaSqm * houseType.saleValuePerSqm);
+        build += unitCount * (houseType.floorAreaSqm * houseType.buildCostPerSqm);
+      }
+    });
+  } else {
+    // Fallback to legacy single-unit calculations
+    units = project.estimatedUnits || 0;
+    const floorAreaPerUnit = project.floorAreaPerUnit || 0;
+    const gdvPerUnit = project.gdvPerUnit || 0;
+    const buildCostPerSqm = project.buildCostPerSqm || 0;
+    
+    gdv = units * gdvPerUnit;
+    totalFloorArea = units * floorAreaPerUnit;
+    build = totalFloorArea * buildCostPerSqm;
+  }
   
   const fees = (build * inputs.feesPct) / 100;
   const contingency = (build * inputs.contPct) / 100;

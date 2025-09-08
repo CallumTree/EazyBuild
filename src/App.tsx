@@ -78,12 +78,48 @@ function SurveyPage() {
 }
 
 function LayoutPage() {
-  const { project, updateProject } = useStore();
+  const { project, updateProject, houseTypes, addHouseType, addToProjectMix, updateProjectMixCount, removeFromProjectMix } = useStore();
   const { toast, showToast, hideToast } = useToast();
-  
-  const handleChange = (field: string, value: any) => {
-    updateProject({ [field]: value });
+  const [showDefaults, setShowDefaults] = useState(true);
+  const [showMyLibrary, setShowMyLibrary] = useState(true);
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [newHouseType, setNewHouseType] = useState({
+    name: '',
+    beds: 3,
+    floorAreaSqm: 120,
+    buildCostPerSqm: 1650,
+    saleValuePerSqm: 3200,
+  });
+
+  const defaultTypes = houseTypes.filter(ht => ht.isDefault);
+  const userTypes = houseTypes.filter(ht => !ht.isDefault);
+  const projectMix = project.unitMix || [];
+
+  const handleAddCustomType = () => {
+    if (!newHouseType.name.trim()) return;
+    addHouseType({ ...newHouseType, isDefault: false });
+    setNewHouseType({
+      name: '',
+      beds: 3,
+      floorAreaSqm: 120,
+      buildCostPerSqm: 1650,
+      saleValuePerSqm: 3200,
+    });
+    setShowAddCustom(false);
+    showToast('House type added to your library', 'success');
+  };
+
+  const handleCountChange = (houseTypeId: string, count: number) => {
+    if (count <= 0) {
+      removeFromProjectMix(houseTypeId);
+    } else {
+      updateProjectMixCount(houseTypeId, count);
+    }
     showToast('Autosaved', 'success');
+  };
+
+  const getTotalUnits = () => {
+    return projectMix.reduce((total, mix) => total + mix.count, 0);
   };
 
   return (
@@ -94,51 +130,182 @@ function LayoutPage() {
             <span className="text-2xl">🏠</span>
             <h2 className="card-title">Unit Mix & Layout</h2>
           </div>
-          <div className="card-body space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
+          <div className="card-body space-y-8">
+            
+            {/* Current Project Mix */}
+            {projectMix.length > 0 && (
               <div>
-                <label className="label">House Type</label>
-                <select 
-                  className="select"
-                  value={project.houseType || 'detached'}
-                  onChange={(e) => handleChange('houseType', e.target.value)}
-                >
-                  <option value="detached">4-bed detached</option>
-                  <option value="semi-detached">3-bed detached</option>
-                  <option value="terraced">3-bed semi</option>
-                  <option value="apartment">2-bed semi</option>
-                </select>
+                <h3 className="font-semibold text-lg mb-4">Current Project Mix ({getTotalUnits()} units)</h3>
+                <div className="space-y-3">
+                  {projectMix.map(mix => {
+                    const houseType = houseTypes.find(ht => ht.id === mix.houseTypeId);
+                    if (!houseType) return null;
+                    return (
+                      <div key={mix.houseTypeId} className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
+                        <div>
+                          <div className="font-medium">{houseType.name}</div>
+                          <div className="text-sm text-slate-400">
+                            {houseType.beds} beds • {houseType.floorAreaSqm}m² • £{houseType.saleValuePerSqm}/m²
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <input 
+                            className="input w-20" 
+                            type="number" 
+                            min="0"
+                            value={mix.count}
+                            onChange={(e) => handleCountChange(mix.houseTypeId, parseInt(e.target.value) || 0)}
+                          />
+                          <button 
+                            onClick={() => removeFromProjectMix(mix.houseTypeId)}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            ❌
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div>
-                <label className="label">Count</label>
-                <input 
-                  className="input" 
-                  type="number" 
-                  value={project.estimatedUnits || 4}
-                  onChange={(e) => handleChange('estimatedUnits', parseInt(e.target.value) || 4)}
-                />
-              </div>
+            )}
+
+            {/* Default House Types */}
+            <div>
+              <button 
+                onClick={() => setShowDefaults(!showDefaults)}
+                className="flex items-center gap-2 font-semibold text-lg mb-4 hover:text-emerald-400 transition"
+              >
+                <span>{showDefaults ? '▼' : '▶'}</span>
+                Default House Types
+              </button>
+              {showDefaults && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {defaultTypes.map(houseType => (
+                    <div key={houseType.id} className="p-4 bg-slate-700/20 rounded-xl">
+                      <div className="font-medium mb-2">{houseType.name}</div>
+                      <div className="text-sm text-slate-300 mb-3">
+                        {houseType.beds} beds • {houseType.floorAreaSqm}m² • Build: £{houseType.buildCostPerSqm}/m² • Sale: £{houseType.saleValuePerSqm}/m²
+                      </div>
+                      <button 
+                        onClick={() => addToProjectMix(houseType.id)}
+                        className="btn-ghost text-sm w-full"
+                      >
+                        ➕ Add to Project
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="label">Floor area (m²)</label>
-                <input 
-                  className="input" 
-                  type="number" 
-                  value={project.floorAreaPerUnit || 120}
-                  onChange={(e) => handleChange('floorAreaPerUnit', parseFloat(e.target.value) || 120)}
-                />
-              </div>
-              <div>
-                <label className="label">GDV per unit (£)</label>
-                <input 
-                  className="input" 
-                  type="number" 
-                  value={project.gdvPerUnit || 350000}
-                  onChange={(e) => handleChange('gdvPerUnit', parseFloat(e.target.value) || 350000)}
-                />
-              </div>
+
+            {/* User Library */}
+            <div>
+              <button 
+                onClick={() => setShowMyLibrary(!showMyLibrary)}
+                className="flex items-center gap-2 font-semibold text-lg mb-4 hover:text-emerald-400 transition"
+              >
+                <span>{showMyLibrary ? '▼' : '▶'}</span>
+                My Library ({userTypes.length})
+              </button>
+              {showMyLibrary && (
+                <div className="space-y-4">
+                  {userTypes.length === 0 ? (
+                    <p className="text-slate-400">No custom house types yet. Create your first one below.</p>
+                  ) : (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {userTypes.map(houseType => (
+                        <div key={houseType.id} className="p-4 bg-slate-700/20 rounded-xl">
+                          <div className="font-medium mb-2">{houseType.name}</div>
+                          <div className="text-sm text-slate-300 mb-3">
+                            {houseType.beds} beds • {houseType.floorAreaSqm}m² • Build: £{houseType.buildCostPerSqm}/m² • Sale: £{houseType.saleValuePerSqm}/m²
+                          </div>
+                          <button 
+                            onClick={() => addToProjectMix(houseType.id)}
+                            className="btn-ghost text-sm w-full"
+                          >
+                            ➕ Add to Project
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Add Custom Type */}
+                  {!showAddCustom ? (
+                    <button 
+                      onClick={() => setShowAddCustom(true)}
+                      className="btn w-full"
+                    >
+                      ➕ Create New House Type
+                    </button>
+                  ) : (
+                    <div className="p-4 bg-slate-700/30 rounded-xl">
+                      <h4 className="font-medium mb-4">Create New House Type</h4>
+                      <div className="grid md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="label">Name/Model</label>
+                          <input 
+                            className="input" 
+                            value={newHouseType.name}
+                            onChange={(e) => setNewHouseType(prev => ({...prev, name: e.target.value}))}
+                            placeholder="e.g., Custom 4-bed"
+                          />
+                        </div>
+                        <div>
+                          <label className="label">Bedrooms</label>
+                          <input 
+                            className="input" 
+                            type="number" 
+                            value={newHouseType.beds}
+                            onChange={(e) => setNewHouseType(prev => ({...prev, beds: parseInt(e.target.value) || 3}))}
+                          />
+                        </div>
+                        <div>
+                          <label className="label">Floor area (m²)</label>
+                          <input 
+                            className="input" 
+                            type="number" 
+                            value={newHouseType.floorAreaSqm}
+                            onChange={(e) => setNewHouseType(prev => ({...prev, floorAreaSqm: parseFloat(e.target.value) || 120}))}
+                          />
+                        </div>
+                        <div>
+                          <label className="label">Build cost £/m²</label>
+                          <input 
+                            className="input" 
+                            type="number" 
+                            value={newHouseType.buildCostPerSqm}
+                            onChange={(e) => setNewHouseType(prev => ({...prev, buildCostPerSqm: parseFloat(e.target.value) || 1650}))}
+                          />
+                        </div>
+                        <div>
+                          <label className="label">Sale value £/m²</label>
+                          <input 
+                            className="input" 
+                            type="number" 
+                            value={newHouseType.saleValuePerSqm}
+                            onChange={(e) => setNewHouseType(prev => ({...prev, saleValuePerSqm: parseFloat(e.target.value) || 3200}))}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <button onClick={handleAddCustomType} className="btn flex-1">
+                          💾 Save to Library
+                        </button>
+                        <button 
+                          onClick={() => setShowAddCustom(false)} 
+                          className="btn-ghost flex-1"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
           </div>
         </div>
       </div>
@@ -148,7 +315,7 @@ function LayoutPage() {
 }
 
 function ModernFinancePage() {
-  const { project, updateProject, duplicateScenario } = useStore();
+  const { project, updateProject, duplicateScenario, houseTypes } = useStore();
   const { toast, showToast, hideToast } = useToast();
   
   const finance = project.finance || {
@@ -160,7 +327,7 @@ function ModernFinancePage() {
     landAcqCosts: 25000,
   };
   
-  const results = computeTotals(project, finance);
+  const results = computeTotals(project, finance, houseTypes);
   
   const updateFinance = (field: keyof typeof finance, value: number) => {
     updateProject({
@@ -343,6 +510,12 @@ function ModernFinancePage() {
               <div className={`kpi ${getKPIColor(results.residual >= 0)}`}>
                 {formatCurrency(results.residual)}
               </div>
+              <div className="mt-3 text-sm text-slate-400 font-mono">
+                Formula: GDV - Build Cost - Fees - Contingency - Finance Cost - Target Profit
+              </div>
+              <div className="mt-2 text-xs text-slate-500 font-mono">
+                {formatCurrency(results.gdv)} - {formatCurrency(results.build)} - {formatCurrency(results.fees)} - {formatCurrency(results.contingency)} - {formatCurrency(results.financeCost)} - {formatCurrency(results.targetProfit)}
+              </div>
             </div>
           </div>
         </div>
@@ -391,9 +564,9 @@ function OfferPage() {
 }
 
 function ModernHomePage() {
-  const { project, scenarios } = useStore();
+  const { project, scenarios, houseTypes } = useStore();
   const finance = project.finance || { targetProfitPct: 20, feesPct: 5, contPct: 10, financeRatePct: 8.5, financeMonths: 18, landAcqCosts: 25000 };
-  const results = computeTotals(project, finance);
+  const results = computeTotals(project, finance, houseTypes);
   
   return (
     <div className="container py-8 space-y-8">
