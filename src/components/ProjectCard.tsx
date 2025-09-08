@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 interface Project {
   id: string;
   name: string;
-  status: string;
+  status: 'draft' | 'active' | 'completed';
   gdv?: number;
   units?: number;
   createdAt: Date;
@@ -16,45 +16,36 @@ interface ProjectCardProps {
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
+  const statusColors = {
+    draft: 'bg-amber-500/20 text-amber-400',
+    active: 'bg-emerald-500/20 text-emerald-400',
+    completed: 'bg-slate-500/20 text-slate-400'
+  };
+
   return (
-    <div className="card">
+    <Link to={`/project/${project.id}`} className="card hover:bg-slate-700/50 transition-colors">
       <div className="card-header">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">🏗️</span>
-          <div>
-            <h3 className="text-xl font-semibold text-white">{project.name}</h3>
-            <p className="text-slate-400 text-sm">
-              Created {project.createdAt.toLocaleDateString()}
-            </p>
-          </div>
-        </div>
-      </div>
-      <div className="card-body">
-        <div className="flex items-center justify-between mb-4">
-          <span className={`px-2 py-1 rounded text-xs font-medium ${
-            project.status === 'active' ? 'bg-green-500/20 text-green-400' :
-            project.status === 'draft' ? 'bg-yellow-500/20 text-yellow-400' :
-            'bg-gray-500/20 text-gray-400'
-          }`}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">{project.name}</h3>
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[project.status]}`}>
             {project.status}
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-4 mb-4">
+      </div>
+      <div className="card-body">
+        <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <div className="text-xs text-slate-400">GDV</div>
+            <div className="text-slate-400">GDV</div>
             <div className="font-semibold">
               {project.gdv ? `£${project.gdv.toLocaleString()}` : 'Not set'}
             </div>
           </div>
           <div>
-            <div className="text-xs text-slate-400">Units</div>
+            <div className="text-slate-400">Units</div>
             <div className="font-semibold">{project.units || 'Not set'}</div>
           </div>
         </div>
-        <Link to={`/project/${project.id}`} className="btn w-full">
-          Open Project
-        </Link>
       </div>
-    </div>
+    </Link>
   );
 };

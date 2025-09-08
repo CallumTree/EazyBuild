@@ -6,40 +6,34 @@ export const MapPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
 
   return (
-    <div className="container py-8 space-y-8">
-      <div className="mb-6">
-        <Link to={`/project/${id}`} className="text-emerald-400 hover:text-emerald-300 mb-4 inline-flex items-center gap-2 transition-colors">
-          <span>←</span>
-          <span>Back to Project</span>
+    <div className="p-4 pb-20">
+      <div className="mb-4">
+        <Link to={`/project/${id}`} className="text-sky-400 hover:text-sky-300">
+          ← Back to Project
         </Link>
-        <h1 className="text-3xl font-bold">GPS Walk & Mapping</h1>
-        <p className="text-slate-400 mt-2">Define boundaries and mark obstacles</p>
       </div>
-
+      
       <div className="card">
-        <div className="card-body text-center py-16">
-          <div className="text-6xl mb-6">🗺️</div>
-          <h3 className="text-2xl font-semibold mb-4">Interactive Map Coming Soon</h3>
-          <p className="text-slate-300 mb-8 max-w-md mx-auto leading-relaxed">
-            This will include Leaflet map integration for GPS boundary walking and obstacle marking
-          </p>
-          <div className="space-y-4 text-left max-w-md mx-auto">
-            <div className="flex items-center space-x-3 p-3 bg-slate-700/50 rounded-xl">
-              <span className="text-emerald-400 text-xl">✅</span>
-              <span className="text-slate-300">GPS location tracking</span>
+        <div className="card-header">
+          <span className="text-2xl">🗺️</span>
+          <h1 className="text-2xl font-bold">Site Map</h1>
+        </div>
+        <div className="card-body">
+          <div className="bg-slate-700 rounded-xl h-64 flex items-center justify-center mb-6">
+            <div className="text-center">
+              <div className="text-4xl mb-2">📍</div>
+              <p className="text-slate-300">Map integration coming soon</p>
+              <p className="text-sm text-slate-400">GPS walking and boundary mapping</p>
             </div>
-            <div className="flex items-center space-x-3 p-3 bg-slate-700/50 rounded-xl">
-              <span className="text-emerald-400 text-xl">✅</span>
-              <span className="text-slate-300">Auto-draw boundary from walk</span>
-            </div>
-            <div className="flex items-center space-x-3 p-3 bg-slate-700/50 rounded-xl">
-              <span className="text-emerald-400 text-xl">✅</span>
-              <span className="text-slate-300">Mark trees, ponds, structures</span>
-            </div>
-            <div className="flex items-center space-x-3 p-3 bg-slate-700/50 rounded-xl">
-              <span className="text-emerald-400 text-xl">✅</span>
-              <span className="text-slate-300">Calculate site area</span>
-            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <button className="btn w-full">
+              Start GPS Walking
+            </button>
+            <button className="btn-ghost w-full">
+              Add Obstacle
+            </button>
           </div>
         </div>
       </div>
