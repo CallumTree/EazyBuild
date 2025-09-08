@@ -3,30 +3,26 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-* {
-  box-sizing: border-box;
+/* Global look */
+:root {
+  --bg: #0f172a;          /* slate-900 */
+  --panel: #1e293b;       /* slate-800 */
+  --muted: #94a3b8;       /* slate-400 */
 }
 
 html, body, #root {
   height: 100%;
-  margin: 0;
-  padding: 0;
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  @apply bg-slate-900 text-white;
+  @apply font-sans bg-slate-900 text-white;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* App shell */
 .app-shell {
-  @apply min-h-screen pb-20 bg-slate-900;
+  @apply min-h-screen pb-20; /* space for bottom nav */
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
 }
 
 .container {
@@ -34,7 +30,7 @@ body {
 }
 
 .card {
-  @apply bg-slate-800 rounded-2xl border border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300;
+  @apply bg-slate-800 rounded-2xl shadow-2xl border border-slate-700;
 }
 
 .card-header {
@@ -50,40 +46,37 @@ body {
 }
 
 .btn {
-  @apply bg-sky-500 text-white rounded-2xl px-6 py-3 hover:bg-sky-600 inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 shadow-md hover:shadow-lg;
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 transition-all duration-200 font-medium shadow-lg hover:shadow-xl;
 }
 
 .btn-ghost {
-  @apply bg-transparent border border-slate-600 text-slate-300 hover:bg-slate-700/60 rounded-2xl px-6 py-3 inline-flex items-center justify-center gap-2 transition-all duration-200 font-semibold;
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-transparent text-slate-200 hover:text-white hover:bg-slate-700 border border-slate-600 transition-all duration-200;
 }
 
 .input, .select {
-  @apply bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-sky-500 focus:outline-none focus:border-sky-500 w-full transition-all duration-200;
+  @apply w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200;
 }
 
 .label {
-  @apply text-slate-300 text-sm mb-2 block font-semibold;
+  @apply block text-sm font-medium text-slate-300 mb-2;
 }
 
 .kpi {
-  @apply text-2xl font-bold text-sky-400;
+  @apply text-3xl font-bold text-emerald-400;
 }
 
 /* Bottom nav */
 .bottom-nav {
   @apply fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-800;
 }
-
 .bottom-nav ul {
-  @apply grid grid-cols-5 max-w-md mx-auto px-2;
+  @apply grid grid-cols-5 max-w-md mx-auto;
 }
-
 .bottom-nav button {
-  @apply flex flex-col items-center justify-center py-3 text-slate-400 hover:text-white transition-colors duration-200;
+  @apply flex flex-col items-center justify-center py-2 text-slate-400 hover:text-white transition;
 }
-
 .bottom-nav .active {
-  @apply text-sky-400;
+  @apply text-emerald-400;
 }
 
 /* Additional utility classes */
@@ -101,26 +94,4 @@ body {
 
 .bg-danger {
   @apply bg-red-500/20 text-red-400;
-}
-
-/* KPI Cards */
-.kpi-card {
-  @apply bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-center;
-}
-
-.kpi-label {
-  @apply text-slate-400 text-sm font-medium mb-1;
-}
-
-.kpi-value {
-  @apply text-white text-xl font-bold;
-}
-
-/* Input field styles */
-.input-field {
-  @apply bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-sky-500 focus:outline-none focus:border-sky-500 transition-all duration-200;
-}
-
-.input-field-lg {
-  @apply bg-slate-800/80 border border-slate-600 rounded-xl px-6 py-4 text-white focus:ring-2 focus:ring-sky-500 focus:outline-none focus:border-sky-500 transition-all duration-200 text-lg;
 }
