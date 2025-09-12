@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
+import { MapPin, Home, Calculator, FileText, Plus, Trash2 } from 'lucide-react';
 
-// Assuming Comparables and Project type are defined elsewhere and imported.
-// For demonstration, let's mock them:
-
-// Mock data types
 type PropertyType = 'detached' | 'semi-detached' | 'terraced' | 'flat' | 'bungalow' | 'other';
 
 interface Comp {
@@ -12,7 +9,7 @@ interface Comp {
   postcode: string;
   beds: number | null;
   propertyType: PropertyType;
-  date: string; // ISO string
+  date: string;
   priceGBP: number;
   giaSqft: number;
   notes?: string;
@@ -31,7 +28,6 @@ interface Project {
   compsPostcode?: string;
   comps?: Comp[];
   compSettings?: CompSettings;
-  // ... other project properties
 }
 
 // Mock Comparables component
@@ -454,10 +450,10 @@ export const Sidebar: React.FC = () => {
 
 
   const tabs = [
-    { id: 'survey', label: 'Survey', icon: '📍' },
-    { id: 'layout', label: 'Layout', icon: '🏠' },
-    { id: 'finance', label: 'Finance', icon: '💰' },
-    { id: 'offer', label: 'Offer', icon: '📄' },
+    { id: 'survey', label: 'Survey', icon: MapPin },
+    { id: 'layout', label: 'Layout', icon: Home },
+    { id: 'finance', label: 'Finance', icon: Calculator },
+    { id: 'offer', label: 'Offer', icon: FileText },
   ];
 
   const handleGPSToggle = () => {
@@ -675,30 +671,31 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col">
-      {/* Tab buttons */}
-      <div className="flex border-b border-gray-200">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as TabType)}
-            className={`flex-1 px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab.id
-                ? 'border-brand-primary text-brand-primary bg-white'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            <div className="flex flex-col items-center space-y-1">
-              <span className="text-lg">{tab.icon}</span>
-              <span>{tab.label}</span>
-            </div>
-          </button>
-        ))}
+    <aside className="w-80 bg-[var(--bg-secondary)] border-r border-[var(--border-primary)] flex flex-col">
+      {/* Modern Tab Group */}
+      <div className="p-4">
+        <div className="tab-group">
+          {tabs.map((tab) => {
+            const IconComponent = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as TabType)}
+                className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+              >
+                <IconComponent size={20} className="tab-icon" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Tab content */}
-      <div className="flex-1 p-4 overflow-y-auto">
-        {renderTabContent()}
+      {/* Tab content with smooth transitions */}
+      <div className="flex-1 p-6 overflow-y-auto">
+        <div className="tab-content">
+          {renderTabContent()}
+        </div>
       </div>
     </aside>
   );

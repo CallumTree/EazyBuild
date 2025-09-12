@@ -2,10 +2,9 @@
 import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { Home, Map, LayoutGrid, PoundSterling, FileText } from "lucide-react";
-import { HomePage } from "./pages/HomePage";
-import { MapPage } from "./pages/MapPage";
-import { ProjectPage } from "./pages/ProjectPage";
-import { FinancePage } from "./pages/FinancePage";
+import { Topbar } from "./components/Topbar";
+import { Sidebar } from "./components/Sidebar";
+import { MapCanvas } from "./components/MapCanvas";
 import { StoreProvider, useStore } from "./store";
 import { Toast, useToast } from "./components/Toast";
 import { NumberInput } from "./components/NumberInput";
@@ -701,16 +700,13 @@ function BottomNav() {
 function Shell() {
   return (
     <div className="app-shell">
-      <Routes>
-        <Route path="/" element={<ModernHomePage/>} />
-        <Route path="/survey" element={<SurveyPage/>} />
-        <Route path="/layout" element={<LayoutPage/>} />
-        <Route path="/finance" element={<ModernFinancePage/>} />
-        <Route path="/offer" element={<OfferPage/>} />
-        <Route path="/project/:id" element={<ProjectPage/>} />
-        <Route path="/project/:id/map" element={<MapPage/>} />
-      </Routes>
-      <BottomNav />
+      <Topbar />
+      <div className="flex h-screen pt-14">
+        <Sidebar />
+        <div className="flex-1">
+          <MapCanvas />
+        </div>
+      </div>
     </div>
   );
 }
@@ -718,6 +714,12 @@ function Shell() {
 export default function App() {
   return (
     <StoreProvider>
+      <BrowserRouter>
+        <Shell />
+      </BrowserRouter>
+    </StoreProvider>
+  );
+}vider>
       <BrowserRouter>
         <Shell />
       </BrowserRouter>

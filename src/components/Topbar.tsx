@@ -37,17 +37,17 @@ export const Topbar: React.FC = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-white border-b border-gray-200 shadow-sm">
+    <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-[var(--bg-secondary)] border-b border-[var(--border-primary)] shadow-sm">
       <div className="flex items-center justify-between h-full px-6">
         {/* Logo */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
           <span className="text-2xl">🏗️</span>
-          <h1 className="text-xl font-bold text-gray-900">LandSnap</h1>
+          <h1 className="text-xl font-bold text-[var(--text-primary)]">LandSnap</h1>
         </div>
 
         {/* Action buttons */}
         <div className="flex items-center space-x-3">
-          <button onClick={handleImport} className="btn-ghost">
+          <button onClick={handleImport} className="btn-secondary">
             Import
           </button>
           <button onClick={handleExportPDF} className="btn-primary">
