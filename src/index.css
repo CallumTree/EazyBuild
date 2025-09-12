@@ -81,20 +81,20 @@
     @apply bg-brand-500 text-white;
   }
   
-  .bottom-nav {
-    @apply fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-800 z-50;
+  .top-nav {
+    @apply bg-slate-900/95 backdrop-blur border-b border-slate-800 z-50;
   }
   
-  .bottom-nav ul {
-    @apply grid grid-cols-5 max-w-md mx-auto list-none m-0 p-0;
+  .top-nav-tab {
+    @apply flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200;
   }
   
-  .bottom-nav button {
-    @apply flex flex-col items-center justify-center py-2 px-1 text-slate-400 hover:text-white transition-colors duration-200 text-xs font-medium;
+  .top-nav-tab.active {
+    @apply bg-brand-500 text-white shadow-lg;
   }
   
-  .bottom-nav .active {
-    @apply text-brand-400;
+  .top-nav-tab:not(.active) {
+    @apply text-slate-300 hover:text-white hover:bg-slate-700;
   }
   
   .tab-group {

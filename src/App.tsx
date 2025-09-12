@@ -6,8 +6,8 @@ import { NumberInput, formatCurrency, formatNumber } from "./components/NumberIn
 import { useGlobalStore, HouseType, Comp } from "./store/globalStore";
 import "./index.css";
 
-// Navigation component
-function Navigation() {
+// Top Navigation Component
+function TopNavigation() {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -20,20 +20,19 @@ function Navigation() {
   ];
 
   return (
-    <nav className="bottom-nav">
-      <ul>
+    <nav className="top-nav">
+      <div className="container">
         {tabs.map(({ id, label, icon: Icon, path }) => (
-          <li key={id}>
-            <button
-              onClick={() => navigate(path)}
-              className={`${location.pathname === path ? 'active' : ''}`}
-            >
-              <Icon size={20} />
-              <span>{label}</span>
-            </button>
-          </li>
+          <button
+            key={id}
+            onClick={() => navigate(path)}
+            className={`tab ${location.pathname === path ? 'active' : ''}`}
+          >
+            <Icon size={20} />
+            <span>{label}</span>
+          </button>
         ))}
-      </ul>
+      </div>
     </nav>
   );
 }
@@ -781,7 +780,7 @@ function OfferPage() {
 function AppContent() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
-      <Navigation />
+      <TopNavigation />
       <main>
         <Routes>
           <Route path="/" element={<SurveyPage />} />
