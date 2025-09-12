@@ -4,16 +4,16 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Modern Dark Theme Variables */
+/* Electric Blue Dark Theme Variables */
 :root {
-  --bg-primary: #0a0a0b;
-  --bg-secondary: #151518;
-  --bg-tertiary: #1f1f23;
-  --border-primary: #2a2a2e;
-  --border-secondary: #3a3a40;
-  --text-primary: #f4f4f5;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
+  --bg-primary: #0a0f1a;
+  --bg-secondary: #1a1f2e;
+  --bg-tertiary: #2a2f3e;
+  --border-primary: #3a3f4e;
+  --border-secondary: #4a4f5e;
+  --text-primary: #ffffff;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
   --accent-primary: #3b82f6;
   --accent-hover: #2563eb;
   --success: #22c55e;
@@ -175,7 +175,7 @@ body {
 .input-field:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
   background-color: var(--bg-secondary);
 }
 
@@ -362,6 +362,30 @@ body {
 .space-x-2 > * + * { margin-left: 0.5rem; }
 .space-x-3 > * + * { margin-left: 0.75rem; }
 .space-x-4 > * + * { margin-left: 1rem; }
+
+/* Leaflet Map Styles */
+.leaflet-container {
+  background: var(--bg-tertiary);
+}
+
+.leaflet-control-draw-toolbar {
+  margin-top: 10px !important;
+}
+
+.leaflet-draw-tooltip {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--bg-secondary) !important;
+}
 
 /* Responsive Design */
 @media (max-width: 768px) {
