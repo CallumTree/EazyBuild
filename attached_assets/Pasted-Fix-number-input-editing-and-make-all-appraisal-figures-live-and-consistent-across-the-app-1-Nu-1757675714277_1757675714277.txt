@@ -1,0 +1,44 @@
+Fix number input editing and make all appraisal figures live and consistent across the app.
+
+1) Number input UX (global):
+- Users must be able to delete/clear the last digit without it snapping back to 0.
+- Treat numeric inputs as strings while typing; only convert to numbers on blur or when committing.
+- Apply this to ALL numeric fields in Survey, Layout, and Finance (fees %, contingency %, target profit %, build costs, sale values, finance rate %, finance months, land acquisition costs, unit counts, etc.).
+
+2) Single source of truth:
+- Use one global project state (context or store) shared by Survey, Layout, Finance, Offer.
+- Persist to localStorage; load on app start. No duplicate local component state for shared fields.
+
+3) Live recalculation:
+- Create a pure compute function that, given the project and finance params, returns:
+  - GDV total
+  - Build cost total
+  - Fees (£)
+  - Contingency (£)
+  - Finance cost (£) using a simple approximation (interest on half the total cost over the duration)
+  - Target profit (£) (as % of GDV)
+  - Residual land value (RLV)
+  - Profit margin % ( (GDV - total costs) / GDV * 100 )
+- Recompute instantly on ANY change in any tab (e.g., changing unit counts, build cost/m², sale value/m², fees %, contingency %, finance rate/duration, land acquisition costs).
+- Bind all KPI displays to these derived values so they update live without navigation or refresh.
+
+4) Cross-tab sync:
+- When I edit counts or house specs in Layout, Finance KPIs update immediately.
+- When I tweak Finance inputs, Residual and Profit% update immediately.
+- When I change site efficiency or defaults in Survey, it flows through to Layout and Finance.
+
+5) Visual cues (simple):
+- If Residual >= 0 AND Profit% >= TargetProfit% → mark KPI values green.
+- If Residual < 0 OR Profit% < TargetProfit% → mark KPI values red.
+- Optional small status badge on Finance: “Viable” (green) / “At Risk” (amber) / “Unviable” (red) using thresholds:
+  - Viable: Profit% >= Target AND Residual >= 0
+  - At Risk: Profit% between (Target-10%) and Target, Residual >= 0
+  - Unviable: Profit% < (Target-10%) OR Residual < 0
+
+6) Acceptance tests:
+- I can fully clear any numeric field, type a new number, and it doesn’t revert while typing.
+- Editing build cost/m² immediately changes Build total, Profit%, and Residual.
+- Editing fees % or contingency % immediately changes totals and Residual.
+- Editing finance rate or months immediately changes Finance cost and Residual.
+- Editing unit counts in Layout instantly updates GDV, Build, Profit%, Residual in Finance.
+- All data persists across tabs and page reload.
