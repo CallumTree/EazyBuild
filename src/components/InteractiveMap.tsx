@@ -6,8 +6,6 @@ import 'leaflet-draw';
 import * as turf from '@turf/turf';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
-import 'leaflet/dist/leaflet.css';
-import 'leaflet-draw/dist/leaflet.draw.css';
 
 // Fix for default markers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
