@@ -1,5 +1,5 @@
 
-import { Project } from './store';
+import { Project, HouseType } from './store';
 
 export interface FinanceResult {
   gdv: number;
@@ -9,72 +9,88 @@ export interface FinanceResult {
   financeCost: number;
   targetProfit: number;
   residual: number;
+  actualProfit: number;
   actualProfitPct: number;
+  totalCosts: number;
   isViable: boolean;
   status: 'Viable' | 'At Risk' | 'Unviable';
 }
 
 export interface FinanceInputs {
-  feesPct: number;
-  contPct: number;
-  financeRatePct: number;
-  financeMonths: number;
-  targetProfitPct: number;
-  landAcqCosts: number;
+  feesPct: string;
+  contPct: string;
+  financeRatePct: string;
+  financeMonths: string;
+  targetProfitPct: string;
+  landAcqCosts: string;
 }
 
-export function computeTotals(project: Project, inputs: FinanceInputs, houseTypes?: any[]): FinanceResult {
-  let units = 0;
-  let totalFloorArea = 0;
+function parseNumber(value: string | number | undefined, fallback: number = 0): number {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? fallback : parsed;
+  }
+  return fallback;
+}
+
+export function computeTotals(project: Project, inputs: FinanceInputs, houseTypes: HouseType[]): FinanceResult {
   let gdv = 0;
   let build = 0;
+  let totalUnits = 0;
 
-  // If unitMix exists and houseTypes are provided, use those for calculations
-  if (project.unitMix && project.unitMix.length > 0 && houseTypes) {
+  // Calculate totals from unit mix
+  if (project.unitMix && project.unitMix.length > 0) {
     project.unitMix.forEach(mix => {
       const houseType = houseTypes.find(ht => ht.id === mix.houseTypeId);
-      if (houseType) {
+      if (houseType && mix.count > 0) {
         const unitCount = mix.count;
-        units += unitCount;
-        totalFloorArea += unitCount * houseType.floorAreaSqm;
+        totalUnits += unitCount;
+        
+        // GDV calculation
         gdv += unitCount * (houseType.floorAreaSqm * houseType.saleValuePerSqm);
+        
+        // Build cost calculation
         build += unitCount * (houseType.floorAreaSqm * houseType.buildCostPerSqm);
       }
     });
   } else {
-    // Fallback to legacy single-unit calculations
-    units = project.estimatedUnits || 0;
-    const floorAreaPerUnit = project.floorAreaPerUnit || 0;
-    const gdvPerUnit = project.gdvPerUnit || 0;
-    const buildCostPerSqm = project.buildCostPerSqm || 0;
-    
-    gdv = units * gdvPerUnit;
-    totalFloorArea = units * floorAreaPerUnit;
-    build = totalFloorArea * buildCostPerSqm;
+    // Fallback to legacy calculations
+    totalUnits = project.estimatedUnits || 0;
+    gdv = totalUnits * (project.gdvPerUnit || 0);
+    build = totalUnits * (project.floorAreaPerUnit || 0) * parseNumber(project.buildCostPerSqm, 1650);
   }
-  
-  const fees = (build * inputs.feesPct) / 100;
-  const contingency = (build * inputs.contPct) / 100;
+
+  // Parse inputs safely
+  const feesPct = parseNumber(inputs.feesPct, 5);
+  const contPct = parseNumber(inputs.contPct, 10);
+  const financeRatePct = parseNumber(inputs.financeRatePct, 8.5);
+  const financeMonths = parseNumber(inputs.financeMonths, 18);
+  const targetProfitPct = parseNumber(inputs.targetProfitPct, 20);
+  const landAcqCosts = parseNumber(inputs.landAcqCosts, 25000);
+
+  // Calculate derived costs
+  const fees = (build * feesPct) / 100;
+  const contingency = (build * contPct) / 100;
   
   // Finance cost using half-cost interest approximation
-  const totalCost = build + fees + contingency + inputs.landAcqCosts;
-  const financeCost = (totalCost * inputs.financeRatePct * inputs.financeMonths) / (100 * 12 * 2);
+  const baseCosts = build + fees + contingency + landAcqCosts;
+  const financeCost = (baseCosts * financeRatePct * financeMonths) / (100 * 12 * 2);
   
-  const targetProfit = (gdv * inputs.targetProfitPct) / 100;
-  const totalExpenses = build + fees + contingency + financeCost + targetProfit + inputs.landAcqCosts;
-  const residual = gdv - totalExpenses;
-  
-  const actualProfit = gdv - (build + fees + contingency + financeCost + inputs.landAcqCosts);
+  const targetProfit = (gdv * targetProfitPct) / 100;
+  const totalCosts = build + fees + contingency + financeCost + landAcqCosts;
+  const actualProfit = gdv - totalCosts;
   const actualProfitPct = gdv > 0 ? (actualProfit / gdv) * 100 : 0;
-  
+  const residual = gdv - totalCosts - targetProfit;
+
   // Status determination
   let status: 'Viable' | 'At Risk' | 'Unviable';
   let isViable = false;
-  
-  if (actualProfitPct >= 20 && residual >= 0) {
+
+  if (actualProfitPct >= targetProfitPct && residual >= 0) {
     status = 'Viable';
     isViable = true;
-  } else if (actualProfitPct >= 10 && residual >= 0) {
+  } else if (actualProfitPct >= (targetProfitPct - 10) && residual >= 0) {
     status = 'At Risk';
   } else {
     status = 'Unviable';
@@ -88,7 +104,9 @@ export function computeTotals(project: Project, inputs: FinanceInputs, houseType
     financeCost,
     targetProfit,
     residual,
+    actualProfit,
     actualProfitPct,
+    totalCosts,
     isViable,
     status,
   };

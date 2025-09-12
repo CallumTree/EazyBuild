@@ -1,15 +1,19 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-// Define the structure for a house type within the unit mix
-export interface ProjectUnitMix {
-  id: string; // Unique identifier for the unit type in this project
-  name: string; // e.g., "2-bed semi", "4-bed detached"
+export interface HouseType {
+  id: string;
+  name: string;
   beds: number;
-  footprintM2: number;
+  floorAreaSqm: number;
   buildCostPerSqm: number;
-  salesValuePerSqm: number;
-  count: number; // Number of units of this type
-  // Add other relevant properties like GDV, Build Cost, Fees, etc. as needed for calculations per unit type
+  saleValuePerSqm: number;
+  isDefault?: boolean;
+}
+
+export interface UnitMix {
+  houseTypeId: string;
+  count: number;
 }
 
 export interface Project {
@@ -18,21 +22,20 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   boundary?: Array<{ lat: number; lng: number }>;
-  siteArea?: number; // in square meters
-  efficiency?: number; // percentage
-  houseType?: 'detached' | 'semi-detached' | 'terraced' | 'apartment';
+  siteArea?: number;
+  efficiency?: number;
   estimatedUnits?: number;
-  floorAreaPerUnit?: number; // in sqm
-  gdvPerUnit?: number; // in GBP
+  floorAreaPerUnit?: number;
+  gdvPerUnit?: number;
   buildCostPerSqm?: number;
-  unitMix?: ProjectUnitMix[]; // Array to hold different house types and their counts
+  unitMix?: UnitMix[];
   finance?: {
-    feesPct: number;
-    contPct: number;
-    financeRatePct: number;
-    financeMonths: number;
-    targetProfitPct: number;
-    landAcqCosts: number;
+    feesPct: string;
+    contPct: string;
+    financeRatePct: string;
+    financeMonths: string;
+    targetProfitPct: string;
+    landAcqCosts: string;
   };
 }
 
@@ -49,9 +52,53 @@ interface StoreContextType {
   updateProject: (updates: Partial<Project>) => void;
   scenarios: Scenario[];
   duplicateScenario: () => void;
+  houseTypes: HouseType[];
+  addHouseType: (houseType: Omit<HouseType, 'id'>) => void;
+  addToProjectMix: (houseTypeId: string) => void;
+  updateProjectMixCount: (houseTypeId: string, count: number) => void;
+  removeFromProjectMix: (houseTypeId: string) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
+
+const defaultHouseTypes: HouseType[] = [
+  {
+    id: 'default-2-bed-semi',
+    name: '2-Bed Semi',
+    beds: 2,
+    floorAreaSqm: 90,
+    buildCostPerSqm: 1500,
+    saleValuePerSqm: 3000,
+    isDefault: true,
+  },
+  {
+    id: 'default-3-bed-semi',
+    name: '3-Bed Semi',
+    beds: 3,
+    floorAreaSqm: 110,
+    buildCostPerSqm: 1600,
+    saleValuePerSqm: 3200,
+    isDefault: true,
+  },
+  {
+    id: 'default-3-bed-detached',
+    name: '3-Bed Detached',
+    beds: 3,
+    floorAreaSqm: 130,
+    buildCostPerSqm: 1700,
+    saleValuePerSqm: 3400,
+    isDefault: true,
+  },
+  {
+    id: 'default-4-bed-detached',
+    name: '4-Bed Detached',
+    beds: 4,
+    floorAreaSqm: 160,
+    buildCostPerSqm: 1800,
+    saleValuePerSqm: 3600,
+    isDefault: true,
+  },
+];
 
 const defaultProject: Project = {
   id: 'default',
@@ -63,25 +110,21 @@ const defaultProject: Project = {
   floorAreaPerUnit: 120,
   gdvPerUnit: 350000,
   buildCostPerSqm: 1650,
-  unitMix: [ // Default house types
-    { id: 'default-2-bed-semi', name: '2-Bed Semi', beds: 2, footprintM2: 90, buildCostPerSqm: 1500, salesValuePerSqm: 3000, count: 1 },
-    { id: 'default-3-bed-semi', name: '3-Bed Semi', beds: 3, footprintM2: 110, buildCostPerSqm: 1600, salesValuePerSqm: 3200, count: 1 },
-    { id: 'default-3-bed-detached', name: '3-Bed Detached', beds: 3, footprintM2: 130, buildCostPerSqm: 1700, salesValuePerSqm: 3400, count: 1 },
-    { id: 'default-4-bed-detached', name: '4-Bed Detached', beds: 4, footprintM2: 160, buildCostPerSqm: 1800, salesValuePerSqm: 3600, count: 1 },
-  ],
+  unitMix: [],
   finance: {
-    feesPct: 5,
-    contPct: 10,
-    financeRatePct: 8.5,
-    financeMonths: 18,
-    targetProfitPct: 20,
-    landAcqCosts: 25000,
+    feesPct: '5',
+    contPct: '10',
+    financeRatePct: '8.5',
+    financeMonths: '18',
+    targetProfitPct: '20',
+    landAcqCosts: '25000',
   },
 };
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [project, setProjectState] = useState<Project>(defaultProject);
   const [scenarios, setScenariosState] = useState<Scenario[]>([]);
+  const [houseTypes, setHouseTypesState] = useState<HouseType[]>(defaultHouseTypes);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -89,14 +132,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Ensure default unit mix is present if not saved, or merge if necessary
-        setProjectState({ ...defaultProject, ...parsed, unitMix: parsed.unitMix || defaultProject.unitMix });
+        setProjectState({ ...defaultProject, ...parsed });
       } catch (e) {
         console.warn('Failed to load project from localStorage');
-        setProjectState(defaultProject); // Fallback to default if parsing fails
+        setProjectState(defaultProject);
       }
-    } else {
-      setProjectState(defaultProject); // Set default if nothing is saved
     }
 
     const savedScenarios = localStorage.getItem('landsnap.scenarios');
@@ -106,6 +146,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setScenariosState(parsed);
       } catch (e) {
         console.warn('Failed to load scenarios from localStorage');
+      }
+    }
+
+    const savedHouseTypes = localStorage.getItem('landsnap.houseTypes');
+    if (savedHouseTypes) {
+      try {
+        const parsed = JSON.parse(savedHouseTypes);
+        // Merge with defaults
+        const userTypes = parsed.filter((ht: HouseType) => !ht.isDefault);
+        setHouseTypesState([...defaultHouseTypes, ...userTypes]);
+      } catch (e) {
+        console.warn('Failed to load house types from localStorage');
       }
     }
   }, []);
@@ -138,6 +190,40 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('landsnap.scenarios', JSON.stringify(updatedScenarios));
   };
 
+  const addHouseType = (houseType: Omit<HouseType, 'id'>) => {
+    const newHouseType = { ...houseType, id: crypto.randomUUID() };
+    const updated = [...houseTypes, newHouseType];
+    setHouseTypesState(updated);
+    const userTypes = updated.filter(ht => !ht.isDefault);
+    localStorage.setItem('landsnap.houseTypes', JSON.stringify(userTypes));
+  };
+
+  const addToProjectMix = (houseTypeId: string) => {
+    const currentMix = project.unitMix || [];
+    const existing = currentMix.find(mix => mix.houseTypeId === houseTypeId);
+    
+    if (existing) {
+      updateProjectMixCount(houseTypeId, existing.count + 1);
+    } else {
+      const newMix = [...currentMix, { houseTypeId, count: 1 }];
+      updateProject({ unitMix: newMix });
+    }
+  };
+
+  const updateProjectMixCount = (houseTypeId: string, count: number) => {
+    const currentMix = project.unitMix || [];
+    const updated = currentMix.map(mix => 
+      mix.houseTypeId === houseTypeId ? { ...mix, count } : mix
+    );
+    updateProject({ unitMix: updated });
+  };
+
+  const removeFromProjectMix = (houseTypeId: string) => {
+    const currentMix = project.unitMix || [];
+    const updated = currentMix.filter(mix => mix.houseTypeId !== houseTypeId);
+    updateProject({ unitMix: updated });
+  };
+
   return (
     <StoreContext.Provider value={{
       project,
@@ -145,6 +231,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateProject,
       scenarios,
       duplicateScenario,
+      houseTypes,
+      addHouseType,
+      addToProjectMix,
+      updateProjectMixCount,
+      removeFromProjectMix,
     }}>
       {children}
     </StoreContext.Provider>

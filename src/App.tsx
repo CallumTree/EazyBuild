@@ -1,4 +1,5 @@
 
+import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { Home, Map, LayoutGrid, PoundSterling, FileText } from "lucide-react";
 import { HomePage } from "./pages/HomePage";
@@ -7,6 +8,7 @@ import { ProjectPage } from "./pages/ProjectPage";
 import { FinancePage } from "./pages/FinancePage";
 import { StoreProvider, useStore } from "./store";
 import { Toast, useToast } from "./components/Toast";
+import { NumberInput } from "./components/NumberInput";
 import { computeTotals, formatCurrency } from "./finance";
 import "./index.css";
 
@@ -52,11 +54,10 @@ function SurveyPage() {
               </div>
               <div>
                 <label className="label">Site efficiency (%)</label>
-                <input 
+                <NumberInput 
                   className="input" 
-                  type="number" 
                   value={project.efficiency || 65}
-                  onChange={(e) => updateProject({ efficiency: parseFloat(e.target.value) || 65 })}
+                  onChange={(value) => updateProject({ efficiency: parseFloat(value) || 65 })}
                 />
               </div>
             </div>
@@ -85,10 +86,10 @@ function LayoutPage() {
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [newHouseType, setNewHouseType] = useState({
     name: '',
-    beds: 3,
-    floorAreaSqm: 120,
-    buildCostPerSqm: 1650,
-    saleValuePerSqm: 3200,
+    beds: '3',
+    floorAreaSqm: '120',
+    buildCostPerSqm: '1650',
+    saleValuePerSqm: '3200',
   });
 
   const defaultTypes = houseTypes.filter(ht => ht.isDefault);
@@ -97,19 +98,27 @@ function LayoutPage() {
 
   const handleAddCustomType = () => {
     if (!newHouseType.name.trim()) return;
-    addHouseType({ ...newHouseType, isDefault: false });
+    addHouseType({ 
+      ...newHouseType, 
+      beds: parseInt(newHouseType.beds) || 3,
+      floorAreaSqm: parseFloat(newHouseType.floorAreaSqm) || 120,
+      buildCostPerSqm: parseFloat(newHouseType.buildCostPerSqm) || 1650,
+      saleValuePerSqm: parseFloat(newHouseType.saleValuePerSqm) || 3200,
+      isDefault: false 
+    });
     setNewHouseType({
       name: '',
-      beds: 3,
-      floorAreaSqm: 120,
-      buildCostPerSqm: 1650,
-      saleValuePerSqm: 3200,
+      beds: '3',
+      floorAreaSqm: '120',
+      buildCostPerSqm: '1650',
+      saleValuePerSqm: '3200',
     });
     setShowAddCustom(false);
     showToast('House type added to your library', 'success');
   };
 
-  const handleCountChange = (houseTypeId: string, count: number) => {
+  const handleCountChange = (houseTypeId: string, value: string) => {
+    const count = parseInt(value) || 0;
     if (count <= 0) {
       removeFromProjectMix(houseTypeId);
     } else {
@@ -149,12 +158,10 @@ function LayoutPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <input 
+                          <NumberInput 
                             className="input w-20" 
-                            type="number" 
-                            min="0"
                             value={mix.count}
-                            onChange={(e) => handleCountChange(mix.houseTypeId, parseInt(e.target.value) || 0)}
+                            onChange={(value) => handleCountChange(mix.houseTypeId, value)}
                           />
                           <button 
                             onClick={() => removeFromProjectMix(mix.houseTypeId)}
@@ -254,38 +261,34 @@ function LayoutPage() {
                         </div>
                         <div>
                           <label className="label">Bedrooms</label>
-                          <input 
+                          <NumberInput 
                             className="input" 
-                            type="number" 
                             value={newHouseType.beds}
-                            onChange={(e) => setNewHouseType(prev => ({...prev, beds: parseInt(e.target.value) || 3}))}
+                            onChange={(value) => setNewHouseType(prev => ({...prev, beds: value}))}
                           />
                         </div>
                         <div>
                           <label className="label">Floor area (m²)</label>
-                          <input 
+                          <NumberInput 
                             className="input" 
-                            type="number" 
                             value={newHouseType.floorAreaSqm}
-                            onChange={(e) => setNewHouseType(prev => ({...prev, floorAreaSqm: parseFloat(e.target.value) || 120}))}
+                            onChange={(value) => setNewHouseType(prev => ({...prev, floorAreaSqm: value}))}
                           />
                         </div>
                         <div>
                           <label className="label">Build cost £/m²</label>
-                          <input 
+                          <NumberInput 
                             className="input" 
-                            type="number" 
                             value={newHouseType.buildCostPerSqm}
-                            onChange={(e) => setNewHouseType(prev => ({...prev, buildCostPerSqm: parseFloat(e.target.value) || 1650}))}
+                            onChange={(value) => setNewHouseType(prev => ({...prev, buildCostPerSqm: value}))}
                           />
                         </div>
                         <div>
                           <label className="label">Sale value £/m²</label>
-                          <input 
+                          <NumberInput 
                             className="input" 
-                            type="number" 
                             value={newHouseType.saleValuePerSqm}
-                            onChange={(e) => setNewHouseType(prev => ({...prev, saleValuePerSqm: parseFloat(e.target.value) || 3200}))}
+                            onChange={(value) => setNewHouseType(prev => ({...prev, saleValuePerSqm: value}))}
                           />
                         </div>
                       </div>
@@ -319,17 +322,17 @@ function ModernFinancePage() {
   const { toast, showToast, hideToast } = useToast();
   
   const finance = project.finance || {
-    feesPct: 5,
-    contPct: 10,
-    financeRatePct: 8.5,
-    financeMonths: 18,
-    targetProfitPct: 20,
-    landAcqCosts: 25000,
+    feesPct: '5',
+    contPct: '10',
+    financeRatePct: '8.5',
+    financeMonths: '18',
+    targetProfitPct: '20',
+    landAcqCosts: '25000',
   };
   
   const results = computeTotals(project, finance, houseTypes);
   
-  const updateFinance = (field: keyof typeof finance, value: number) => {
+  const updateFinance = (field: keyof typeof finance, value: string) => {
     updateProject({
       finance: { ...finance, [field]: value }
     });
@@ -353,6 +356,9 @@ function ModernFinancePage() {
     return isPositive ? 'text-green-400' : 'text-red-400';
   };
 
+  const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
+  const isViableProfit = results.actualProfitPct >= targetProfitNum && results.residual >= 0;
+
   return (
     <>
       <div className="container py-8 space-y-8">
@@ -375,29 +381,26 @@ function ModernFinancePage() {
             <div className="grid md:grid-cols-3 gap-6">
               <div>
                 <label className="label">Build cost £/m²</label>
-                <input 
+                <NumberInput 
                   className="input" 
-                  type="number" 
                   value={project.buildCostPerSqm || 1650}
-                  onChange={(e) => updateProject({ buildCostPerSqm: parseFloat(e.target.value) || 1650 })}
+                  onChange={(value) => updateProject({ buildCostPerSqm: parseFloat(value) || 1650 })}
                 />
               </div>
               <div>
                 <label className="label">Fees %</label>
-                <input 
+                <NumberInput 
                   className="input" 
-                  type="number" 
                   value={finance.feesPct}
-                  onChange={(e) => updateFinance('feesPct', parseFloat(e.target.value) || 5)}
+                  onChange={(value) => updateFinance('feesPct', value)}
                 />
               </div>
               <div>
                 <label className="label">Contingency %</label>
-                <input 
+                <NumberInput 
                   className="input" 
-                  type="number" 
                   value={finance.contPct}
-                  onChange={(e) => updateFinance('contPct', parseFloat(e.target.value) || 10)}
+                  onChange={(value) => updateFinance('contPct', value)}
                 />
               </div>
             </div>
@@ -405,30 +408,27 @@ function ModernFinancePage() {
             <div className="grid md:grid-cols-3 gap-6">
               <div>
                 <label className="label">Land acquisition costs (£)</label>
-                <input 
+                <NumberInput 
                   className="input" 
-                  type="number" 
                   value={finance.landAcqCosts}
-                  onChange={(e) => updateFinance('landAcqCosts', parseFloat(e.target.value) || 25000)}
+                  onChange={(value) => updateFinance('landAcqCosts', value)}
                 />
               </div>
               <div>
                 <label className="label">Finance rate %</label>
-                <input 
+                <NumberInput 
                   className="input" 
-                  type="number" 
                   step="0.1"
                   value={finance.financeRatePct}
-                  onChange={(e) => updateFinance('financeRatePct', parseFloat(e.target.value) || 8.5)}
+                  onChange={(value) => updateFinance('financeRatePct', value)}
                 />
               </div>
               <div>
                 <label className="label">Target profit %</label>
-                <input 
+                <NumberInput 
                   className="input" 
-                  type="number" 
                   value={finance.targetProfitPct}
-                  onChange={(e) => updateFinance('targetProfitPct', parseFloat(e.target.value) || 20)}
+                  onChange={(value) => updateFinance('targetProfitPct', value)}
                 />
               </div>
             </div>
@@ -438,16 +438,16 @@ function ModernFinancePage() {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-slate-300">Profit vs Target</span>
-                  <span className={getKPIColor(results.actualProfitPct >= finance.targetProfitPct)}>
-                    {results.actualProfitPct.toFixed(1)}% / {finance.targetProfitPct}%
+                  <span className={getKPIColor(isViableProfit)}>
+                    {results.actualProfitPct.toFixed(1)}% / {targetProfitNum}%
                   </span>
                 </div>
                 <div className="relative bg-slate-700 h-2 rounded">
                   <div 
                     className={`h-full rounded transition-all duration-300 ${
-                      results.actualProfitPct >= finance.targetProfitPct ? 'bg-green-400' : 'bg-red-400'
+                      isViableProfit ? 'bg-green-400' : 'bg-red-400'
                     }`}
-                    style={{ width: `${Math.min((results.actualProfitPct / finance.targetProfitPct) * 100, 100)}%` }}
+                    style={{ width: `${Math.min((results.actualProfitPct / targetProfitNum) * 100, 100)}%` }}
                   />
                 </div>
               </div>
@@ -456,14 +456,14 @@ function ModernFinancePage() {
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-slate-300">Cost vs GDV</span>
                   <span className="text-slate-400">
-                    {((results.build + results.fees + results.contingency + results.financeCost + finance.landAcqCosts) / results.gdv * 100).toFixed(1)}%
+                    {(results.totalCosts / results.gdv * 100).toFixed(1)}%
                   </span>
                 </div>
                 <div className="relative bg-slate-700 h-2 rounded">
                   <div 
                     className="bg-amber-400 h-full rounded transition-all duration-300"
                     style={{ 
-                      width: `${Math.min(((results.build + results.fees + results.contingency + results.financeCost + finance.landAcqCosts) / results.gdv * 100), 100)}%` 
+                      width: `${Math.min((results.totalCosts / results.gdv * 100), 100)}%` 
                     }}
                   />
                 </div>
@@ -489,13 +489,13 @@ function ModernFinancePage() {
               <div className="p-4 bg-slate-700/50 rounded-xl">
                 <div className="text-sm text-slate-400 mb-2">Total Cost</div>
                 <div className="text-xl font-bold text-slate-300">
-                  {formatCurrency(results.build + results.fees + results.contingency + results.financeCost + finance.landAcqCosts)}
+                  {formatCurrency(results.totalCosts)}
                 </div>
               </div>
               
               <div className="p-4 bg-slate-700/50 rounded-xl">
                 <div className="text-sm text-slate-400 mb-2">Profit %</div>
-                <div className={`text-xl font-bold ${getKPIColor(results.actualProfitPct >= finance.targetProfitPct)}`}>
+                <div className={`text-xl font-bold ${getKPIColor(isViableProfit)}`}>
                   {results.actualProfitPct.toFixed(1)}%
                 </div>
               </div>
@@ -526,6 +526,17 @@ function ModernFinancePage() {
 }
 
 function OfferPage() {
+  const { project, houseTypes } = useStore();
+  const finance = project.finance || {
+    feesPct: '5',
+    contPct: '10',
+    financeRatePct: '8.5',
+    financeMonths: '18',
+    targetProfitPct: '20',
+    landAcqCosts: '25000',
+  };
+  const results = computeTotals(project, finance, houseTypes);
+
   return (
     <div className="container py-8 space-y-8">
       <div className="card">
@@ -540,11 +551,11 @@ function OfferPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <div className="p-4 bg-slate-700/50 rounded-xl">
               <div className="text-sm text-slate-400 mb-2">Total GDV</div>
-              <div className="text-2xl font-bold text-emerald-400">£1,400,000</div>
+              <div className="text-2xl font-bold text-emerald-400">{formatCurrency(results.gdv)}</div>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-xl">
               <div className="text-sm text-slate-400 mb-2">Total Build Cost</div>
-              <div className="text-2xl font-bold text-amber-400">£792,000</div>
+              <div className="text-2xl font-bold text-amber-400">{formatCurrency(results.build)}</div>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
@@ -565,7 +576,7 @@ function OfferPage() {
 
 function ModernHomePage() {
   const { project, scenarios, houseTypes } = useStore();
-  const finance = project.finance || { targetProfitPct: 20, feesPct: 5, contPct: 10, financeRatePct: 8.5, financeMonths: 18, landAcqCosts: 25000 };
+  const finance = project.finance || { targetProfitPct: '20', feesPct: '5', contPct: '10', financeRatePct: '8.5', financeMonths: '18', landAcqCosts: '25000' };
   const results = computeTotals(project, finance, houseTypes);
   
   return (
