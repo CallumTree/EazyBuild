@@ -1,61 +1,68 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface NumberInputProps {
-  value: string | number;
-  onChange: (value: string) => void;
-  onBlur?: () => void;
-  placeholder?: string;
+  value: number;
+  onChange: (value: number) => void;
   className?: string;
-  type?: 'number' | 'text';
+  placeholder?: string;
   step?: string;
-  min?: string;
-  max?: string;
+  min?: number;
+  max?: number;
 }
 
 export function NumberInput({ 
   value, 
   onChange, 
-  onBlur,
+  className = '', 
   placeholder,
-  className = "input",
-  type = "number",
   step,
   min,
   max
 }: NumberInputProps) {
-  const [localValue, setLocalValue] = useState(String(value || ''));
+  const [displayValue, setDisplayValue] = useState(value.toString());
+  const [isFocused, setIsFocused] = useState(false);
 
+  // Update display value when prop value changes (but not when focused)
   useEffect(() => {
-    setLocalValue(String(value || ''));
-  }, [value]);
+    if (!isFocused) {
+      setDisplayValue(value.toString());
+    }
+  }, [value, isFocused]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-    onChange(newValue);
-  };
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setDisplayValue(e.target.value);
+  }, []);
 
-  const handleBlur = () => {
-    // Convert to number and back to string to normalize
-    const numValue = parseFloat(localValue);
-    const normalizedValue = isNaN(numValue) ? '' : String(numValue);
-    setLocalValue(normalizedValue);
-    onChange(normalizedValue);
-    onBlur?.();
-  };
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+    const numericValue = parseFloat(displayValue) || 0;
+    const clampedValue = Math.max(min || -Infinity, Math.min(max || Infinity, numericValue));
+    onChange(clampedValue);
+    setDisplayValue(clampedValue.toString());
+  }, [displayValue, onChange, min, max]);
+
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
+  }, []);
 
   return (
     <input
-      type={type}
-      value={localValue}
+      type="text"
+      value={displayValue}
       onChange={handleChange}
       onBlur={handleBlur}
-      placeholder={placeholder}
+      onFocus={handleFocus}
+      onKeyDown={handleKeyDown}
       className={className}
+      placeholder={placeholder}
       step={step}
-      min={min}
-      max={max}
     />
   );
 }
