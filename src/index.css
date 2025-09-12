@@ -69,6 +69,18 @@
     @apply text-2xl font-semibold text-red-400;
   }
   
+  .navbar {
+    @apply bg-slate-900/95 backdrop-blur border-b border-slate-800;
+  }
+  
+  .nav-btn {
+    @apply flex items-center gap-2 px-4 py-2 rounded-xl text-slate-300 hover:text-white transition-all duration-200;
+  }
+  
+  .nav-btn.active {
+    @apply bg-brand-500 text-white;
+  }
+  
   .bottom-nav {
     @apply fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-800 z-50;
   }
