@@ -1,6 +1,6 @@
 
 import React, { useRef, useCallback, useEffect, useState } from 'react';
-import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet-draw';
 import * as turf from '@turf/turf';
@@ -239,9 +239,9 @@ export function InteractiveMap({ boundary, onBoundaryChange, onAreaChange, class
         />
         
         {userLocation && (
-          <L.Marker position={userLocation}>
-            <L.Popup>Your Location</L.Popup>
-          </L.Marker>
+          <Marker position={userLocation}>
+            <Popup>Your Location</Popup>
+          </Marker>
         )}
 
         <MapController
