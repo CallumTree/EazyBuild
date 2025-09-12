@@ -668,35 +668,6 @@ function ModernHomePage() {
   );
 }
 
-function BottomNav() {
-  const nav = useNavigate();
-  const { pathname } = useLocation();
-  
-  const item = (path: string, Icon: any, label: string) => (
-    <button 
-      onClick={() => nav(path)} 
-      className={`${pathname === path ? "active" : ""} flex flex-col items-center justify-center py-2 text-slate-400 hover:text-white transition`}
-    >
-      <Icon size={20} strokeWidth={1.5} />
-      <span className="text-xs mt-1 font-medium">{label}</span>
-    </button>
-  );
-  
-  return (
-    <nav className="bottom-nav">
-      <ul className="px-2">
-        <li className="contents">
-          {item("/", Home, "Home")}
-          {item("/survey", Map, "Survey")}
-          {item("/layout", LayoutGrid, "Layout")}
-          {item("/finance", PoundSterling, "Finance")}
-          {item("/offer", FileText, "Offer")}
-        </li>
-      </ul>
-    </nav>
-  );
-}
-
 function Shell() {
   return (
     <div className="app-shell">
@@ -714,12 +685,6 @@ function Shell() {
 export default function App() {
   return (
     <StoreProvider>
-      <BrowserRouter>
-        <Shell />
-      </BrowserRouter>
-    </StoreProvider>
-  );
-}vider>
       <BrowserRouter>
         <Shell />
       </BrowserRouter>
