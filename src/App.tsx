@@ -1,804 +1,1013 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
-import { Home, Map, LayoutGrid, PoundSterling, FileText, Plus, Minus, TrendingUp } from "lucide-react";
+import { Home, Map, LayoutGrid, PoundSterling, FileText, Settings, Plus, Minus } from "lucide-react";
+import { Topbar } from "./components/Topbar";
+import { Sidebar } from "./components/Sidebar";
+import { MapCanvas } from "./components/MapCanvas";
 import { InteractiveMap } from "./components/InteractiveMap";
-import { NumberInput, formatCurrency, formatNumber } from "./components/NumberInput";
-import { useGlobalStore, HouseType, Comp } from "./store/globalStore";
+import { AssumptionsDrawer } from "./components/AssumptionsDrawer";
+import { ScenarioCompare } from "./components/ScenarioCompare";
+import { StoreProvider, useStore } from "./store";
+import { Toast, useToast } from "./components/Toast";
+import { NumberInput } from "./components/NumberInput";
+import { computeTotals, formatCurrency } from "./finance";
 import "./index.css";
 
-// Navigation component
-function Navigation() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const tabs = [
-    { id: 'survey', label: 'Survey', icon: Map, path: '/' },
-    { id: 'layout', label: 'Layout', icon: LayoutGrid, path: '/layout' },
-    { id: 'finance', label: 'Finance', icon: PoundSterling, path: '/finance' },
-    { id: 'market', label: 'Market', icon: TrendingUp, path: '/market' },
-    { id: 'offer', label: 'Offer', icon: FileText, path: '/offer' },
-  ];
-
-  return (
-    <nav className="bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex space-x-1">
-          {tabs.map(({ id, label, icon: Icon, path }) => (
-            <button
-              key={id}
-              onClick={() => navigate(path)}
-              className={`
-                flex items-center gap-2 px-4 py-3 font-medium text-sm rounded-t-lg
-                transition-colors
-                ${location.pathname === path
-                  ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }
-              `}
-            >
-              <Icon size={16} />
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-    </nav>
-  );
-}
-
-// Viability Badge Component
-function ViabilityBadge({ status, className = "" }: { status: 'viable' | 'at-risk' | 'unviable'; className?: string }) {
-  const config = {
-    viable: { label: 'Viable', bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200' },
-    'at-risk': { label: 'At Risk', bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200' },
-    unviable: { label: 'Unviable', bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' },
+function SurveyPage() {
+  const { project, updateProject } = useStore();
+  const { toast, showToast, hideToast } = useToast();
+  const [siteArea, setSiteArea] = useState(0);
+  
+  const handleSave = () => {
+    if (!project.name.trim()) {
+      showToast('Project name is required', 'error');
+      return;
+    }
+    
+    if (!project.boundary || project.boundary.length < 3) {
+      showToast('Please draw a site boundary on the map', 'error');
+      return;
+    }
+    
+    showToast('Project saved successfully', 'success');
   };
 
-  const { label, bg, text, border } = config[status];
-
-  return (
-    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${bg} ${text} ${border} ${className}`}>
-      {label}
-    </span>
-  );
-}
-
-// Survey Page
-function SurveyPage() {
-  const { project, updateProjectMeta, updateSurvey, updateBoundary, computedTotals } = useGlobalStore();
-
   const formatArea = (areaM2: number) => {
-    if (areaM2 === 0) return "No boundary drawn";
     const hectares = areaM2 / 10000;
     const acres = areaM2 * 0.000247105;
     return `${areaM2.toLocaleString()} m² • ${hectares.toFixed(2)} ha • ${acres.toFixed(2)} ac`;
   };
 
+  const handleBoundaryChange = (boundary: Array<{ lat: number; lng: number }>) => {
+    updateProject({ boundary });
+  };
+
+  const handleAreaChange = (areaM2: number) => {
+    setSiteArea(areaM2);
+    updateProject({ siteArea: areaM2 });
+  };
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">Project Survey</h2>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Project Name</label>
-              <input
-                type="text"
-                value={project.meta.name}
-                onChange={(e) => updateProjectMeta({ name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter project name"
-              />
+    <>
+      <div className="container py-8 space-y-8">
+        <div className="card">
+          <div className="card-header">
+            <span className="text-2xl">🗺️</span>
+            <h2 className="card-title">Survey & GPS Walk</h2>
+          </div>
+          <div className="card-body space-y-6">
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Project name</label>
+                <input 
+                  className="input-field" 
+                  placeholder="Enter project name"
+                  value={project.name}
+                  onChange={(e) => updateProject({ name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Site efficiency (%)</label>
+                <NumberInput 
+                  className="input-field" 
+                  value={project.efficiency || 65}
+                  onChange={(value) => updateProject({ efficiency: parseFloat(value) || 65 })}
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Efficiency (%)</label>
-              <NumberInput
-                value={project.survey.efficiency}
-                onChange={(value) => updateSurvey({ efficiency: value })}
-                min={0}
-                max={100}
-                suffix="%"
-                className="w-full"
+            {siteArea > 0 && (
+              <div className="p-4 bg-slate-700/30 rounded-xl">
+                <div className="text-sm text-slate-400 mb-1">Site Area</div>
+                <div className="font-semibold text-lg text-brand-400">
+                  {formatArea(siteArea)}
+                </div>
+              </div>
+            )}
+
+            <div className="h-96 rounded-xl overflow-hidden border border-slate-700">
+              <InteractiveMap
+                boundary={project.boundary}
+                onBoundaryChange={handleBoundaryChange}
+                onAreaChange={handleAreaChange}
+                className="h-full"
               />
             </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button className="btn-primary flex-1 sm:flex-none" onClick={handleSave}>
+                <span>💾</span>
+                Save & Continue
+              </button>
+              <a href="/layout" className="btn-ghost flex-1 sm:flex-none text-center">
+                Go to Layout
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <Toast {...toast} onClose={hideToast} />
+    </>
+  );
+}
 
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-medium text-gray-900 mb-2">Site Information</h3>
-              <p className="text-sm text-gray-600">{formatArea(project.survey.siteAreaM2)}</p>
-              {computedTotals.gdv > 0 && (
-                <p className="text-sm text-green-600 mt-2">
-                  GDV: {formatCurrency(computedTotals.gdv)}
-                </p>
+function LayoutPage() {
+  const { project, updateProject, houseTypes, addHouseType, addToProjectMix, updateProjectMixCount, removeFromProjectMix } = useStore();
+  const { toast, showToast, hideToast } = useToast();
+  const [showDefaults, setShowDefaults] = useState(true);
+  const [showMyLibrary, setShowMyLibrary] = useState(true);
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [newHouseType, setNewHouseType] = useState({
+    name: '',
+    beds: '3',
+    floorAreaSqm: '120',
+    buildCostPerSqm: '1650',
+    saleValuePerSqm: '3200',
+  });
+
+  const defaultTypes = houseTypes.filter(ht => ht.isDefault);
+  const userTypes = houseTypes.filter(ht => !ht.isDefault);
+  const projectMix = project.unitMix || [];
+
+  const handleAddCustomType = () => {
+    if (!newHouseType.name.trim()) return;
+    addHouseType({ 
+      ...newHouseType, 
+      beds: parseInt(newHouseType.beds) || 3,
+      floorAreaSqm: parseFloat(newHouseType.floorAreaSqm) || 120,
+      buildCostPerSqm: parseFloat(newHouseType.buildCostPerSqm) || 1650,
+      saleValuePerSqm: parseFloat(newHouseType.saleValuePerSqm) || 3200,
+      isDefault: false 
+    });
+    setNewHouseType({
+      name: '',
+      beds: '3',
+      floorAreaSqm: '120',
+      buildCostPerSqm: '1650',
+      saleValuePerSqm: '3200',
+    });
+    setShowAddCustom(false);
+    showToast('House type added to your library', 'success');
+  };
+
+  const handleCountChange = (houseTypeId: string, value: string) => {
+    const count = parseInt(value) || 0;
+    if (count <= 0) {
+      removeFromProjectMix(houseTypeId);
+    } else {
+      updateProjectMixCount(houseTypeId, count);
+    }
+    showToast('Autosaved', 'success');
+  };
+
+  const getTotalUnits = () => {
+    return projectMix.reduce((total, mix) => total + mix.count, 0);
+  };
+
+  return (
+    <>
+      <div className="container py-8 space-y-8">
+        <div className="card">
+          <div className="card-header">
+            <span className="text-2xl">🏠</span>
+            <h2 className="card-title">Unit Mix & Layout</h2>
+          </div>
+          <div className="card-body space-y-8">
+            
+            {/* Current Project Mix */}
+            {projectMix.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-lg mb-4">Current Project Mix ({getTotalUnits()} units)</h3>
+                <div className="space-y-3">
+                  {projectMix.map(mix => {
+                    const houseType = houseTypes.find(ht => ht.id === mix.houseTypeId);
+                    if (!houseType) return null;
+                    return (
+                      <div key={mix.houseTypeId} className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
+                        <div>
+                          <div className="font-medium text-white">{houseType.name}</div>
+                          <div className="text-sm text-slate-300">
+                            {houseType.beds} beds • {houseType.floorAreaSqm}m² • £{houseType.saleValuePerSqm}/m²
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <NumberInput 
+                            className="input-field w-20" 
+                            value={mix.count}
+                            onChange={(value) => handleCountChange(mix.houseTypeId, value)}
+                          />
+                          <button 
+                            onClick={() => removeFromProjectMix(mix.houseTypeId)}
+                            className="text-red-400 hover:text-red-300 transition-colors"
+                          >
+                            ❌
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Default House Types */}
+            <div>
+              <button 
+                onClick={() => setShowDefaults(!showDefaults)}
+                className="flex items-center gap-2 font-semibold text-lg mb-4 hover:text-brand-400 transition-colors"
+              >
+                <span>{showDefaults ? '▼' : '▶'}</span>
+                Default House Types
+              </button>
+              {showDefaults && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {defaultTypes.map(houseType => (
+                    <div key={houseType.id} className="p-4 bg-slate-700/20 rounded-xl border border-slate-700">
+                      <div className="font-medium mb-2 text-white">{houseType.name}</div>
+                      <div className="text-sm text-slate-300 mb-3">
+                        {houseType.beds} beds • {houseType.floorAreaSqm}m² • Build: £{houseType.buildCostPerSqm}/m² • Sale: £{houseType.saleValuePerSqm}/m²
+                      </div>
+                      <button 
+                        onClick={() => addToProjectMix(houseType.id)}
+                        className="btn-ghost text-sm w-full"
+                      >
+                        ➕ Add to Project
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* User Library */}
+            <div>
+              <button 
+                onClick={() => setShowMyLibrary(!showMyLibrary)}
+                className="flex items-center gap-2 font-semibold text-lg mb-4 hover:text-brand-400 transition-colors"
+              >
+                <span>{showMyLibrary ? '▼' : '▶'}</span>
+                My Library ({userTypes.length})
+              </button>
+              {showMyLibrary && (
+                <div className="space-y-4">
+                  {userTypes.length === 0 ? (
+                    <p className="text-slate-400">No custom house types yet. Create your first one below.</p>
+                  ) : (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {userTypes.map(houseType => (
+                        <div key={houseType.id} className="p-4 bg-slate-700/20 rounded-xl border border-slate-700">
+                          <div className="font-medium mb-2 text-white">{houseType.name}</div>
+                          <div className="text-sm text-slate-300 mb-3">
+                            {houseType.beds} beds • {houseType.floorAreaSqm}m² • Build: £{houseType.buildCostPerSqm}/m² • Sale: £{houseType.saleValuePerSqm}/m²
+                          </div>
+                          <button 
+                            onClick={() => addToProjectMix(houseType.id)}
+                            className="btn-ghost text-sm w-full"
+                          >
+                            ➕ Add to Project
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Add Custom Type */}
+                  {!showAddCustom ? (
+                    <button 
+                      onClick={() => setShowAddCustom(true)}
+                      className="btn-primary w-full"
+                    >
+                      ➕ Create New House Type
+                    </button>
+                  ) : (
+                    <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
+                      <h4 className="font-medium mb-4 text-white">Create New House Type</h4>
+                      <div className="grid md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-300 mb-2">Name/Model</label>
+                          <input 
+                            className="input-field" 
+                            value={newHouseType.name}
+                            onChange={(e) => setNewHouseType(prev => ({...prev, name: e.target.value}))}
+                            placeholder="e.g., Custom 4-bed"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-300 mb-2">Bedrooms</label>
+                          <NumberInput 
+                            className="input-field" 
+                            value={newHouseType.beds}
+                            onChange={(value) => setNewHouseType(prev => ({...prev, beds: value}))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-300 mb-2">Floor area (m²)</label>
+                          <NumberInput 
+                            className="input-field" 
+                            value={newHouseType.floorAreaSqm}
+                            onChange={(value) => setNewHouseType(prev => ({...prev, floorAreaSqm: value}))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-300 mb-2">Build cost £/m²</label>
+                          <NumberInput 
+                            className="input-field" 
+                            value={newHouseType.buildCostPerSqm}
+                            onChange={(value) => setNewHouseType(prev => ({...prev, buildCostPerSqm: value}))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-300 mb-2">Sale value £/m²</label>
+                          <NumberInput 
+                            className="input-field" 
+                            value={newHouseType.saleValuePerSqm}
+                            onChange={(value) => setNewHouseType(prev => ({...prev, saleValuePerSqm: value}))}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <button onClick={handleAddCustomType} className="btn-primary flex-1">
+                          💾 Save to Library
+                        </button>
+                        <button 
+                          onClick={() => setShowAddCustom(false)} 
+                          className="btn-ghost flex-1"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      </div>
+      <Toast {...toast} onClose={hideToast} duration={1000} />
+    </>
+  );
+}
+
+function ModernFinancePage() {
+  const { project, updateProject, duplicateScenario, scenarios, houseTypes } = useStore();
+  const { toast, showToast, hideToast } = useToast();
+  const [showAssumptions, setShowAssumptions] = useState(false);
+  const [showCompare, setShowCompare] = useState(false);
+  const [selectedScenario, setSelectedScenario] = useState<string>('');
+  const [sensitivityMode, setSensitivityMode] = useState<'sale' | 'build' | null>(null);
+  const [sensitivityValue, setSensitivityValue] = useState(0);
+  
+  const finance = project.finance || {
+    feesPct: '5',
+    contPct: '10',
+    financeRatePct: '8.5',
+    financeMonths: '18',
+    targetProfitPct: '20',
+    landAcqCosts: '25000',
+  };
+  
+  const results = computeTotals(project, finance, houseTypes);
+  
+  // Sensitivity analysis
+  const getSensitivityResults = () => {
+    if (!sensitivityMode) return results;
+    
+    const adjustedProject = { ...project };
+    const adjustedHouseTypes = houseTypes.map(ht => {
+      if (sensitivityMode === 'sale') {
+        return { ...ht, saleValuePerSqm: ht.saleValuePerSqm * (1 + sensitivityValue / 100) };
+      } else if (sensitivityMode === 'build') {
+        return { ...ht, buildCostPerSqm: ht.buildCostPerSqm * (1 + sensitivityValue / 100) };
+      }
+      return ht;
+    });
+    
+    return computeTotals(adjustedProject, finance, adjustedHouseTypes);
+  };
+  
+  const sensitivityResults = getSensitivityResults();
+  
+  const updateFinance = (field: keyof typeof finance, value: string) => {
+    updateProject({
+      finance: { ...finance, [field]: value }
+    });
+  };
+  
+  const handleDuplicate = () => {
+    duplicateScenario();
+    showToast('Scenario duplicated', 'success');
+  };
+  
+  const getViabilityStatus = () => {
+    const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
+    const actualProfitPct = sensitivityResults.actualProfitPct;
+    const residual = sensitivityResults.residual;
+    
+    if (actualProfitPct >= targetProfitNum && residual >= 0) {
+      return { status: 'Viable', color: 'bg-green-500', textColor: 'text-green-400' };
+    } else if (actualProfitPct >= (targetProfitNum - 10) && residual >= 0) {
+      return { status: 'At Risk', color: 'bg-amber-500', textColor: 'text-amber-400' };
+    } else {
+      return { status: 'Unviable', color: 'bg-red-500', textColor: 'text-red-400' };
+    }
+  };
+  
+  const viability = getViabilityStatus();
+  
+  const getKPIColor = (isPositive: boolean) => {
+    return isPositive ? 'text-green-400' : 'text-red-400';
+  };
+
+  const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
+  const isViableProfit = sensitivityResults.actualProfitPct >= targetProfitNum && sensitivityResults.residual >= 0;
+
+  const handleSensitivityChange = (mode: 'sale' | 'build', delta: number) => {
+    if (sensitivityMode === mode && sensitivityValue === delta) {
+      // Reset if clicking the same button
+      setSensitivityMode(null);
+      setSensitivityValue(0);
+    } else {
+      setSensitivityMode(mode);
+      setSensitivityValue(delta);
+    }
+  };
+
+  return (
+    <>
+      <div className="container py-8 space-y-8">
+        <div className="card">
+          <div className="card-header">
+            <span className="text-2xl">💰</span>
+            <div className="flex-1">
+              <h2 className="card-title">Finance & Appraisal</h2>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className={`px-3 py-1 rounded-full text-sm font-medium text-white ${viability.color}`}>
+                {viability.status}
+              </span>
+              <button 
+                onClick={() => setShowAssumptions(true)}
+                className="btn-ghost text-sm"
+              >
+                <Settings size={16} />
+                Assumptions
+              </button>
+              <button onClick={handleDuplicate} className="btn-ghost text-sm">
+                📋 Duplicate Scenario
+              </button>
+              {scenarios.length > 1 && (
+                <button 
+                  onClick={() => setShowCompare(true)}
+                  className="btn-ghost text-sm"
+                >
+                  🔄 Compare
+                </button>
               )}
             </div>
           </div>
+          <div className="card-body space-y-6">
+            
+            {/* Sensitivity Analysis */}
+            <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
+              <h3 className="font-semibold mb-4 text-white">Sensitivity Analysis</h3>
+              <div className="flex gap-4 mb-4">
+                <div className="space-x-2">
+                  <span className="text-sm text-slate-300">Sale Price:</span>
+                  <button 
+                    onClick={() => handleSensitivityChange('sale', -5)}
+                    className={`px-3 py-1 rounded text-sm transition-colors ${
+                      sensitivityMode === 'sale' && sensitivityValue === -5 
+                        ? 'bg-red-500 text-white' 
+                        : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
+                    }`}
+                  >
+                    <Minus size={12} className="inline mr-1" />
+                    5%
+                  </button>
+                  <button 
+                    onClick={() => handleSensitivityChange('sale', 5)}
+                    className={`px-3 py-1 rounded text-sm transition-colors ${
+                      sensitivityMode === 'sale' && sensitivityValue === 5 
+                        ? 'bg-green-500 text-white' 
+                        : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
+                    }`}
+                  >
+                    <Plus size={12} className="inline mr-1" />
+                    5%
+                  </button>
+                </div>
+                
+                <div className="space-x-2">
+                  <span className="text-sm text-slate-300">Build Cost:</span>
+                  <button 
+                    onClick={() => handleSensitivityChange('build', -5)}
+                    className={`px-3 py-1 rounded text-sm transition-colors ${
+                      sensitivityMode === 'build' && sensitivityValue === -5 
+                        ? 'bg-green-500 text-white' 
+                        : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
+                    }`}
+                  >
+                    <Minus size={12} className="inline mr-1" />
+                    5%
+                  </button>
+                  <button 
+                    onClick={() => handleSensitivityChange('build', 5)}
+                    className={`px-3 py-1 rounded text-sm transition-colors ${
+                      sensitivityMode === 'build' && sensitivityValue === 5 
+                        ? 'bg-red-500 text-white' 
+                        : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
+                    }`}
+                  >
+                    <Plus size={12} className="inline mr-1" />
+                    5%
+                  </button>
+                </div>
+              </div>
+              
+              {sensitivityMode && (
+                <div className="text-sm text-slate-300">
+                  Showing {sensitivityValue > 0 ? '+' : ''}{sensitivityValue}% change to {sensitivityMode === 'sale' ? 'sale prices' : 'build costs'}
+                </div>
+              )}
+            </div>
 
-          <div className="lg:col-span-2">
-            <label className="block text-sm font-medium mb-2">Site Boundary</label>
-            <div className="border border-gray-300 rounded-lg overflow-hidden">
-              <InteractiveMap
-                boundary={project.survey.boundary}
-                onBoundaryChange={updateBoundary}
-                onAreaChange={() => {}} // Area is calculated in updateBoundary
-                className="h-96"
-              />
+            <div className="grid md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Build cost £/m²</label>
+                <NumberInput 
+                  className="input-field" 
+                  value={project.buildCostPerSqm || 1650}
+                  onChange={(value) => updateProject({ buildCostPerSqm: parseFloat(value) || 1650 })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Fees %</label>
+                <NumberInput 
+                  className="input-field" 
+                  value={finance.feesPct}
+                  onChange={(value) => updateFinance('feesPct', value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Contingency %</label>
+                <NumberInput 
+                  className="input-field" 
+                  value={finance.contPct}
+                  onChange={(value) => updateFinance('contPct', value)}
+                />
+              </div>
+            </div>
+            
+            <div className="grid md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Land acquisition costs (£)</label>
+                <NumberInput 
+                  className="input-field" 
+                  value={finance.landAcqCosts}
+                  onChange={(value) => updateFinance('landAcqCosts', value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Finance rate %</label>
+                <NumberInput 
+                  className="input-field" 
+                  step="0.1"
+                  value={finance.financeRatePct}
+                  onChange={(value) => updateFinance('financeRatePct', value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Target profit %</label>
+                <NumberInput 
+                  className="input-field" 
+                  value={finance.targetProfitPct}
+                  onChange={(value) => updateFinance('targetProfitPct', value)}
+                />
+              </div>
+            </div>
+            
+            {/* Progress Bars */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-slate-300">Profit vs Target</span>
+                  <span className={getKPIColor(isViableProfit)}>
+                    {sensitivityResults.actualProfitPct.toFixed(1)}% / {targetProfitNum}%
+                  </span>
+                </div>
+                <div className="relative bg-slate-700 h-2 rounded">
+                  <div 
+                    className={`h-full rounded transition-all duration-300 ${
+                      isViableProfit ? 'bg-green-400' : 'bg-red-400'
+                    }`}
+                    style={{ width: `${Math.min((sensitivityResults.actualProfitPct / targetProfitNum) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-slate-300">Cost vs GDV</span>
+                  <span className="text-slate-400">
+                    {(sensitivityResults.totalCosts / sensitivityResults.gdv * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="relative bg-slate-700 h-2 rounded">
+                  <div 
+                    className="bg-amber-400 h-full rounded transition-all duration-300"
+                    style={{ 
+                      width: `${Math.min((sensitivityResults.totalCosts / sensitivityResults.gdv * 100), 100)}%` 
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* KPI Cards */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
+                <div className="text-sm text-slate-400 mb-2">GDV</div>
+                <div className="text-xl font-bold text-brand-400">
+                  {formatCurrency(sensitivityResults.gdv)}
+                </div>
+              </div>
+              
+              <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
+                <div className="text-sm text-slate-400 mb-2">Build Cost</div>
+                <div className="text-xl font-bold text-amber-400">
+                  {formatCurrency(sensitivityResults.build)}
+                </div>
+              </div>
+              
+              <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
+                <div className="text-sm text-slate-400 mb-2">Total Cost</div>
+                <div className="text-xl font-bold text-slate-300">
+                  {formatCurrency(sensitivityResults.totalCosts)}
+                </div>
+              </div>
+              
+              <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
+                <div className="text-sm text-slate-400 mb-2">Profit %</div>
+                <div className={`text-xl font-bold ${viability.textColor}`}>
+                  {sensitivityResults.actualProfitPct.toFixed(1)}%
+                </div>
+              </div>
+            </div>
+            
+            <div className={`mt-8 p-6 rounded-2xl border ${
+              sensitivityResults.residual >= 0 ? 
+                'bg-green-500/10 border-green-500/20' : 
+                'bg-red-500/10 border-red-500/20'
+            }`}>
+              <div className="text-slate-300 mb-3 font-medium">Residual Land Value</div>
+              <div className={`text-3xl font-bold ${getKPIColor(sensitivityResults.residual >= 0)}`}>
+                {formatCurrency(sensitivityResults.residual)}
+              </div>
+              <div className="mt-3 text-sm text-slate-400 font-mono">
+                Formula: GDV - Build Cost - Fees - Contingency - Finance Cost - Target Profit
+              </div>
+              <div className="mt-2 text-xs text-slate-500 font-mono">
+                {formatCurrency(sensitivityResults.gdv)} - {formatCurrency(sensitivityResults.build)} - {formatCurrency(sensitivityResults.fees)} - {formatCurrency(sensitivityResults.contingency)} - {formatCurrency(sensitivityResults.financeCost)} - {formatCurrency(sensitivityResults.targetProfit)}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-// Layout Page
-function LayoutPage() {
-  const { 
-    project, 
-    computedTotals,
-    addHouseType, 
-    updateHouseType, 
-    deleteHouseType,
-    addToUnitMix,
-    updateUnitMixCount,
-    removeFromUnitMix
-  } = useGlobalStore();
-
-  const [showAddHouseType, setShowAddHouseType] = useState(false);
-  const [newHouseType, setNewHouseType] = useState({
-    name: '', beds: 2, giaSqft: 1000, buildCostPerSqft: 150, salePricePerSqft: 300
-  });
-
-  const handleAddHouseType = () => {
-    if (!newHouseType.name.trim()) return;
-    addHouseType({ ...newHouseType, isDefault: false });
-    setNewHouseType({ name: '', beds: 2, giaSqft: 1000, buildCostPerSqft: 150, salePricePerSqft: 300 });
-    setShowAddHouseType(false);
-  };
-
-  const getUnitMixCount = (houseTypeId: string) => {
-    return project.layout.unitMix.find(um => um.houseTypeId === houseTypeId)?.count || 0;
-  };
-
-  return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Unit Schedule</h2>
-          <ViabilityBadge status={computedTotals.viabilityStatus} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div>
-            <h3 className="font-medium mb-3">House Types</h3>
-
-            <div className="space-y-3">
-              {project.layout.houseTypes.map((houseType) => (
-                <div key={houseType.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h4 className="font-medium">{houseType.name}</h4>
-                      <p className="text-sm text-gray-600">{houseType.beds} beds • {formatNumber(houseType.giaSqft)} sqft</p>
-                    </div>
-                    {!houseType.isDefault && (
-                      <button
-                        onClick={() => deleteHouseType(houseType.id)}
-                        className="text-red-600 hover:text-red-800 text-sm"
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <label className="block text-gray-600 mb-1">Build Cost (£/sqft)</label>
-                      <NumberInput
-                        value={houseType.buildCostPerSqft}
-                        onChange={(value) => updateHouseType(houseType.id, { buildCostPerSqft: value })}
-                        prefix="£"
-                        className="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 mb-1">Sale Price (£/sqft)</label>
-                      <NumberInput
-                        value={houseType.salePricePerSqft}
-                        onChange={(value) => updateHouseType(houseType.id, { salePricePerSqft: value })}
-                        prefix="£"
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t">
-                    <span className="text-sm font-medium">Units: {getUnitMixCount(houseType.id)}</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          const currentCount = getUnitMixCount(houseType.id);
-                          if (currentCount > 0) {
-                            updateUnitMixCount(houseType.id, currentCount - 1);
-                          }
-                        }}
-                        className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded"
-                      >
-                        <Minus size={16} />
-                      </button>
-                      <button
-                        onClick={() => addToUnitMix(houseType.id, 1)}
-                        className="w-8 h-8 flex items-center justify-center bg-blue-100 hover:bg-blue-200 rounded"
-                      >
-                        <Plus size={16} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+      
+      <AssumptionsDrawer 
+        isOpen={showAssumptions} 
+        onClose={() => setShowAssumptions(false)} 
+      />
+      
+      {showCompare && scenarios.length > 1 && (
+        <div className="fixed inset-0 z-40 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 rounded-xl p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4 text-white">Select Scenario to Compare</h3>
+            <div className="space-y-2 mb-4">
+              {scenarios.filter(s => s.id !== project.id).map(scenario => (
+                <button
+                  key={scenario.id}
+                  onClick={() => setSelectedScenario(scenario.id)}
+                  className={`w-full text-left p-3 rounded-lg transition-colors ${
+                    selectedScenario === scenario.id 
+                      ? 'bg-brand-500 text-white' 
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {scenario.name}
+                </button>
               ))}
             </div>
-
-            {showAddHouseType ? (
-              <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-                <h4 className="font-medium mb-3">Add House Type</h4>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder="House type name"
-                    value={newHouseType.name}
-                    onChange={(e) => setNewHouseType({ ...newHouseType, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <NumberInput
-                      value={newHouseType.beds}
-                      onChange={(value) => setNewHouseType({ ...newHouseType, beds: value })}
-                      min={1}
-                      className="w-full"
-                      placeholder="Beds"
-                    />
-                    <NumberInput
-                      value={newHouseType.giaSqft}
-                      onChange={(value) => setNewHouseType({ ...newHouseType, giaSqft: value })}
-                      min={1}
-                      className="w-full"
-                      placeholder="GIA sqft"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <NumberInput
-                      value={newHouseType.buildCostPerSqft}
-                      onChange={(value) => setNewHouseType({ ...newHouseType, buildCostPerSqft: value })}
-                      min={0}
-                      prefix="£"
-                      className="w-full"
-                      placeholder="Build cost/sqft"
-                    />
-                    <NumberInput
-                      value={newHouseType.salePricePerSqft}
-                      onChange={(value) => setNewHouseType({ ...newHouseType, salePricePerSqft: value })}
-                      min={0}
-                      prefix="£"
-                      className="w-full"
-                      placeholder="Sale price/sqft"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleAddHouseType}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    >
-                      Add
-                    </button>
-                    <button
-                      onClick={() => setShowAddHouseType(false)}
-                      className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowAddHouseType(true)}
-                className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-400 hover:text-gray-700"
+            <div className="flex gap-3">
+              <button 
+                onClick={() => {
+                  if (selectedScenario) {
+                    const scenario = scenarios.find(s => s.id === selectedScenario);
+                    if (scenario) {
+                      // Show comparison - this would need to be implemented
+                    }
+                  }
+                }}
+                disabled={!selectedScenario}
+                className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Plus className="mx-auto mb-2" size={24} />
-                Add House Type
+                Compare
               </button>
-            )}
-          </div>
-
-          <div>
-            <h3 className="font-medium mb-3">Project Summary</h3>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              <div className="flex justify-between">
-                <span>Total Units:</span>
-                <span className="font-medium">
-                  {project.layout.unitMix.reduce((sum, um) => sum + um.count, 0)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>GDV:</span>
-                <span className="font-medium text-green-600">{formatCurrency(computedTotals.gdv)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Build Cost:</span>
-                <span className="font-medium">{formatCurrency(computedTotals.buildCost)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Residual:</span>
-                <span className={`font-medium ${computedTotals.residual >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(computedTotals.residual)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Finance Page
-function FinancePage() {
-  const { project, updateFinance, computedTotals } = useGlobalStore();
-
-  return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Financial Appraisal</h2>
-          <ViabilityBadge status={computedTotals.viabilityStatus} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div>
-            <h3 className="font-medium mb-4">Assumptions</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Fees (%)</label>
-                <NumberInput
-                  value={project.finance.feesPct}
-                  onChange={(value) => updateFinance({ feesPct: value })}
-                  min={0}
-                  suffix="%"
-                  decimals={1}
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Contingency (%)</label>
-                <NumberInput
-                  value={project.finance.contPct}
-                  onChange={(value) => updateFinance({ contPct: value })}
-                  min={0}
-                  suffix="%"
-                  decimals={1}
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Target Profit (%)</label>
-                <NumberInput
-                  value={project.finance.targetProfitPct}
-                  onChange={(value) => updateFinance({ targetProfitPct: value })}
-                  min={0}
-                  suffix="%"
-                  decimals={1}
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Finance Rate (%)</label>
-                <NumberInput
-                  value={project.finance.financeRatePct}
-                  onChange={(value) => updateFinance({ financeRatePct: value })}
-                  min={0}
-                  suffix="%"
-                  decimals={2}
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Finance Period (months)</label>
-                <NumberInput
-                  value={project.finance.financeMonths}
-                  onChange={(value) => updateFinance({ financeMonths: value })}
-                  min={1}
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Land Acquisition Costs</label>
-                <NumberInput
-                  value={project.finance.landAcqCosts}
-                  onChange={(value) => updateFinance({ landAcqCosts: value })}
-                  min={0}
-                  prefix="£"
-                  className="w-full"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="font-medium mb-4">Results</h3>
-            <div className="space-y-4">
-              <div className="bg-green-50 rounded-lg p-4">
-                <div className="text-sm text-green-700 mb-1">Gross Development Value</div>
-                <div className="text-2xl font-bold text-green-800">{formatCurrency(computedTotals.gdv)}</div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-600 mb-1">Build Cost</div>
-                  <div className="text-lg font-semibold">{formatCurrency(computedTotals.buildCost)}</div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-600 mb-1">Fees</div>
-                  <div className="text-lg font-semibold">{formatCurrency(computedTotals.fees)}</div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-600 mb-1">Contingency</div>
-                  <div className="text-lg font-semibold">{formatCurrency(computedTotals.contingency)}</div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-600 mb-1">Finance Cost</div>
-                  <div className="text-lg font-semibold">{formatCurrency(computedTotals.financeCost)}</div>
-                </div>
-              </div>
-
-              <div className={`rounded-lg p-4 ${computedTotals.residual >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
-                <div className={`text-sm mb-1 ${computedTotals.residual >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  Residual Land Value
-                </div>
-                <div className={`text-2xl font-bold ${computedTotals.residual >= 0 ? 'text-green-800' : 'text-red-800'}`}>
-                  {formatCurrency(computedTotals.residual)}
-                </div>
-              </div>
-
-              <div className="bg-blue-50 rounded-lg p-4">
-                <div className="text-sm text-blue-700 mb-1">Profit %</div>
-                <div className="text-xl font-bold text-blue-800">{formatNumber(computedTotals.profitPct, 1)}%</div>
-                <div className="w-full bg-blue-200 rounded-full h-2 mt-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min((computedTotals.profitPct / project.finance.targetProfitPct) * 100, 100)}%` }}
-                  ></div>
-                </div>
-                <div className="text-xs text-blue-600 mt-1">
-                  Target: {project.finance.targetProfitPct}%
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Market Evidence Page
-function MarketPage() {
-  const { project, updateMarket, addComp, updateComp, deleteComp, computedTotals } = useGlobalStore();
-  const [showAddComp, setShowAddComp] = useState(false);
-  const [newComp, setNewComp] = useState({
-    address: '', postcode: '', beds: 3, propertyType: 'detached' as const, 
-    date: new Date().toISOString().split('T')[0], priceGBP: 0, giaSqft: 0, notes: ''
-  });
-
-  const handleAddComp = () => {
-    if (!newComp.address.trim() || newComp.priceGBP === 0 || newComp.giaSqft === 0) return;
-    addComp(newComp);
-    setNewComp({
-      address: '', postcode: '', beds: 3, propertyType: 'detached',
-      date: new Date().toISOString().split('T')[0], priceGBP: 0, giaSqft: 0, notes: ''
-    });
-    setShowAddComp(false);
-  };
-
-  return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Market Evidence</h2>
-          <div className="flex items-center gap-4">
-            {project.market.derivedPricePerSqft && (
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Use market pricing:</label>
-                <input
-                  type="checkbox"
-                  checked={project.market.useMarketPricing}
-                  onChange={(e) => updateMarket({ useMarketPricing: e.target.checked })}
-                  className="rounded"
-                />
-              </div>
-            )}
-            <ViabilityBadge status={computedTotals.viabilityStatus} />
-          </div>
-        </div>
-
-        {project.market.derivedPricePerSqft && (
-          <div className="bg-blue-50 rounded-lg p-4 mb-6">
-            <div className="text-sm text-blue-700 mb-1">Market-Derived Price per Sqft</div>
-            <div className="text-xl font-bold text-blue-800">
-              £{formatNumber(project.market.derivedPricePerSqft)}
-            </div>
-            {project.market.useMarketPricing && (
-              <div className="text-xs text-blue-600 mt-1">
-                Currently applied to GDV calculations
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="space-y-4">
-          {project.market.comps.map((comp) => (
-            <div key={comp.id} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h4 className="font-medium">{comp.address}</h4>
-                  <p className="text-sm text-gray-600">
-                    {comp.beds} beds • {comp.propertyType} • {formatCurrency(comp.priceGBP)} • £{comp.pricePerSqft}/sqft
-                  </p>
-                </div>
-                <button
-                  onClick={() => deleteComp(comp.id)}
-                  className="text-red-600 hover:text-red-800 text-sm"
-                >
-                  Delete
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <NumberInput
-                  value={comp.priceGBP}
-                  onChange={(value) => updateComp(comp.id, { priceGBP: value })}
-                  prefix="£"
-                  className="w-full"
-                />
-                <NumberInput
-                  value={comp.giaSqft}
-                  onChange={(value) => updateComp(comp.id, { giaSqft: value })}
-                  suffix=" sqft"
-                  className="w-full"
-                />
-                <input
-                  type="date"
-                  value={comp.date.split('T')[0]}
-                  onChange={(e) => updateComp(comp.id, { date: e.target.value + 'T00:00:00.000Z' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-                <div className="text-sm font-medium px-3 py-2 bg-gray-50 rounded-md">
-                  £{comp.pricePerSqft}/sqft
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {showAddComp ? (
-          <div className="border border-gray-300 rounded-lg p-4 bg-gray-50 mt-4">
-            <h4 className="font-medium mb-3">Add Comparable</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="Address"
-                value={newComp.address}
-                onChange={(e) => setNewComp({ ...newComp, address: e.target.value })}
-                className="px-3 py-2 border border-gray-300 rounded-md"
-              />
-              <input
-                type="text"
-                placeholder="Postcode"
-                value={newComp.postcode}
-                onChange={(e) => setNewComp({ ...newComp, postcode: e.target.value })}
-                className="px-3 py-2 border border-gray-300 rounded-md"
-              />
-              <NumberInput
-                value={newComp.beds}
-                onChange={(value) => setNewComp({ ...newComp, beds: value })}
-                min={1}
-                placeholder="Beds"
-                className="w-full"
-              />
-              <select
-                value={newComp.propertyType}
-                onChange={(e) => setNewComp({ ...newComp, propertyType: e.target.value as any })}
-                className="px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="detached">Detached</option>
-                <option value="semi">Semi-detached</option>
-                <option value="terraced">Terraced</option>
-                <option value="flat">Flat</option>
-                <option value="bungalow">Bungalow</option>
-                <option value="other">Other</option>
-              </select>
-              <NumberInput
-                value={newComp.priceGBP}
-                onChange={(value) => setNewComp({ ...newComp, priceGBP: value })}
-                min={0}
-                prefix="£"
-                placeholder="Sale price"
-                className="w-full"
-              />
-              <NumberInput
-                value={newComp.giaSqft}
-                onChange={(value) => setNewComp({ ...newComp, giaSqft: value })}
-                min={1}
-                placeholder="GIA sqft"
-                className="w-full"
-              />
-              <input
-                type="date"
-                value={newComp.date}
-                onChange={(e) => setNewComp({ ...newComp, date: e.target.value })}
-                className="px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={handleAddComp}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Add Comparable
-              </button>
-              <button
-                onClick={() => setShowAddComp(false)}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
-              >
+              <button onClick={() => setShowCompare(false)} className="btn-ghost flex-1">
                 Cancel
               </button>
             </div>
           </div>
-        ) : (
-          <button
-            onClick={() => setShowAddComp(true)}
-            className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-400 hover:text-gray-700 mt-4"
-          >
-            <Plus className="mx-auto mb-2" size={24} />
-            Add Comparable
-          </button>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+      
+      <Toast {...toast} onClose={hideToast} />
+    </>
   );
 }
 
-// Offer Page
 function OfferPage() {
-  const { project, computedTotals } = useGlobalStore();
+  const { project, houseTypes } = useStore();
+  const finance = project.finance || {
+    feesPct: '5',
+    contPct: '10',
+    financeRatePct: '8.5',
+    financeMonths: '18',
+    targetProfitPct: '20',
+    landAcqCosts: '25000',
+  };
+  const results = computeTotals(project, finance, houseTypes);
+  const unitMix = project.unitMix || [];
+
+  const getViabilityBadge = () => {
+    const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
+    const actualProfitPct = results.actualProfitPct;
+    const residual = results.residual;
+    
+    if (actualProfitPct >= targetProfitNum && residual >= 0) {
+      return { status: 'Viable', color: 'bg-green-500', textColor: 'text-green-400' };
+    } else if (actualProfitPct >= (targetProfitNum - 10) && residual >= 0) {
+      return { status: 'At Risk', color: 'bg-amber-500', textColor: 'text-amber-400' };
+    } else {
+      return { status: 'Unviable', color: 'bg-red-500', textColor: 'text-red-400' };
+    }
+  };
+
+  const viability = getViabilityBadge();
+
+  const hasRequiredData = () => {
+    return project.name && 
+           unitMix.length > 0 && 
+           parseFloat(finance.targetProfitPct) > 0 &&
+           parseFloat(finance.feesPct) > 0;
+  };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Offer Summary</h2>
-          <ViabilityBadge status={computedTotals.viabilityStatus} />
+    <div className="container py-8 space-y-8">
+      <div className="card">
+        <div className="card-header">
+          <span className="text-2xl">📄</span>
+          <div className="flex-1">
+            <h2 className="card-title">Offer Pack & PDF Export</h2>
+          </div>
+          <span className={`px-3 py-1 rounded-full text-sm font-medium text-white ${viability.color}`}>
+            {viability.status}
+          </span>
         </div>
+        <div className="card-body space-y-6">
+          <p className="text-slate-300 leading-relaxed">
+            Preview & export your one-page PDF appraisal ready for lenders and agents.
+          </p>
+          
+          {!hasRequiredData() && (
+            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+              <div className="text-amber-400 font-medium mb-2">Missing Required Data</div>
+              <ul className="text-sm text-amber-300 space-y-1">
+                {!project.name && <li>• Project name</li>}
+                {unitMix.length === 0 && <li>• Unit mix (add house types in Layout)</li>}
+                {parseFloat(finance.targetProfitPct) <= 0 && <li>• Target profit %</li>}
+                {parseFloat(finance.feesPct) <= 0 && <li>• Fees %</li>}
+              </ul>
+            </div>
+          )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <h3 className="font-medium mb-4">Project Details</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span>Project:</span>
-                <span className="font-medium">{project.meta.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Site Area:</span>
-                <span className="font-medium">
-                  {project.survey.siteAreaM2 > 0 
-                    ? `${formatNumber(project.survey.siteAreaM2)} m²` 
-                    : 'Not defined'
-                  }
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Efficiency:</span>
-                <span className="font-medium">{project.survey.efficiency}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Total Units:</span>
-                <span className="font-medium">
-                  {project.layout.unitMix.reduce((sum, um) => sum + um.count, 0)}
-                </span>
+          {/* Project Summary */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
+              <div className="text-sm text-slate-400 mb-2">Total GDV</div>
+              <div className="text-2xl font-bold text-brand-400">{formatCurrency(results.gdv)}</div>
+            </div>
+            <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
+              <div className="text-sm text-slate-400 mb-2">Residual Land Value</div>
+              <div className={`text-2xl font-bold ${results.residual >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {formatCurrency(results.residual)}
               </div>
             </div>
           </div>
 
-          <div>
-            <h3 className="font-medium mb-4">Financial Summary</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span>GDV:</span>
-                <span className="font-medium text-green-600">{formatCurrency(computedTotals.gdv)}</span>
+          {/* Unit Schedule */}
+          {unitMix.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="font-semibold text-lg text-white">Unit Schedule</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-600">
+                      <th className="text-left py-2 text-slate-300">Type</th>
+                      <th className="text-right py-2 text-slate-300">Count</th>
+                      <th className="text-right py-2 text-slate-300">Area (m²)</th>
+                      <th className="text-right py-2 text-slate-300">Total Area</th>
+                      <th className="text-right py-2 text-slate-300">Sale Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {unitMix.map(mix => {
+                      const houseType = houseTypes.find(ht => ht.id === mix.houseTypeId);
+                      if (!houseType) return null;
+                      const totalArea = houseType.floorAreaSqm * mix.count;
+                      const totalValue = totalArea * houseType.saleValuePerSqm;
+                      
+                      return (
+                        <tr key={mix.houseTypeId} className="border-b border-slate-700">
+                          <td className="py-2 text-white">{houseType.name}</td>
+                          <td className="text-right py-2 text-slate-300">{mix.count}</td>
+                          <td className="text-right py-2 text-slate-300">{houseType.floorAreaSqm}</td>
+                          <td className="text-right py-2 text-slate-300">{totalArea}</td>
+                          <td className="text-right py-2 text-brand-400">{formatCurrency(totalValue)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-              <div className="flex justify-between">
-                <span>Total Costs:</span>
-                <span className="font-medium">{formatCurrency(computedTotals.totalCosts)}</span>
+            </div>
+          )}
+
+          {/* Key Assumptions */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg text-white">Key Assumptions</h3>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="p-3 bg-slate-700/30 rounded-lg">
+                <div className="text-xs text-slate-400">Professional Fees</div>
+                <div className="font-semibold text-white">{finance.feesPct}%</div>
               </div>
-              <div className="flex justify-between">
-                <span>Target Profit:</span>
-                <span className="font-medium">{formatCurrency(computedTotals.targetProfit)}</span>
+              <div className="p-3 bg-slate-700/30 rounded-lg">
+                <div className="text-xs text-slate-400">Contingency</div>
+                <div className="font-semibold text-white">{finance.contPct}%</div>
               </div>
-              <hr />
-              <div className="flex justify-between text-lg">
-                <span>Residual Land Value:</span>
-                <span className={`font-bold ${computedTotals.residual >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(computedTotals.residual)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Profit Margin:</span>
-                <span className="font-medium">{formatNumber(computedTotals.profitPct, 1)}%</span>
+              <div className="p-3 bg-slate-700/30 rounded-lg">
+                <div className="text-xs text-slate-400">Finance Rate</div>
+                <div className="font-semibold text-white">{finance.financeRatePct}%</div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="mt-8 pt-6 border-t">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="font-medium">Recommended Offer</h3>
-              <p className="text-sm text-gray-600">
-                Based on current assumptions and market conditions
-              </p>
-            </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-blue-600">
-                {formatCurrency(Math.max(0, computedTotals.residual))}
-              </div>
-              <div className="text-sm text-gray-600">Maximum bid</div>
-            </div>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <button 
+              className={`btn-primary flex-1 sm:flex-none ${!hasRequiredData() ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!hasRequiredData()}
+            >
+              <span>📄</span>
+              Export PDF
+            </button>
+            <button className="btn-ghost flex-1 sm:flex-none">
+              <span>👁️</span>
+              Preview
+            </button>
           </div>
-        </div>
-
-        <div className="mt-6 flex gap-4">
-          <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            Export PDF
-          </button>
-          <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
-            Save Project
-          </button>
         </div>
       </div>
     </div>
   );
 }
 
-// Main App Component
-function AppContent() {
+function ModernHomePage() {
+  const { project, scenarios, houseTypes } = useStore();
+  const finance = project.finance || { targetProfitPct: '20', feesPct: '5', contPct: '10', financeRatePct: '8.5', financeMonths: '18', landAcqCosts: '25000' };
+  const results = computeTotals(project, finance, houseTypes);
+  
+  const getViabilityStatus = () => {
+    const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
+    if (results.actualProfitPct >= targetProfitNum && results.residual >= 0) {
+      return { status: 'Viable', color: 'bg-green-500/20 text-green-400' };
+    } else if (results.actualProfitPct >= (targetProfitNum - 10) && results.residual >= 0) {
+      return { status: 'At Risk', color: 'bg-amber-500/20 text-amber-400' };
+    } else {
+      return { status: 'Unviable', color: 'bg-red-500/20 text-red-400' };
+    }
+  };
+  
+  const viability = getViabilityStatus();
+  
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navigation />
-      <main>
-        <Routes>
-          <Route path="/" element={<SurveyPage />} />
-          <Route path="/layout" element={<LayoutPage />} />
-          <Route path="/finance" element={<FinancePage />} />
-          <Route path="/market" element={<MarketPage />} />
-          <Route path="/offer" element={<OfferPage />} />
-        </Routes>
-      </main>
+    <div className="container py-8 space-y-8">
+      <div className="card">
+        <div className="card-header">
+          <span className="text-3xl">🏗️</span>
+          <div>
+            <h1 className="card-title text-2xl">Welcome to LandSnap</h1>
+            <p className="text-slate-400 mt-1">Property development made simple</p>
+          </div>
+        </div>
+        <div className="card-body space-y-6">
+          <p className="text-slate-300 leading-relaxed">
+            Quick feasibility assessment for UK property developers (2-15 units). Draw your site, test a unit mix, and generate a lender-ready PDF appraisal.
+          </p>
+          
+          {project.name && (
+            <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
+              <div className="text-sm text-slate-400 mb-2">Current Project</div>
+              <div className="font-semibold text-lg text-white">{project.name}</div>
+              <div className="text-sm text-slate-300 mt-1">
+                {project.estimatedUnits} units • {formatCurrency(results.gdv)} GDV
+              </div>
+            </div>
+          )}
+          
+          <div className="flex flex-col sm:flex-row gap-4">
+            <a href="/survey" className="btn-primary flex-1 sm:flex-none">
+              <span>📍</span>
+              Start a Survey
+            </a>
+            <a href="/offer" className="btn-ghost flex-1 sm:flex-none">
+              <span>📄</span>
+              View Offer Packs
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="card">
+          <div className="card-body">
+            <h3 className="font-semibold mb-4 text-lg text-white">Project Overview</h3>
+            {project.name ? (
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-slate-300">Units:</span>
+                  <span className="font-medium text-white">{project.estimatedUnits}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-300">GDV:</span>
+                  <span className="font-medium text-brand-400">{formatCurrency(results.gdv)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-300">Residual:</span>
+                  <span className={`font-medium ${results.residual >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {formatCurrency(results.residual)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-slate-400">No active project. Start with a survey above.</p>
+            )}
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-body">
+            <h3 className="font-semibold mb-4 text-lg text-white">Scenarios</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-slate-300">Total scenarios:</span>
+                <span className="font-medium text-white">{scenarios.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-300">Current status:</span>
+                <span className={`font-medium px-2 py-1 rounded text-xs ${viability.color}`}>
+                  {viability.status}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Shell() {
+  return (
+    <div className="app-shell">
+      <Topbar />
+      <div className="flex h-screen pt-14">
+        <Sidebar />
+        <div className="flex-1">
+          <MapCanvas />
+        </div>
+      </div>
     </div>
   );
 }
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
+    <StoreProvider>
+      <BrowserRouter>
+        <Shell />
+      </BrowserRouter>
+    </StoreProvider>
   );
 }
