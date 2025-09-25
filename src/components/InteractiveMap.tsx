@@ -142,6 +142,8 @@ function MapController({ boundary, onBoundaryChange, onAreaChange }: {
 export function InteractiveMap({ boundary, onBoundaryChange, onAreaChange, className = "" }: InteractiveMapProps) {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const handleUseGPS = useCallback(() => {
     if (!navigator.geolocation) {
@@ -197,6 +199,37 @@ export function InteractiveMap({ boundary, onBoundaryChange, onAreaChange, class
     URL.revokeObjectURL(url);
   }, [boundary]);
 
+  const handleSearch = useCallback(async (query: string) => {
+    if (!query.trim()) return;
+    
+    setSearchLoading(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', UK')}&limit=5&bounded=1&viewbox=-8,59,2,49`
+      );
+      const results = await response.json();
+      
+      if (results.length > 0) {
+        const result = results[0];
+        const lat = parseFloat(result.lat);
+        const lng = parseFloat(result.lon);
+        setUserLocation([lat, lng]);
+      } else {
+        alert('Location not found');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      alert('Search failed');
+    } finally {
+      setSearchLoading(false);
+    }
+  }, []);
+
+  const handleSearchSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    handleSearch(searchQuery);
+  }, [searchQuery, handleSearch]);
+
   const center: [number, number] = userLocation || 
     (boundary && boundary.length > 0 
       ? [boundary[0].lat, boundary[0].lng] 
@@ -204,23 +237,41 @@ export function InteractiveMap({ boundary, onBoundaryChange, onAreaChange, class
 
   return (
     <div className={`relative ${className}`}>
-      <div className="absolute top-4 left-4 z-[1000] space-y-2">
+      <div className="absolute top-4 left-4 z-[1000] space-y-2 max-w-xs">
+        {/* Search Bar */}
+        <form onSubmit={handleSearchSubmit} className="flex gap-2">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search location..."
+            className="input-field text-sm flex-1"
+          />
+          <button
+            type="submit"
+            disabled={searchLoading || !searchQuery.trim()}
+            className="btn-primary text-sm px-3"
+          >
+            {searchLoading ? '🔄' : '🔍'}
+          </button>
+        </form>
+        
         <button
           onClick={handleUseGPS}
           disabled={loading}
-          className="btn-secondary text-sm"
+          className="btn-secondary text-sm w-full"
         >
           {loading ? '📍 Getting GPS...' : '📍 Use GPS'}
         </button>
         <button
           onClick={handleClearBoundary}
-          className="btn-ghost text-sm"
+          className="btn-ghost text-sm w-full"
         >
           🗑️ Clear Boundary
         </button>
         <button
           onClick={handleExportGeoJSON}
-          className="btn-ghost text-sm"
+          className="btn-ghost text-sm w-full"
           disabled={!boundary || boundary.length < 3}
         >
           📄 Export GeoJSON
