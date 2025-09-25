@@ -1,68 +1,61 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface NumberInputProps {
-  value: number;
-  onChange: (value: number) => void;
-  className?: string;
+  value: string | number;
+  onChange: (value: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
+  className?: string;
+  type?: 'number' | 'text';
   step?: string;
-  min?: number;
-  max?: number;
+  min?: string;
+  max?: string;
 }
 
 export function NumberInput({ 
   value, 
   onChange, 
-  className = '', 
+  onBlur,
   placeholder,
+  className = "input",
+  type = "number",
   step,
   min,
   max
 }: NumberInputProps) {
-  const [displayValue, setDisplayValue] = useState(value.toString());
-  const [isFocused, setIsFocused] = useState(false);
+  const [localValue, setLocalValue] = useState(String(value || ''));
 
-  // Update display value when prop value changes (but not when focused)
   useEffect(() => {
-    if (!isFocused) {
-      setDisplayValue(value.toString());
-    }
-  }, [value, isFocused]);
+    setLocalValue(String(value || ''));
+  }, [value]);
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setDisplayValue(e.target.value);
-  }, []);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setLocalValue(newValue);
+    onChange(newValue);
+  };
 
-  const handleBlur = useCallback(() => {
-    setIsFocused(false);
-    const numericValue = parseFloat(displayValue) || 0;
-    const clampedValue = Math.max(min || -Infinity, Math.min(max || Infinity, numericValue));
-    onChange(clampedValue);
-    setDisplayValue(clampedValue.toString());
-  }, [displayValue, onChange, min, max]);
-
-  const handleFocus = useCallback(() => {
-    setIsFocused(true);
-  }, []);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.currentTarget.blur();
-    }
-  }, []);
+  const handleBlur = () => {
+    // Convert to number and back to string to normalize
+    const numValue = parseFloat(localValue);
+    const normalizedValue = isNaN(numValue) ? '' : String(numValue);
+    setLocalValue(normalizedValue);
+    onChange(normalizedValue);
+    onBlur?.();
+  };
 
   return (
     <input
-      type="text"
-      value={displayValue}
+      type={type}
+      value={localValue}
       onChange={handleChange}
       onBlur={handleBlur}
-      onFocus={handleFocus}
-      onKeyDown={handleKeyDown}
-      className={className}
       placeholder={placeholder}
+      className={className}
       step={step}
+      min={min}
+      max={max}
     />
   );
 }
