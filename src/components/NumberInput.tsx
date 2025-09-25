@@ -1,193 +1,68 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface NumberInputProps {
   value: number;
   onChange: (value: number) => void;
-  placeholder?: string;
   className?: string;
+  placeholder?: string;
+  step?: string;
   min?: number;
   max?: number;
-  step?: number;
-  prefix?: string;
-  suffix?: string;
-  decimals?: number;
-  disabled?: boolean;
 }
 
-export function NumberInput({
-  value,
-  onChange,
-  placeholder = "0",
-  className = "",
+export function NumberInput({ 
+  value, 
+  onChange, 
+  className = '', 
+  placeholder,
+  step,
   min,
-  max,
-  step = 1,
-  prefix = "",
-  suffix = "",
-  decimals = 0,
-  disabled = false,
+  max
 }: NumberInputProps) {
-  const [displayValue, setDisplayValue] = useState<string>('');
+  const [displayValue, setDisplayValue] = useState(value.toString());
   const [isFocused, setIsFocused] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Update display value when external value changes (but not when focused)
+  // Update display value when prop value changes (but not when focused)
   useEffect(() => {
     if (!isFocused) {
-      if (value === 0) {
-        setDisplayValue('');
-      } else {
-        setDisplayValue(decimals > 0 ? value.toFixed(decimals) : value.toString());
-      }
+      setDisplayValue(value.toString());
     }
-  }, [value, isFocused, decimals]);
+  }, [value, isFocused]);
 
-  const handleFocus = () => {
-    setIsFocused(true);
-    // Show raw number without formatting when focused
-    if (value === 0) {
-      setDisplayValue('');
-    } else {
-      setDisplayValue(decimals > 0 ? value.toFixed(decimals) : value.toString());
-    }
-  };
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setDisplayValue(e.target.value);
+  }, []);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     setIsFocused(false);
-    
-    // Parse and validate the input
-    let numValue = parseFloat(displayValue) || 0;
-    
-    // Apply constraints
-    if (min !== undefined && numValue < min) numValue = min;
-    if (max !== undefined && numValue > max) numValue = max;
-    
-    // Round to specified decimals
-    if (decimals === 0) {
-      numValue = Math.round(numValue);
-    } else {
-      numValue = Math.round(numValue * Math.pow(10, decimals)) / Math.pow(10, decimals);
-    }
-    
-    // Update the parent component
-    if (numValue !== value) {
-      onChange(numValue);
-    }
-    
-    // Update display
-    if (numValue === 0) {
-      setDisplayValue('');
-    } else {
-      setDisplayValue(decimals > 0 ? numValue.toFixed(decimals) : numValue.toString());
-    }
-  };
+    const numericValue = parseFloat(displayValue) || 0;
+    const clampedValue = Math.max(min || -Infinity, Math.min(max || Infinity, numericValue));
+    onChange(clampedValue);
+    setDisplayValue(clampedValue.toString());
+  }, [displayValue, onChange, min, max]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    
-    // Allow empty string, numbers, and decimal points
-    if (newValue === '' || /^-?\d*\.?\d*$/.test(newValue)) {
-      setDisplayValue(newValue);
-    }
-  };
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
 
-  const handleKeyDown = (e: React.KeyEvent<HTMLInputElement>) => {
-    // Handle Enter key
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      inputRef.current?.blur();
+      e.currentTarget.blur();
     }
-    
-    // Handle step increment/decrement
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      const currentValue = parseFloat(displayValue) || 0;
-      const newValue = currentValue + step;
-      if (max === undefined || newValue <= max) {
-        onChange(newValue);
-      }
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      const currentValue = parseFloat(displayValue) || 0;
-      const newValue = currentValue - step;
-      if (min === undefined || newValue >= min) {
-        onChange(newValue);
-      }
-    }
-  };
-
-  const formatDisplayValue = () => {
-    if (isFocused) return displayValue;
-    
-    if (!displayValue || displayValue === '0') {
-      return '';
-    }
-    
-    const numValue = parseFloat(displayValue);
-    if (isNaN(numValue)) return '';
-    
-    // Format with thousands separators
-    let formatted = decimals > 0 
-      ? numValue.toFixed(decimals)
-      : Math.round(numValue).toString();
-    
-    // Add thousands separators
-    const parts = formatted.split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    
-    return parts.join('.');
-  };
+  }, []);
 
   return (
-    <div className="relative">
-      {prefix && !isFocused && (
-        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
-          {prefix}
-        </span>
-      )}
-      
-      <input
-        ref={inputRef}
-        type="text"
-        inputMode="numeric"
-        value={isFocused ? displayValue : formatDisplayValue()}
-        onChange={handleChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        disabled={disabled}
-        className={`
-          w-full px-3 py-2 border border-gray-300 rounded-md 
-          focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
-          disabled:bg-gray-100 disabled:cursor-not-allowed
-          ${prefix ? 'pl-8' : ''}
-          ${suffix ? 'pr-12' : ''}
-          ${className}
-        `}
-      />
-      
-      {suffix && !isFocused && displayValue && (
-        <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
-          {suffix}
-        </span>
-      )}
-    </div>
+    <input
+      type="text"
+      value={displayValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onFocus={handleFocus}
+      onKeyDown={handleKeyDown}
+      className={className}
+      placeholder={placeholder}
+      step={step}
+    />
   );
-}
-
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-export function formatNumber(num: number, decimals = 0): string {
-  return new Intl.NumberFormat('en-GB', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  }).format(num);
 }

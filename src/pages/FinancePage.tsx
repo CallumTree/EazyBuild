@@ -1,109 +1,50 @@
 
 import React from 'react';
-import { useGlobalStore } from '../store/globalStore';
-import { NumberInput } from '../components/NumberInput';
-import { Calculator } from 'lucide-react';
+import { useParams, Link } from 'react-router-dom';
 
 export const FinancePage: React.FC = () => {
-  const { project, updateProject } = useGlobalStore();
-
-  const updateFinance = (updates: any) => {
-    updateProject({
-      finance: { ...project.finance, ...updates }
-    });
-  };
+  const { id } = useParams<{ id: string }>();
 
   return (
-    <div className="container py-6 space-y-6">
-      {/* Header */}
-      <div className="card">
-        <div className="card-header">
-          <Calculator className="text-brand-400" size={24} />
-          <h2 className="card-title">Financial Assumptions</h2>
-        </div>
-        <div className="card-body">
-          <p className="text-slate-400 mb-4">
-            Configure financial parameters for the development appraisal.
-          </p>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <Link to={`/project/${id}`} className="text-primary-600 hover:text-primary-700 mb-4 inline-block">
+          ← Back to Project
+        </Link>
+        <h1 className="text-3xl font-bold text-gray-900">Finance Calculator</h1>
       </div>
 
-      {/* Financial Inputs */}
-      <div className="card">
-        <div className="card-header">
-          <h3 className="card-title">Cost Assumptions</h3>
-        </div>
-        <div className="card-body">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="label">Professional Fees (%)</label>
-              <NumberInput
-                value={project.finance.feesPct}
-                onChange={(value) => updateFinance({ feesPct: value })}
-                className="input"
-                suffix="%"
-                min={0}
-                max={50}
-              />
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">💰</div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Financial Analysis Coming Soon</h3>
+          <p className="text-gray-600 mb-6">
+            Comprehensive financial modeling for development feasibility
+          </p>
+          <div className="space-y-4 text-left max-w-md mx-auto">
+            <div className="flex items-center space-x-3">
+              <span className="text-green-500">✅</span>
+              <span>GDV (Gross Development Value)</span>
             </div>
-
-            <div>
-              <label className="label">Contingency (%)</label>
-              <NumberInput
-                value={project.finance.contPct}
-                onChange={(value) => updateFinance({ contPct: value })}
-                className="input"
-                suffix="%"
-                min={0}
-                max={30}
-              />
+            <div className="flex items-center space-x-3">
+              <span className="text-green-500">✅</span>
+              <span>Build costs estimation</span>
             </div>
-
-            <div>
-              <label className="label">Finance Rate (% p.a.)</label>
-              <NumberInput
-                value={project.finance.financeRatePct}
-                onChange={(value) => updateFinance({ financeRatePct: value })}
-                className="input"
-                suffix="%"
-                min={0}
-                max={20}
-                decimals={2}
-              />
+            <div className="flex items-center space-x-3">
+              <span className="text-green-500">✅</span>
+              <span>Professional fees</span>
             </div>
-
-            <div>
-              <label className="label">Finance Period (months)</label>
-              <NumberInput
-                value={project.finance.financeMonths}
-                onChange={(value) => updateFinance({ financeMonths: value })}
-                className="input"
-                min={1}
-                max={60}
-              />
+            <div className="flex items-center space-x-3">
+              <span className="text-green-500">✅</span>
+              <span>Contingency calculations</span>
             </div>
-
-            <div>
-              <label className="label">Target Profit (%)</label>
-              <NumberInput
-                value={project.finance.targetProfitPct}
-                onChange={(value) => updateFinance({ targetProfitPct: value })}
-                className="input"
-                suffix="%"
-                min={0}
-                max={50}
-              />
+            <div className="flex items-center space-x-3">
+              <span className="text-green-500">✅</span>
+              <span>Profit margins</span>
             </div>
-
-            <div>
-              <label className="label">Land Acquisition Costs (£)</label>
-              <NumberInput
-                value={project.finance.landAcqCosts}
-                onChange={(value) => updateFinance({ landAcqCosts: value })}
-                className="input"
-                prefix="£"
-                min={0}
-              />
+            <div className="flex items-center space-x-3">
+              <span className="text-green-500">✅</span>
+              <span>Residual Land Value (RLV)</span>
             </div>
           </div>
         </div>
