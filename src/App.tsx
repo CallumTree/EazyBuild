@@ -996,7 +996,7 @@ function Shell() {
       <div className="flex h-screen pt-14">
         <Sidebar />
         <div className="flex-1 p-6">
-          <MapShell />
+          <SurveyPage />
         </div>
       </div>
     </div>

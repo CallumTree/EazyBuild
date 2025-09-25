@@ -458,6 +458,12 @@ export const Sidebar: React.FC = () => {
 
   const handleGPSToggle = () => {
     setIsGPSActive(!isGPSActive);
+    if (!isGPSActive) {
+      // Start GPS - this will trigger the map to show and center on user location
+      console.log('GPS Started - Map should show user location');
+    } else {
+      console.log('GPS Stopped');
+    }
   };
 
   const handleAddObstacle = () => {
@@ -491,7 +497,7 @@ export const Sidebar: React.FC = () => {
                 onClick={handleGPSToggle}
                 className={isGPSActive ? 'btn-primary w-full' : 'btn-ghost w-full'}
               >
-                {isGPSActive ? 'Stop GPS' : 'Start GPS'}
+                {isGPSActive ? '🔴 Stop GPS' : '📍 Start GPS'}
               </button>
 
               <button onClick={handleAddObstacle} className="btn-ghost w-full">
