@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { Home, Map, LayoutGrid, PoundSterling, FileText, Settings, Plus, Minus } from "lucide-react";
@@ -13,6 +12,10 @@ import { Toast, useToast } from "./components/Toast";
 import { NumberInput } from "./components/NumberInput";
 import { computeTotals, formatCurrency } from "./finance";
 import "./index.css";
+
+import TotalsHeader from './components/TotalsHeader';
+import MapPolygon from './components/MapPolygon';
+import UnitMixEditor from './components/UnitMixEditor';
 
 function SurveyPage() {
   const { project, updateProject } = useStore();
@@ -1002,12 +1005,4 @@ function Shell() {
   );
 }
 
-export default function App() {
-  return (
-    <StoreProvider>
-      <BrowserRouter>
-        <Shell />
-      </BrowserRouter>
-    </StoreProvider>
-  );
-}
+export default App;
