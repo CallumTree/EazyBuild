@@ -1,32 +1,42 @@
 
 import { useViability } from '../store/viability';
-import { totalSalesValue, totalBuildCost, margins } from '../lib/calc';
+import { netDevelopableArea, totalGIA, margins } from '../lib/calc';
 
 export default function TotalsHeader() {
-  const { unitTypes, polygonAreaM2 } = useViability();
-  const { sales, build, profit, marginPct } = margins(unitTypes);
-  
+  const { polygonAreaM2, infraAllowancePct, unitTypes } = useViability();
+  const netM2 = netDevelopableArea(polygonAreaM2, infraAllowancePct);
+  const gia = totalGIA(unitTypes);
+  const { build, sales, profit, marginPct } = margins(unitTypes);
+
   return (
-    <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6">
-      <h1 className="text-2xl font-bold mb-4">Site Viability Assessment</h1>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div>
-          <div className="text-sm text-neutral-400">Site Area</div>
-          <div className="text-lg font-semibold">{Math.round(polygonAreaM2).toLocaleString()} m²</div>
-        </div>
-        <div>
-          <div className="text-sm text-neutral-400">Total GDV</div>
-          <div className="text-lg font-semibold text-emerald-400">£{sales.toLocaleString()}</div>
-        </div>
-        <div>
-          <div className="text-sm text-neutral-400">Build Cost</div>
-          <div className="text-lg font-semibold text-orange-400">£{build.toLocaleString()}</div>
-        </div>
-        <div>
-          <div className="text-sm text-neutral-400">Margin</div>
-          <div className="text-lg font-semibold text-blue-400">{(marginPct * 100).toFixed(1)}%</div>
-        </div>
-      </div>
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 bg-neutral-900 text-neutral-100 rounded-2xl">
+      <Stat label="Site Area" value={`${fmt0(polygonAreaM2)} m²`} />
+      <Stat label="Net Developable" value={`${fmt0(netM2)} m²`} />
+      <Stat label="Total GIA" value={`${fmt0(gia)} m²`} />
+      <Stat label="Build Cost" value={`£${fmtMoney(build)}`} />
+      <Stat label="GDV / Margin" value={`£${fmtMoney(sales)} • ${(marginPct*100).toFixed(1)}%`} />
     </div>
   );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl p-3 bg-neutral-800">
+      <div className="text-xs opacity-70">{label}</div>
+      <div className="text-xl font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function fmt0(n: number) {
+  return isFinite(n) ? Math.round(n).toString() : '0';
+}
+
+function fmtMoney(n: number) {
+  if (!isFinite(n) || n === 0) return '0';
+  return n >= 1_000_000 
+    ? `${(n/1_000_000).toFixed(2)}m` 
+    : n >= 1_000 
+    ? `${(n/1_000).toFixed(1)}k` 
+    : n.toFixed(0);
 }

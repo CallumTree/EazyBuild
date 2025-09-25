@@ -15,3 +15,15 @@ By default, Replit runs the `dev` script, but you can configure it by changing t
 ### Typescript
 
 Just rename any file from `.jsx` to `.tsx`. You can also try our [TypeScript Template](https://replit.com/@replit/React-TypeScript)
+
+## Quickstart
+
+1. `npm i`
+2. `npm run dev`
+
+### Notes:
+
+- Click to draw polygon. Double-click or press Finish to close.
+- Toggle "Show footprints" to see indicative plots.
+- Adjust unit counts; totals update live.
+- Infra allowance slider adjusts net developable area.
