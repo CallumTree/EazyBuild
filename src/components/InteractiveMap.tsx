@@ -1,230 +1,256 @@
 
-import React, { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, FeatureGroup } from 'react-leaflet';
-import { EditControl } from 'react-leaflet-draw';
+import React, { useRef, useCallback, useEffect, useState } from 'react';
+import { MapContainer, TileLayer, useMap, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet-draw';
 import * as turf from '@turf/turf';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet-draw/dist/leaflet.draw.css';
 
-// Fix for default markers in react-leaflet
+// Fix for default markers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
 interface InteractiveMapProps {
-  polygonGeoJSON: any | null;
-  onPolygonChange: (geoJSON: any | null, areaM2: number) => void;
+  boundary?: Array<{ lat: number; lng: number }>;
+  onBoundaryChange: (boundary: Array<{ lat: number; lng: number }>) => void;
+  onAreaChange: (areaM2: number) => void;
   className?: string;
 }
 
-export function InteractiveMap({ polygonGeoJSON, onPolygonChange, className = '' }: InteractiveMapProps) {
-  const mapRef = useRef<L.Map | null>(null);
-  const featureGroupRef = useRef<L.FeatureGroup | null>(null);
-  const currentPolygonRef = useRef<L.Polygon | null>(null);
+function MapController({ boundary, onBoundaryChange, onAreaChange }: {
+  boundary?: Array<{ lat: number; lng: number }>;
+  onBoundaryChange: (boundary: Array<{ lat: number; lng: number }>) => void;
+  onAreaChange: (areaM2: number) => void;
+}) {
+  const map = useMap();
+  const drawControlRef = useRef<L.Control.Draw | null>(null);
+  const polygonLayerRef = useRef<L.Polygon | null>(null);
+  const featureGroupRef = useRef<L.FeatureGroup>(new L.FeatureGroup());
 
-  // Load existing polygon
   useEffect(() => {
-    if (polygonGeoJSON && featureGroupRef.current && !currentPolygonRef.current) {
-      try {
-        const layer = L.geoJSON(polygonGeoJSON);
-        layer.eachLayer((l) => {
-          featureGroupRef.current?.addLayer(l);
-          currentPolygonRef.current = l as L.Polygon;
-        });
-      } catch (e) {
-        console.warn('Failed to load polygon:', e);
-      }
-    }
-  }, [polygonGeoJSON]);
+    map.addLayer(featureGroupRef.current);
 
-  const calculateArea = (layer: L.Layer): number => {
-    if (layer instanceof L.Polygon) {
-      const geoJSON = layer.toGeoJSON();
-      try {
-        const area = turf.area(geoJSON);
-        return area;
-      } catch (e) {
-        console.warn('Failed to calculate area:', e);
-        return 0;
-      }
-    }
-    return 0;
-  };
-
-  const handleCreated = (e: any) => {
-    const layer = e.layer as L.Polygon;
-    
-    // Remove existing polygon
-    if (currentPolygonRef.current && featureGroupRef.current) {
-      featureGroupRef.current.removeLayer(currentPolygonRef.current);
-    }
-    
-    currentPolygonRef.current = layer;
-    const geoJSON = layer.toGeoJSON();
-    const area = calculateArea(layer);
-    onPolygonChange(geoJSON, area);
-  };
-
-  const handleEdited = (e: any) => {
-    const layers = e.layers;
-    layers.eachLayer((layer: L.Layer) => {
-      if (layer instanceof L.Polygon) {
-        const geoJSON = layer.toGeoJSON();
-        const area = calculateArea(layer);
-        onPolygonChange(geoJSON, area);
+    const drawControl = new L.Control.Draw({
+      position: 'topright',
+      draw: {
+        polygon: {
+          allowIntersection: false,
+          showArea: true,
+        },
+        polyline: false,
+        rectangle: false,
+        circle: false,
+        marker: false,
+        circlemarker: false,
+      },
+      edit: {
+        featureGroup: featureGroupRef.current,
       }
     });
-  };
 
-  const handleDeleted = (e: any) => {
-    currentPolygonRef.current = null;
-    onPolygonChange(null, 0);
-  };
+    map.addControl(drawControl);
+    drawControlRef.current = drawControl;
 
-  const handleGPS = () => {
-    if (navigator.geolocation && mapRef.current) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          mapRef.current?.setView([latitude, longitude], 16);
-          
-          // Add temporary marker
-          const marker = L.marker([latitude, longitude]).addTo(mapRef.current!);
-          setTimeout(() => {
-            marker.remove();
-          }, 5000);
-        },
-        (error) => {
-          console.warn('GPS error:', error);
-          alert('Could not get your location. Please check GPS permissions.');
-        }
-      );
-    } else {
-      alert('GPS not available in this browser.');
+    // Load existing boundary
+    if (boundary && boundary.length > 2) {
+      const latLngs = boundary.map(p => [p.lat, p.lng] as [number, number]);
+      const polygon = L.polygon(latLngs, {
+        color: '#3b82f6',
+        fillColor: '#3b82f6',
+        fillOpacity: 0.2,
+        weight: 2,
+      });
+      
+      featureGroupRef.current.addLayer(polygon);
+      polygonLayerRef.current = polygon;
+      map.fitBounds(polygon.getBounds(), { padding: [20, 20] });
+
+      // Calculate area
+      const geoJsonFeature = turf.polygon([latLngs.concat([latLngs[0]])]);
+      const area = turf.area(geoJsonFeature);
+      onAreaChange(area);
     }
-  };
 
-  const handleExportGeoJSON = () => {
-    if (currentPolygonRef.current) {
-      const geoJSON = currentPolygonRef.current.toGeoJSON();
-      const blob = new Blob([JSON.stringify(geoJSON, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'polygon.geojson';
-      a.click();
-      URL.revokeObjectURL(url);
-    } else {
-      alert('No polygon to export');
-    }
-  };
-
-  const handleImportGeoJSON = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.geojson,.json';
-    input.onchange = (e: any) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e: any) => {
-          try {
-            const geoJSON = JSON.parse(e.target.result);
-            
-            // Remove existing polygon
-            if (currentPolygonRef.current && featureGroupRef.current) {
-              featureGroupRef.current.removeLayer(currentPolygonRef.current);
-            }
-            
-            // Add new polygon
-            const layer = L.geoJSON(geoJSON);
-            layer.eachLayer((l) => {
-              featureGroupRef.current?.addLayer(l);
-              currentPolygonRef.current = l as L.Polygon;
-            });
-            
-            const area = turf.area(geoJSON);
-            onPolygonChange(geoJSON, area);
-            
-            // Fit map to polygon
-            if (featureGroupRef.current && mapRef.current) {
-              mapRef.current.fitBounds(featureGroupRef.current.getBounds());
-            }
-          } catch (e) {
-            alert('Invalid GeoJSON file');
-          }
-        };
-        reader.readAsText(file);
+    const handleDrawCreated = (e: any) => {
+      const { layer } = e;
+      
+      // Remove existing polygon
+      if (polygonLayerRef.current) {
+        featureGroupRef.current.removeLayer(polygonLayerRef.current);
       }
+
+      featureGroupRef.current.addLayer(layer);
+      polygonLayerRef.current = layer;
+
+      const latLngs = layer.getLatLngs()[0];
+      const boundary = latLngs.map((ll: L.LatLng) => ({ lat: ll.lat, lng: ll.lng }));
+      onBoundaryChange(boundary);
+
+      // Calculate area using turf
+      const coords = latLngs.map((ll: L.LatLng) => [ll.lng, ll.lat]);
+      coords.push(coords[0]); // Close the polygon
+      const geoJsonFeature = turf.polygon([coords]);
+      const area = turf.area(geoJsonFeature);
+      onAreaChange(area);
     };
-    input.click();
-  };
+
+    const handleDrawEdited = (e: any) => {
+      const { layers } = e;
+      layers.eachLayer((layer: any) => {
+        const latLngs = layer.getLatLngs()[0];
+        const boundary = latLngs.map((ll: L.LatLng) => ({ lat: ll.lat, lng: ll.lng }));
+        onBoundaryChange(boundary);
+
+        // Calculate area
+        const coords = latLngs.map((ll: L.LatLng) => [ll.lng, ll.lat]);
+        coords.push(coords[0]);
+        const geoJsonFeature = turf.polygon([coords]);
+        const area = turf.area(geoJsonFeature);
+        onAreaChange(area);
+      });
+    };
+
+    const handleDrawDeleted = () => {
+      polygonLayerRef.current = null;
+      onBoundaryChange([]);
+      onAreaChange(0);
+    };
+
+    map.on(L.Draw.Event.CREATED, handleDrawCreated);
+    map.on(L.Draw.Event.EDITED, handleDrawEdited);
+    map.on(L.Draw.Event.DELETED, handleDrawDeleted);
+
+    return () => {
+      if (drawControlRef.current) {
+        map.removeControl(drawControlRef.current);
+      }
+      map.removeLayer(featureGroupRef.current);
+      map.off(L.Draw.Event.CREATED, handleDrawCreated);
+      map.off(L.Draw.Event.EDITED, handleDrawEdited);
+      map.off(L.Draw.Event.DELETED, handleDrawDeleted);
+    };
+  }, [map, onBoundaryChange, onAreaChange]);
+
+  return null;
+}
+
+export function InteractiveMap({ boundary, onBoundaryChange, onAreaChange, className = "" }: InteractiveMapProps) {
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleUseGPS = useCallback(() => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by this browser');
+      return;
+    }
+
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation([latitude, longitude]);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        alert('Unable to get your location');
+        setLoading(false);
+      },
+      { enableHighAccuracy: true }
+    );
+  }, []);
+
+  const handleClearBoundary = useCallback(() => {
+    onBoundaryChange([]);
+    onAreaChange(0);
+  }, [onBoundaryChange, onAreaChange]);
+
+  const handleExportGeoJSON = useCallback(() => {
+    if (!boundary || boundary.length < 3) {
+      alert('No boundary to export');
+      return;
+    }
+
+    const coords = boundary.map(p => [p.lng, p.lat]);
+    coords.push(coords[0]); // Close polygon
+    
+    const geoJson = {
+      type: 'Feature' as const,
+      geometry: {
+        type: 'Polygon' as const,
+        coordinates: [coords]
+      },
+      properties: {}
+    };
+
+    const blob = new Blob([JSON.stringify(geoJson, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'site-boundary.geojson';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [boundary]);
+
+  const center: [number, number] = userLocation || 
+    (boundary && boundary.length > 0 
+      ? [boundary[0].lat, boundary[0].lng] 
+      : [51.5074, -0.1278]); // Default to London
 
   return (
     <div className={`relative ${className}`}>
-      <div className="absolute top-2 left-2 z-[1000] flex gap-2">
-        <button 
-          onClick={handleGPS}
-          className="px-3 py-1 bg-slate-800 text-white text-sm rounded border border-slate-600 hover:bg-slate-700"
+      <div className="absolute top-4 left-4 z-[1000] space-y-2">
+        <button
+          onClick={handleUseGPS}
+          disabled={loading}
+          className="btn-secondary text-sm"
         >
-          📍 Use GPS
+          {loading ? '📍 Getting GPS...' : '📍 Use GPS'}
         </button>
-        <button 
-          onClick={handleImportGeoJSON}
-          className="px-3 py-1 bg-slate-800 text-white text-sm rounded border border-slate-600 hover:bg-slate-700"
+        <button
+          onClick={handleClearBoundary}
+          className="btn-ghost text-sm"
         >
-          📥 Import
+          🗑️ Clear Boundary
         </button>
-        <button 
+        <button
           onClick={handleExportGeoJSON}
-          className="px-3 py-1 bg-slate-800 text-white text-sm rounded border border-slate-600 hover:bg-slate-700"
+          className="btn-ghost text-sm"
+          disabled={!boundary || boundary.length < 3}
         >
-          📤 Export
+          📄 Export GeoJSON
         </button>
       </div>
-      
+
       <MapContainer
-        center={[51.505, -0.09]}
-        zoom={13}
+        center={center}
+        zoom={userLocation ? 16 : 13}
         style={{ height: '100%', width: '100%' }}
-        ref={mapRef}
+        key={userLocation ? `${userLocation[0]},${userLocation[1]}` : 'default'}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FeatureGroup ref={featureGroupRef}>
-          <EditControl
-            position="topright"
-            onCreated={handleCreated}
-            onEdited={handleEdited}
-            onDeleted={handleDeleted}
-            draw={{
-              rectangle: false,
-              circle: false,
-              circlemarker: false,
-              marker: false,
-              polyline: false,
-              polygon: {
-                allowIntersection: false,
-                drawError: {
-                  color: '#e1e100',
-                  message: '<strong>Error:</strong> shape edges cannot cross!'
-                },
-                shapeOptions: {
-                  color: '#97fb00'
-                }
-              }
-            }}
-            edit={{
-              featureGroup: featureGroupRef.current
-            }}
-          />
-        </FeatureGroup>
+        
+        {userLocation && (
+          <Marker position={userLocation}>
+            <Popup>Your Location</Popup>
+          </Marker>
+        )}
+
+        <MapController
+          boundary={boundary}
+          onBoundaryChange={onBoundaryChange}
+          onAreaChange={onAreaChange}
+        />
       </MapContainer>
     </div>
   );
