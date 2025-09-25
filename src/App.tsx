@@ -12,6 +12,7 @@ import { StoreProvider, useStore } from "./store";
 import { Toast, useToast } from "./components/Toast";
 import { NumberInput } from "./components/NumberInput";
 import { computeTotals, formatCurrency } from "./finance";
+import MapShell from "./components/MapShell";
 import "./index.css";
 
 function SurveyPage() {
@@ -994,8 +995,8 @@ function Shell() {
       <Topbar />
       <div className="flex h-screen pt-14">
         <Sidebar />
-        <div className="flex-1">
-          <MapCanvas />
+        <div className="flex-1 p-6">
+          <MapShell />
         </div>
       </div>
     </div>
