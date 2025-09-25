@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { Home, Map, LayoutGrid, PoundSterling, FileText, Settings, Plus, Minus } from "lucide-react";
@@ -13,23 +12,29 @@ import { Toast, useToast } from "./components/Toast";
 import { NumberInput } from "./components/NumberInput";
 import { computeTotals, formatCurrency } from "./finance";
 import "./index.css";
+import 'leaflet/dist/leaflet.css';
+
+import TotalsHeader from './components/TotalsHeader';
+import MapPolygon from './components/MapPolygon';
+import UnitMixEditor from './components/UnitMixEditor';
+import SiteAreaBadge from './components/SiteAreaBadge';
 
 function SurveyPage() {
   const { project, updateProject } = useStore();
   const { toast, showToast, hideToast } = useToast();
   const [siteArea, setSiteArea] = useState(0);
-  
+
   const handleSave = () => {
     if (!project.name.trim()) {
       showToast('Project name is required', 'error');
       return;
     }
-    
+
     if (!project.boundary || project.boundary.length < 3) {
       showToast('Please draw a site boundary on the map', 'error');
       return;
     }
-    
+
     showToast('Project saved successfully', 'success');
   };
 
@@ -60,8 +65,8 @@ function SurveyPage() {
             <div className="grid sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Project name</label>
-                <input 
-                  className="input-field" 
+                <input
+                  className="input-field"
                   placeholder="Enter project name"
                   value={project.name}
                   onChange={(e) => updateProject({ name: e.target.value })}
@@ -69,8 +74,8 @@ function SurveyPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Site efficiency (%)</label>
-                <NumberInput 
-                  className="input-field" 
+                <NumberInput
+                  className="input-field"
                   value={project.efficiency || 65}
                   onChange={(value) => updateProject({ efficiency: parseFloat(value) || 65 })}
                 />
@@ -94,7 +99,7 @@ function SurveyPage() {
                 className="h-full"
               />
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-4">
               <button className="btn-primary flex-1 sm:flex-none" onClick={handleSave}>
                 <span>💾</span>
@@ -132,13 +137,13 @@ function LayoutPage() {
 
   const handleAddCustomType = () => {
     if (!newHouseType.name.trim()) return;
-    addHouseType({ 
-      ...newHouseType, 
+    addHouseType({
+      ...newHouseType,
       beds: parseInt(newHouseType.beds) || 3,
       floorAreaSqm: parseFloat(newHouseType.floorAreaSqm) || 120,
       buildCostPerSqm: parseFloat(newHouseType.buildCostPerSqm) || 1650,
       saleValuePerSqm: parseFloat(newHouseType.saleValuePerSqm) || 3200,
-      isDefault: false 
+      isDefault: false
     });
     setNewHouseType({
       name: '',
@@ -174,7 +179,7 @@ function LayoutPage() {
             <h2 className="card-title">Unit Mix & Layout</h2>
           </div>
           <div className="card-body space-y-8">
-            
+
             {/* Current Project Mix */}
             {projectMix.length > 0 && (
               <div>
@@ -192,12 +197,12 @@ function LayoutPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <NumberInput 
-                            className="input-field w-20" 
+                          <NumberInput
+                            className="input-field w-20"
                             value={mix.count}
                             onChange={(value) => handleCountChange(mix.houseTypeId, value)}
                           />
-                          <button 
+                          <button
                             onClick={() => removeFromProjectMix(mix.houseTypeId)}
                             className="text-red-400 hover:text-red-300 transition-colors"
                           >
@@ -213,7 +218,7 @@ function LayoutPage() {
 
             {/* Default House Types */}
             <div>
-              <button 
+              <button
                 onClick={() => setShowDefaults(!showDefaults)}
                 className="flex items-center gap-2 font-semibold text-lg mb-4 hover:text-brand-400 transition-colors"
               >
@@ -228,7 +233,7 @@ function LayoutPage() {
                       <div className="text-sm text-slate-300 mb-3">
                         {houseType.beds} beds • {houseType.floorAreaSqm}m² • Build: £{houseType.buildCostPerSqm}/m² • Sale: £{houseType.saleValuePerSqm}/m²
                       </div>
-                      <button 
+                      <button
                         onClick={() => addToProjectMix(houseType.id)}
                         className="btn-ghost text-sm w-full"
                       >
@@ -242,7 +247,7 @@ function LayoutPage() {
 
             {/* User Library */}
             <div>
-              <button 
+              <button
                 onClick={() => setShowMyLibrary(!showMyLibrary)}
                 className="flex items-center gap-2 font-semibold text-lg mb-4 hover:text-brand-400 transition-colors"
               >
@@ -261,7 +266,7 @@ function LayoutPage() {
                           <div className="text-sm text-slate-300 mb-3">
                             {houseType.beds} beds • {houseType.floorAreaSqm}m² • Build: £{houseType.buildCostPerSqm}/m² • Sale: £{houseType.saleValuePerSqm}/m²
                           </div>
-                          <button 
+                          <button
                             onClick={() => addToProjectMix(houseType.id)}
                             className="btn-ghost text-sm w-full"
                           >
@@ -271,10 +276,10 @@ function LayoutPage() {
                       ))}
                     </div>
                   )}
-                  
+
                   {/* Add Custom Type */}
                   {!showAddCustom ? (
-                    <button 
+                    <button
                       onClick={() => setShowAddCustom(true)}
                       className="btn-primary w-full"
                     >
@@ -286,43 +291,43 @@ function LayoutPage() {
                       <div className="grid md:grid-cols-2 gap-4 mb-4">
                         <div>
                           <label className="block text-sm font-medium text-slate-300 mb-2">Name/Model</label>
-                          <input 
-                            className="input-field" 
+                          <input
+                            className="input-field"
                             value={newHouseType.name}
-                            onChange={(e) => setNewHouseType(prev => ({...prev, name: e.target.value}))}
+                            onChange={(e) => setNewHouseType(prev => ({ ...prev, name: e.target.value }))}
                             placeholder="e.g., Custom 4-bed"
                           />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-slate-300 mb-2">Bedrooms</label>
-                          <NumberInput 
-                            className="input-field" 
+                          <NumberInput
+                            className="input-field"
                             value={newHouseType.beds}
-                            onChange={(value) => setNewHouseType(prev => ({...prev, beds: value}))}
+                            onChange={(value) => setNewHouseType(prev => ({ ...prev, beds: value }))}
                           />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-slate-300 mb-2">Floor area (m²)</label>
-                          <NumberInput 
-                            className="input-field" 
+                          <NumberInput
+                            className="input-field"
                             value={newHouseType.floorAreaSqm}
-                            onChange={(value) => setNewHouseType(prev => ({...prev, floorAreaSqm: value}))}
+                            onChange={(value) => setNewHouseType(prev => ({ ...prev, floorAreaSqm: value }))}
                           />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-slate-300 mb-2">Build cost £/m²</label>
-                          <NumberInput 
-                            className="input-field" 
+                          <NumberInput
+                            className="input-field"
                             value={newHouseType.buildCostPerSqm}
-                            onChange={(value) => setNewHouseType(prev => ({...prev, buildCostPerSqm: value}))}
+                            onChange={(value) => setNewHouseType(prev => ({ ...prev, buildCostPerSqm: value }))}
                           />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-slate-300 mb-2">Sale value £/m²</label>
-                          <NumberInput 
-                            className="input-field" 
+                          <NumberInput
+                            className="input-field"
                             value={newHouseType.saleValuePerSqm}
-                            onChange={(value) => setNewHouseType(prev => ({...prev, saleValuePerSqm: value}))}
+                            onChange={(value) => setNewHouseType(prev => ({ ...prev, saleValuePerSqm: value }))}
                           />
                         </div>
                       </div>
@@ -330,8 +335,8 @@ function LayoutPage() {
                         <button onClick={handleAddCustomType} className="btn-primary flex-1">
                           💾 Save to Library
                         </button>
-                        <button 
-                          onClick={() => setShowAddCustom(false)} 
+                        <button
+                          onClick={() => setShowAddCustom(false)}
                           className="btn-ghost flex-1"
                         >
                           Cancel
@@ -359,7 +364,7 @@ function ModernFinancePage() {
   const [selectedScenario, setSelectedScenario] = useState<string>('');
   const [sensitivityMode, setSensitivityMode] = useState<'sale' | 'build' | null>(null);
   const [sensitivityValue, setSensitivityValue] = useState(0);
-  
+
   const finance = project.finance || {
     feesPct: '5',
     contPct: '10',
@@ -368,13 +373,13 @@ function ModernFinancePage() {
     targetProfitPct: '20',
     landAcqCosts: '25000',
   };
-  
+
   const results = computeTotals(project, finance, houseTypes);
-  
+
   // Sensitivity analysis
   const getSensitivityResults = () => {
     if (!sensitivityMode) return results;
-    
+
     const adjustedProject = { ...project };
     const adjustedHouseTypes = houseTypes.map(ht => {
       if (sensitivityMode === 'sale') {
@@ -384,28 +389,28 @@ function ModernFinancePage() {
       }
       return ht;
     });
-    
+
     return computeTotals(adjustedProject, finance, adjustedHouseTypes);
   };
-  
+
   const sensitivityResults = getSensitivityResults();
-  
+
   const updateFinance = (field: keyof typeof finance, value: string) => {
     updateProject({
       finance: { ...finance, [field]: value }
     });
   };
-  
+
   const handleDuplicate = () => {
     duplicateScenario();
     showToast('Scenario duplicated', 'success');
   };
-  
+
   const getViabilityStatus = () => {
     const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
     const actualProfitPct = sensitivityResults.actualProfitPct;
     const residual = sensitivityResults.residual;
-    
+
     if (actualProfitPct >= targetProfitNum && residual >= 0) {
       return { status: 'Viable', color: 'bg-green-500', textColor: 'text-green-400' };
     } else if (actualProfitPct >= (targetProfitNum - 10) && residual >= 0) {
@@ -414,9 +419,9 @@ function ModernFinancePage() {
       return { status: 'Unviable', color: 'bg-red-500', textColor: 'text-red-400' };
     }
   };
-  
+
   const viability = getViabilityStatus();
-  
+
   const getKPIColor = (isPositive: boolean) => {
     return isPositive ? 'text-green-400' : 'text-red-400';
   };
@@ -448,7 +453,7 @@ function ModernFinancePage() {
               <span className={`px-3 py-1 rounded-full text-sm font-medium text-white ${viability.color}`}>
                 {viability.status}
               </span>
-              <button 
+              <button
                 onClick={() => setShowAssumptions(true)}
                 className="btn-ghost text-sm"
               >
@@ -459,7 +464,7 @@ function ModernFinancePage() {
                 📋 Duplicate Scenario
               </button>
               {scenarios.length > 1 && (
-                <button 
+                <button
                   onClick={() => setShowCompare(true)}
                   className="btn-ghost text-sm"
                 >
@@ -469,29 +474,29 @@ function ModernFinancePage() {
             </div>
           </div>
           <div className="card-body space-y-6">
-            
+
             {/* Sensitivity Analysis */}
             <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
               <h3 className="font-semibold mb-4 text-white">Sensitivity Analysis</h3>
               <div className="flex gap-4 mb-4">
                 <div className="space-x-2">
                   <span className="text-sm text-slate-300">Sale Price:</span>
-                  <button 
+                  <button
                     onClick={() => handleSensitivityChange('sale', -5)}
                     className={`px-3 py-1 rounded text-sm transition-colors ${
-                      sensitivityMode === 'sale' && sensitivityValue === -5 
-                        ? 'bg-red-500 text-white' 
+                      sensitivityMode === 'sale' && sensitivityValue === -5
+                        ? 'bg-red-500 text-white'
                         : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
                     }`}
                   >
                     <Minus size={12} className="inline mr-1" />
                     5%
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleSensitivityChange('sale', 5)}
                     className={`px-3 py-1 rounded text-sm transition-colors ${
-                      sensitivityMode === 'sale' && sensitivityValue === 5 
-                        ? 'bg-green-500 text-white' 
+                      sensitivityMode === 'sale' && sensitivityValue === 5
+                        ? 'bg-green-500 text-white'
                         : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
                     }`}
                   >
@@ -499,25 +504,25 @@ function ModernFinancePage() {
                     5%
                   </button>
                 </div>
-                
+
                 <div className="space-x-2">
                   <span className="text-sm text-slate-300">Build Cost:</span>
-                  <button 
+                  <button
                     onClick={() => handleSensitivityChange('build', -5)}
                     className={`px-3 py-1 rounded text-sm transition-colors ${
-                      sensitivityMode === 'build' && sensitivityValue === -5 
-                        ? 'bg-green-500 text-white' 
+                      sensitivityMode === 'build' && sensitivityValue === -5
+                        ? 'bg-green-500 text-white'
                         : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
                     }`}
                   >
                     <Minus size={12} className="inline mr-1" />
                     5%
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleSensitivityChange('build', 5)}
                     className={`px-3 py-1 rounded text-sm transition-colors ${
-                      sensitivityMode === 'build' && sensitivityValue === 5 
-                        ? 'bg-red-500 text-white' 
+                      sensitivityMode === 'build' && sensitivityValue === 5
+                        ? 'bg-red-500 text-white'
                         : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
                     }`}
                   >
@@ -526,7 +531,7 @@ function ModernFinancePage() {
                   </button>
                 </div>
               </div>
-              
+
               {sensitivityMode && (
                 <div className="text-sm text-slate-300">
                   Showing {sensitivityValue > 0 ? '+' : ''}{sensitivityValue}% change to {sensitivityMode === 'sale' ? 'sale prices' : 'build costs'}
@@ -537,43 +542,43 @@ function ModernFinancePage() {
             <div className="grid md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Build cost £/m²</label>
-                <NumberInput 
-                  className="input-field" 
+                <NumberInput
+                  className="input-field"
                   value={project.buildCostPerSqm || 1650}
                   onChange={(value) => updateProject({ buildCostPerSqm: parseFloat(value) || 1650 })}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Fees %</label>
-                <NumberInput 
-                  className="input-field" 
+                <NumberInput
+                  className="input-field"
                   value={finance.feesPct}
                   onChange={(value) => updateFinance('feesPct', value)}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Contingency %</label>
-                <NumberInput 
-                  className="input-field" 
+                <NumberInput
+                  className="input-field"
                   value={finance.contPct}
                   onChange={(value) => updateFinance('contPct', value)}
                 />
               </div>
             </div>
-            
+
             <div className="grid md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Land acquisition costs (£)</label>
-                <NumberInput 
-                  className="input-field" 
+                <NumberInput
+                  className="input-field"
                   value={finance.landAcqCosts}
                   onChange={(value) => updateFinance('landAcqCosts', value)}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Finance rate %</label>
-                <NumberInput 
-                  className="input-field" 
+                <NumberInput
+                  className="input-field"
                   step="0.1"
                   value={finance.financeRatePct}
                   onChange={(value) => updateFinance('financeRatePct', value)}
@@ -581,14 +586,14 @@ function ModernFinancePage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Target profit %</label>
-                <NumberInput 
-                  className="input-field" 
+                <NumberInput
+                  className="input-field"
                   value={finance.targetProfitPct}
                   onChange={(value) => updateFinance('targetProfitPct', value)}
                 />
               </div>
             </div>
-            
+
             {/* Progress Bars */}
             <div className="grid md:grid-cols-2 gap-6">
               <div>
@@ -599,7 +604,7 @@ function ModernFinancePage() {
                   </span>
                 </div>
                 <div className="relative bg-slate-700 h-2 rounded">
-                  <div 
+                  <div
                     className={`h-full rounded transition-all duration-300 ${
                       isViableProfit ? 'bg-green-400' : 'bg-red-400'
                     }`}
@@ -607,7 +612,7 @@ function ModernFinancePage() {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-slate-300">Cost vs GDV</span>
@@ -616,16 +621,16 @@ function ModernFinancePage() {
                   </span>
                 </div>
                 <div className="relative bg-slate-700 h-2 rounded">
-                  <div 
+                  <div
                     className="bg-amber-400 h-full rounded transition-all duration-300"
-                    style={{ 
-                      width: `${Math.min((sensitivityResults.totalCosts / sensitivityResults.gdv * 100), 100)}%` 
+                    style={{
+                      width: `${Math.min((sensitivityResults.totalCosts / sensitivityResults.gdv * 100), 100)}%`
                     }}
                   />
                 </div>
               </div>
             </div>
-            
+
             {/* KPI Cards */}
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
@@ -634,21 +639,21 @@ function ModernFinancePage() {
                   {formatCurrency(sensitivityResults.gdv)}
                 </div>
               </div>
-              
+
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
                 <div className="text-sm text-slate-400 mb-2">Build Cost</div>
                 <div className="text-xl font-bold text-amber-400">
                   {formatCurrency(sensitivityResults.build)}
                 </div>
               </div>
-              
+
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
                 <div className="text-sm text-slate-400 mb-2">Total Cost</div>
                 <div className="text-xl font-bold text-slate-300">
                   {formatCurrency(sensitivityResults.totalCosts)}
                 </div>
               </div>
-              
+
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
                 <div className="text-sm text-slate-400 mb-2">Profit %</div>
                 <div className={`text-xl font-bold ${viability.textColor}`}>
@@ -656,10 +661,10 @@ function ModernFinancePage() {
                 </div>
               </div>
             </div>
-            
+
             <div className={`mt-8 p-6 rounded-2xl border ${
-              sensitivityResults.residual >= 0 ? 
-                'bg-green-500/10 border-green-500/20' : 
+              sensitivityResults.residual >= 0 ?
+                'bg-green-500/10 border-green-500/20' :
                 'bg-red-500/10 border-red-500/20'
             }`}>
               <div className="text-slate-300 mb-3 font-medium">Residual Land Value</div>
@@ -676,12 +681,12 @@ function ModernFinancePage() {
           </div>
         </div>
       </div>
-      
-      <AssumptionsDrawer 
-        isOpen={showAssumptions} 
-        onClose={() => setShowAssumptions(false)} 
+
+      <AssumptionsDrawer
+        isOpen={showAssumptions}
+        onClose={() => setShowAssumptions(false)}
       />
-      
+
       {showCompare && scenarios.length > 1 && (
         <div className="fixed inset-0 z-40 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-slate-900 rounded-xl p-6 max-w-md w-full">
@@ -692,8 +697,8 @@ function ModernFinancePage() {
                   key={scenario.id}
                   onClick={() => setSelectedScenario(scenario.id)}
                   className={`w-full text-left p-3 rounded-lg transition-colors ${
-                    selectedScenario === scenario.id 
-                      ? 'bg-brand-500 text-white' 
+                    selectedScenario === scenario.id
+                      ? 'bg-brand-500 text-white'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                   }`}
                 >
@@ -702,7 +707,7 @@ function ModernFinancePage() {
               ))}
             </div>
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={() => {
                   if (selectedScenario) {
                     const scenario = scenarios.find(s => s.id === selectedScenario);
@@ -723,7 +728,7 @@ function ModernFinancePage() {
           </div>
         </div>
       )}
-      
+
       <Toast {...toast} onClose={hideToast} />
     </>
   );
@@ -746,7 +751,7 @@ function OfferPage() {
     const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
     const actualProfitPct = results.actualProfitPct;
     const residual = results.residual;
-    
+
     if (actualProfitPct >= targetProfitNum && residual >= 0) {
       return { status: 'Viable', color: 'bg-green-500', textColor: 'text-green-400' };
     } else if (actualProfitPct >= (targetProfitNum - 10) && residual >= 0) {
@@ -759,8 +764,8 @@ function OfferPage() {
   const viability = getViabilityBadge();
 
   const hasRequiredData = () => {
-    return project.name && 
-           unitMix.length > 0 && 
+    return project.name &&
+           unitMix.length > 0 &&
            parseFloat(finance.targetProfitPct) > 0 &&
            parseFloat(finance.feesPct) > 0;
   };
@@ -781,7 +786,7 @@ function OfferPage() {
           <p className="text-slate-300 leading-relaxed">
             Preview & export your one-page PDF appraisal ready for lenders and agents.
           </p>
-          
+
           {!hasRequiredData() && (
             <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
               <div className="text-amber-400 font-medium mb-2">Missing Required Data</div>
@@ -829,7 +834,7 @@ function OfferPage() {
                       if (!houseType) return null;
                       const totalArea = houseType.floorAreaSqm * mix.count;
                       const totalValue = totalArea * houseType.saleValuePerSqm;
-                      
+
                       return (
                         <tr key={mix.houseTypeId} className="border-b border-slate-700">
                           <td className="py-2 text-white">{houseType.name}</td>
@@ -866,7 +871,7 @@ function OfferPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
-            <button 
+            <button
               className={`btn-primary flex-1 sm:flex-none ${!hasRequiredData() ? 'opacity-50 cursor-not-allowed' : ''}`}
               disabled={!hasRequiredData()}
             >
@@ -888,7 +893,7 @@ function ModernHomePage() {
   const { project, scenarios, houseTypes } = useStore();
   const finance = project.finance || { targetProfitPct: '20', feesPct: '5', contPct: '10', financeRatePct: '8.5', financeMonths: '18', landAcqCosts: '25000' };
   const results = computeTotals(project, finance, houseTypes);
-  
+
   const getViabilityStatus = () => {
     const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
     if (results.actualProfitPct >= targetProfitNum && results.residual >= 0) {
@@ -899,9 +904,9 @@ function ModernHomePage() {
       return { status: 'Unviable', color: 'bg-red-500/20 text-red-400' };
     }
   };
-  
+
   const viability = getViabilityStatus();
-  
+
   return (
     <div className="container py-8 space-y-8">
       <div className="card">
@@ -916,7 +921,7 @@ function ModernHomePage() {
           <p className="text-slate-300 leading-relaxed">
             Quick feasibility assessment for UK property developers (2-15 units). Draw your site, test a unit mix, and generate a lender-ready PDF appraisal.
           </p>
-          
+
           {project.name && (
             <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
               <div className="text-sm text-slate-400 mb-2">Current Project</div>
@@ -926,7 +931,7 @@ function ModernHomePage() {
               </div>
             </div>
           )}
-          
+
           <div className="flex flex-col sm:flex-row gap-4">
             <a href="/survey" className="btn-primary flex-1 sm:flex-none">
               <span>📍</span>
@@ -939,7 +944,7 @@ function ModernHomePage() {
           </div>
         </div>
       </div>
-      
+
       <div className="grid md:grid-cols-2 gap-6">
         <div className="card">
           <div className="card-body">
@@ -1002,12 +1007,17 @@ function Shell() {
   );
 }
 
-export default function App() {
+function App() {
   return (
-    <StoreProvider>
-      <BrowserRouter>
-        <Shell />
-      </BrowserRouter>
-    </StoreProvider>
+    <div className="min-h-screen bg-neutral-950 text-white p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <TotalsHeader />
+        <MapPolygon />
+        <SiteAreaBadge />
+        <UnitMixEditor />
+      </div>
+    </div>
   );
 }
+
+export default App;
