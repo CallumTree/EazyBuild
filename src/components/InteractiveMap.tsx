@@ -19,18 +19,37 @@ interface InteractiveMapProps {
   boundary?: Array<{ lat: number; lng: number }>;
   onBoundaryChange: (boundary: Array<{ lat: number; lng: number }>) => void;
   onAreaChange: (areaM2: number) => void;
+  userLocation?: { lat: number; lng: number } | null;
+  gpsStatus?: 'idle' | 'getting' | 'ok' | 'error';
   className?: string;
 }
 
-function MapController({ boundary, onBoundaryChange, onAreaChange }: {
+function MapController({ boundary, onBoundaryChange, onAreaChange, userLocation, gpsStatus }: {
   boundary?: Array<{ lat: number; lng: number }>;
   onBoundaryChange: (boundary: Array<{ lat: number; lng: number }>) => void;
   onAreaChange: (areaM2: number) => void;
+  userLocation?: { lat: number; lng: number } | null;
+  gpsStatus?: 'idle' | 'getting' | 'ok' | 'error';
 }) {
   const map = useMap();
   const drawControlRef = useRef<L.Control.Draw | null>(null);
   const polygonLayerRef = useRef<L.Polygon | null>(null);
   const featureGroupRef = useRef<L.FeatureGroup>(new L.FeatureGroup());
+
+  // Handle GPS location centering
+  useEffect(() => {
+    if (userLocation && gpsStatus === 'ok') {
+      map.setView([userLocation.lat, userLocation.lng], 16);
+    }
+  }, [userLocation, gpsStatus, map]);
+
+  // Invalidate map size after mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [map]);
 
   useEffect(() => {
     map.addLayer(featureGroupRef.current);
@@ -139,8 +158,8 @@ function MapController({ boundary, onBoundaryChange, onAreaChange }: {
   return null;
 }
 
-export function InteractiveMap({ boundary, onBoundaryChange, onAreaChange, className = "" }: InteractiveMapProps) {
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+export function InteractiveMap({ boundary, onBoundaryChange, onAreaChange, userLocation: gpsUserLocation, gpsStatus, className = "" }: InteractiveMapProps) {
+  const [searchLocation, setSearchLocation] = useState<[number, number] | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
@@ -155,7 +174,7 @@ export function InteractiveMap({ boundary, onBoundaryChange, onAreaChange, class
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        setUserLocation([latitude, longitude]);
+        setSearchLocation([latitude, longitude]);
         setLoading(false);
       },
       (error) => {
@@ -213,7 +232,7 @@ export function InteractiveMap({ boundary, onBoundaryChange, onAreaChange, class
         const result = results[0];
         const lat = parseFloat(result.lat);
         const lng = parseFloat(result.lon);
-        setUserLocation([lat, lng]);
+        setSearchLocation([lat, lng]);
       } else {
         alert('Location not found');
       }
@@ -230,10 +249,12 @@ export function InteractiveMap({ boundary, onBoundaryChange, onAreaChange, class
     handleSearch(searchQuery);
   }, [searchQuery, handleSearch]);
 
-  const center: [number, number] = userLocation || 
-    (boundary && boundary.length > 0 
-      ? [boundary[0].lat, boundary[0].lng] 
-      : [51.5074, -0.1278]); // Default to London
+  const center: [number, number] = gpsUserLocation 
+    ? [gpsUserLocation.lat, gpsUserLocation.lng]
+    : searchLocation || 
+      (boundary && boundary.length > 0 
+        ? [boundary[0].lat, boundary[0].lng] 
+        : [51.5074, -0.1278]); // Default to London
 
   return (
     <div className={`relative ${className}`}>
@@ -280,18 +301,24 @@ export function InteractiveMap({ boundary, onBoundaryChange, onAreaChange, class
 
       <MapContainer
         center={center}
-        zoom={userLocation ? 16 : 13}
+        zoom={gpsUserLocation ? 16 : searchLocation ? 16 : 13}
         style={{ height: '100%', width: '100%' }}
-        key={userLocation ? `${userLocation[0]},${userLocation[1]}` : 'default'}
+        key={gpsUserLocation ? `gps-${gpsUserLocation.lat},${gpsUserLocation.lng}` : searchLocation ? `search-${searchLocation[0]},${searchLocation[1]}` : 'default'}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        {userLocation && (
-          <Marker position={userLocation}>
-            <Popup>Your Location</Popup>
+        {gpsUserLocation && (
+          <Marker position={[gpsUserLocation.lat, gpsUserLocation.lng]}>
+            <Popup>Your GPS Location</Popup>
+          </Marker>
+        )}
+
+        {searchLocation && !gpsUserLocation && (
+          <Marker position={searchLocation}>
+            <Popup>Search Location</Popup>
           </Marker>
         )}
 
@@ -299,6 +326,8 @@ export function InteractiveMap({ boundary, onBoundaryChange, onAreaChange, class
           boundary={boundary}
           onBoundaryChange={onBoundaryChange}
           onAreaChange={onAreaChange}
+          userLocation={gpsUserLocation}
+          gpsStatus={gpsStatus}
         />
       </MapContainer>
     </div>

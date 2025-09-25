@@ -19,6 +19,66 @@ function SurveyPage() {
   const { project, updateProject } = useStore();
   const { toast, showToast, hideToast } = useToast();
   const [siteArea, setSiteArea] = useState(0);
+  const [showMap, setShowMap] = useState(false);
+  const [gpsStatus, setGpsStatus] = useState<'idle' | 'getting' | 'ok' | 'error'>('idle');
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  
+  const handleUseGPS = () => {
+    setShowMap(true);
+    setGpsStatus('getting');
+    
+    if (!navigator.geolocation) {
+      setGpsStatus('error');
+      showToast('Geolocation not supported by this browser', 'error');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ lat: latitude, lng: longitude });
+        setGpsStatus('ok');
+      },
+      (error) => {
+        setGpsStatus('error');
+        let message = 'GPS error occurred';
+        
+        // Check if in iframe
+        if (window.self !== window.top) {
+          message = 'Your browser blocks GPS in this preview. Open in a new tab and try again.';
+        } else {
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              message = 'Please allow location in browser settings.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              message = "Couldn't read GPS, try again outside.";
+              break;
+            case error.TIMEOUT:
+              message = 'Took too long, try again.';
+              break;
+          }
+        }
+        showToast(message, 'error');
+      },
+      { 
+        enableHighAccuracy: true, 
+        timeout: 10000, 
+        maximumAge: 0 
+      }
+    );
+  };
+
+  const getGPSButtonText = () => {
+    switch (gpsStatus) {
+      case 'getting':
+        return 'Getting GPS…';
+      case 'ok':
+        return 'Re-center to me';
+      default:
+        return 'Use GPS';
+    }
+  };
   
   const handleSave = () => {
     if (!project.name.trim()) {
@@ -78,6 +138,21 @@ function SurveyPage() {
               </div>
             </div>
 
+            <div className="flex gap-4">
+              <button 
+                onClick={handleUseGPS}
+                disabled={gpsStatus === 'getting'}
+                className="btn-secondary"
+              >
+                📍 {getGPSButtonText()}
+              </button>
+              {window.self !== window.top && gpsStatus === 'error' && (
+                <div className="text-sm text-amber-400 flex items-center">
+                  Your browser blocks GPS in this preview. Open in a new tab and try again.
+                </div>
+              )}
+            </div>
+
             {siteArea > 0 && (
               <div className="p-4 bg-slate-700/30 rounded-xl">
                 <div className="text-sm text-slate-400 mb-1">Site Area</div>
@@ -87,14 +162,18 @@ function SurveyPage() {
               </div>
             )}
 
-            <div className="h-96 rounded-xl overflow-hidden border border-slate-700">
-              <InteractiveMap
-                boundary={project.boundary}
-                onBoundaryChange={handleBoundaryChange}
-                onAreaChange={handleAreaChange}
-                className="h-full"
-              />
-            </div>
+            {showMap && (
+              <div className="h-[420px] rounded-xl overflow-hidden border border-slate-700">
+                <InteractiveMap
+                  boundary={project.boundary}
+                  onBoundaryChange={handleBoundaryChange}
+                  onAreaChange={handleAreaChange}
+                  userLocation={userLocation}
+                  gpsStatus={gpsStatus}
+                  className="h-full"
+                />
+              </div>
+            )}
             
             <div className="flex flex-col sm:flex-row gap-4">
               <button className="btn-primary flex-1 sm:flex-none" onClick={handleSave}>
