@@ -16,19 +16,24 @@ export interface UnitMix {
   count: number;
 }
 
+export interface Boundary {
+  lat: number;
+  lng: number;
+}
+
 export interface Project {
   id: string;
   name: string;
   createdAt: string;
   updatedAt: string;
-  boundary?: Array<{ lat: number; lng: number }>;
-  siteArea?: number;
+  // Survey data
+  boundary?: Boundary[];
+  siteAreaSqm?: number;
   efficiency?: number;
-  estimatedUnits?: number;
-  floorAreaPerUnit?: number;
-  gdvPerUnit?: number;
-  buildCostPerSqm?: number;
+  infraAllowancePct?: number;
+  // Layout data
   unitMix?: UnitMix[];
+  // Finance data
   finance?: {
     feesPct: string;
     contPct: string;
@@ -46,6 +51,17 @@ export interface Scenario {
   createdAt: string;
 }
 
+// Computed values interface
+export interface ComputedMetrics {
+  netDevelopableAreaSqm: number;
+  totalUnits: number;
+  totalFloorAreaSqm: number;
+  totalBuildCost: number;
+  totalGDV: number;
+  grossMargin: number;
+  grossMarginPct: number;
+}
+
 interface StoreContextType {
   project: Project;
   setProject: (project: Project) => void;
@@ -54,48 +70,81 @@ interface StoreContextType {
   duplicateScenario: () => void;
   houseTypes: HouseType[];
   addHouseType: (houseType: Omit<HouseType, 'id'>) => void;
-  addToProjectMix: (houseTypeId: string) => void;
-  updateProjectMixCount: (houseTypeId: string, count: number) => void;
-  removeFromProjectMix: (houseTypeId: string) => void;
+  updateUnitMixCount: (houseTypeId: string, count: number) => void;
+  removeFromUnitMix: (houseTypeId: string) => void;
+  // Computed metrics
+  computedMetrics: ComputedMetrics;
+  // Survey actions
+  updateBoundary: (boundary: Boundary[]) => void;
+  updateSiteArea: (areaSqm: number) => void;
+  updateEfficiency: (efficiency: number) => void;
+  updateInfraAllowance: (pct: number) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 const defaultHouseTypes: HouseType[] = [
   {
+    id: 'default-2-bed-bung',
+    name: '2-Bed Bungalow',
+    beds: 2,
+    floorAreaSqm: 85,
+    buildCostPerSqm: 2050,
+    saleValuePerSqm: 3176,
+    isDefault: true,
+  },
+  {
+    id: 'default-3-bed-bung',
+    name: '3-Bed Bungalow',
+    beds: 3,
+    floorAreaSqm: 110,
+    buildCostPerSqm: 2100,
+    saleValuePerSqm: 3364,
+    isDefault: true,
+  },
+  {
     id: 'default-2-bed-semi',
     name: '2-Bed Semi',
     beds: 2,
-    floorAreaSqm: 90,
-    buildCostPerSqm: 1500,
-    saleValuePerSqm: 3000,
+    floorAreaSqm: 75,
+    buildCostPerSqm: 2000,
+    saleValuePerSqm: 2933,
     isDefault: true,
   },
   {
     id: 'default-3-bed-semi',
     name: '3-Bed Semi',
     beds: 3,
-    floorAreaSqm: 110,
-    buildCostPerSqm: 1600,
-    saleValuePerSqm: 3200,
+    floorAreaSqm: 90,
+    buildCostPerSqm: 2000,
+    saleValuePerSqm: 2778,
     isDefault: true,
   },
   {
     id: 'default-3-bed-detached',
     name: '3-Bed Detached',
     beds: 3,
-    floorAreaSqm: 130,
-    buildCostPerSqm: 1700,
-    saleValuePerSqm: 3400,
+    floorAreaSqm: 93,
+    buildCostPerSqm: 2100,
+    saleValuePerSqm: 3065,
     isDefault: true,
   },
   {
     id: 'default-4-bed-detached',
     name: '4-Bed Detached',
     beds: 4,
+    floorAreaSqm: 120,
+    buildCostPerSqm: 2150,
+    saleValuePerSqm: 3333,
+    isDefault: true,
+  },
+  {
+    id: 'default-5-bed-detached',
+    name: '5-Bed Detached',
+    beds: 5,
     floorAreaSqm: 160,
-    buildCostPerSqm: 1800,
-    saleValuePerSqm: 3600,
+    buildCostPerSqm: 2200,
+    saleValuePerSqm: 3125,
     isDefault: true,
   },
 ];
@@ -106,10 +155,7 @@ const defaultProject: Project = {
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   efficiency: 65,
-  estimatedUnits: 4,
-  floorAreaPerUnit: 120,
-  gdvPerUnit: 350000,
-  buildCostPerSqm: 1650,
+  infraAllowancePct: 0.25,
   unitMix: [],
   finance: {
     feesPct: '5',
@@ -121,10 +167,53 @@ const defaultProject: Project = {
   },
 };
 
+// Utility functions for calculations
+function computeMetrics(project: Project, houseTypes: HouseType[]): ComputedMetrics {
+  const siteAreaSqm = project.siteAreaSqm || 0;
+  const efficiency = (project.efficiency || 65) / 100;
+  const infraAllowancePct = project.infraAllowancePct || 0.25;
+  
+  // Net developable area
+  const netDevelopableAreaSqm = siteAreaSqm * (1 - infraAllowancePct);
+  
+  // Unit mix calculations
+  const unitMix = project.unitMix || [];
+  const totalUnits = unitMix.reduce((sum, mix) => sum + mix.count, 0);
+  
+  let totalFloorAreaSqm = 0;
+  let totalBuildCost = 0;
+  let totalGDV = 0;
+  
+  unitMix.forEach(mix => {
+    const houseType = houseTypes.find(ht => ht.id === mix.houseTypeId);
+    if (houseType) {
+      totalFloorAreaSqm += houseType.floorAreaSqm * mix.count;
+      totalBuildCost += (houseType.floorAreaSqm * houseType.buildCostPerSqm) * mix.count;
+      totalGDV += (houseType.floorAreaSqm * houseType.saleValuePerSqm) * mix.count;
+    }
+  });
+  
+  const grossMargin = totalGDV - totalBuildCost;
+  const grossMarginPct = totalGDV > 0 ? (grossMargin / totalGDV) * 100 : 0;
+  
+  return {
+    netDevelopableAreaSqm,
+    totalUnits,
+    totalFloorAreaSqm,
+    totalBuildCost,
+    totalGDV,
+    grossMargin,
+    grossMarginPct,
+  };
+}
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [project, setProjectState] = useState<Project>(defaultProject);
   const [scenarios, setScenariosState] = useState<Scenario[]>([]);
   const [houseTypes, setHouseTypesState] = useState<HouseType[]>(defaultHouseTypes);
+
+  // Computed metrics
+  const computedMetrics = computeMetrics(project, houseTypes);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -153,7 +242,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (savedHouseTypes) {
       try {
         const parsed = JSON.parse(savedHouseTypes);
-        // Merge with defaults
         const userTypes = parsed.filter((ht: HouseType) => !ht.isDefault);
         setHouseTypesState([...defaultHouseTypes, ...userTypes]);
       } catch (e) {
@@ -198,30 +286,47 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('landsnap.houseTypes', JSON.stringify(userTypes));
   };
 
-  const addToProjectMix = (houseTypeId: string) => {
+  const updateUnitMixCount = (houseTypeId: string, count: number) => {
     const currentMix = project.unitMix || [];
-    const existing = currentMix.find(mix => mix.houseTypeId === houseTypeId);
     
-    if (existing) {
-      updateProjectMixCount(houseTypeId, existing.count + 1);
+    if (count === 0) {
+      // Remove from mix if count is 0
+      const updated = currentMix.filter(mix => mix.houseTypeId !== houseTypeId);
+      updateProject({ unitMix: updated });
     } else {
-      const newMix = [...currentMix, { houseTypeId, count: 1 }];
-      updateProject({ unitMix: newMix });
+      // Update or add to mix
+      const existing = currentMix.find(mix => mix.houseTypeId === houseTypeId);
+      if (existing) {
+        const updated = currentMix.map(mix => 
+          mix.houseTypeId === houseTypeId ? { ...mix, count } : mix
+        );
+        updateProject({ unitMix: updated });
+      } else {
+        const updated = [...currentMix, { houseTypeId, count }];
+        updateProject({ unitMix: updated });
+      }
     }
   };
 
-  const updateProjectMixCount = (houseTypeId: string, count: number) => {
-    const currentMix = project.unitMix || [];
-    const updated = currentMix.map(mix => 
-      mix.houseTypeId === houseTypeId ? { ...mix, count } : mix
-    );
-    updateProject({ unitMix: updated });
+  const removeFromUnitMix = (houseTypeId: string) => {
+    updateUnitMixCount(houseTypeId, 0);
   };
 
-  const removeFromProjectMix = (houseTypeId: string) => {
-    const currentMix = project.unitMix || [];
-    const updated = currentMix.filter(mix => mix.houseTypeId !== houseTypeId);
-    updateProject({ unitMix: updated });
+  // Survey-specific actions
+  const updateBoundary = (boundary: Boundary[]) => {
+    updateProject({ boundary });
+  };
+
+  const updateSiteArea = (areaSqm: number) => {
+    updateProject({ siteAreaSqm: areaSqm });
+  };
+
+  const updateEfficiency = (efficiency: number) => {
+    updateProject({ efficiency });
+  };
+
+  const updateInfraAllowance = (pct: number) => {
+    updateProject({ infraAllowancePct: pct });
   };
 
   return (
@@ -233,9 +338,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       duplicateScenario,
       houseTypes,
       addHouseType,
-      addToProjectMix,
-      updateProjectMixCount,
-      removeFromProjectMix,
+      updateUnitMixCount,
+      removeFromUnitMix,
+      computedMetrics,
+      updateBoundary,
+      updateSiteArea,
+      updateEfficiency,
+      updateInfraAllowance,
     }}>
       {children}
     </StoreContext.Provider>
