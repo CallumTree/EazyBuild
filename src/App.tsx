@@ -8,6 +8,7 @@ import { MapCanvas } from "./components/MapCanvas";
 import { InteractiveMap } from "./components/InteractiveMap";
 import { AssumptionsDrawer } from "./components/AssumptionsDrawer";
 import { ScenarioCompare } from "./components/ScenarioCompare";
+import { UnitMixEditor } from "./components/UnitMixEditor";
 import { StoreProvider, useStore } from "./store";
 import { Toast, useToast } from "./components/Toast";
 import { NumberInput } from "./components/NumberInput";
@@ -193,241 +194,18 @@ function SurveyPage() {
 }
 
 function LayoutPage() {
-  const { project, updateProject, houseTypes, addHouseType, addToProjectMix, updateProjectMixCount, removeFromProjectMix } = useStore();
-  const { toast, showToast, hideToast } = useToast();
-  const [showDefaults, setShowDefaults] = useState(true);
-  const [showMyLibrary, setShowMyLibrary] = useState(true);
-  const [showAddCustom, setShowAddCustom] = useState(false);
-  const [newHouseType, setNewHouseType] = useState({
-    name: '',
-    beds: '3',
-    floorAreaSqm: '120',
-    buildCostPerSqm: '1650',
-    saleValuePerSqm: '3200',
-  });
-
-  const defaultTypes = houseTypes.filter(ht => ht.isDefault);
-  const userTypes = houseTypes.filter(ht => !ht.isDefault);
-  const projectMix = project.unitMix || [];
-
-  const handleAddCustomType = () => {
-    if (!newHouseType.name.trim()) return;
-    addHouseType({ 
-      ...newHouseType, 
-      beds: parseInt(newHouseType.beds) || 3,
-      floorAreaSqm: parseFloat(newHouseType.floorAreaSqm) || 120,
-      buildCostPerSqm: parseFloat(newHouseType.buildCostPerSqm) || 1650,
-      saleValuePerSqm: parseFloat(newHouseType.saleValuePerSqm) || 3200,
-      isDefault: false 
-    });
-    setNewHouseType({
-      name: '',
-      beds: '3',
-      floorAreaSqm: '120',
-      buildCostPerSqm: '1650',
-      saleValuePerSqm: '3200',
-    });
-    setShowAddCustom(false);
-    showToast('House type added to your library', 'success');
-  };
-
-  const handleCountChange = (houseTypeId: string, value: string) => {
-    const count = parseInt(value) || 0;
-    if (count <= 0) {
-      removeFromProjectMix(houseTypeId);
-    } else {
-      updateProjectMixCount(houseTypeId, count);
-    }
-    showToast('Autosaved', 'success');
-  };
-
-  const getTotalUnits = () => {
-    return projectMix.reduce((total, mix) => total + mix.count, 0);
-  };
-
   return (
-    <>
-      <div className="container py-8 space-y-8">
-        <div className="card">
-          <div className="card-header">
-            <span className="text-2xl">🏠</span>
-            <h2 className="card-title">Unit Mix & Layout</h2>
-          </div>
-          <div className="card-body space-y-8">
-            
-            {/* Current Project Mix */}
-            {projectMix.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-lg mb-4">Current Project Mix ({getTotalUnits()} units)</h3>
-                <div className="space-y-3">
-                  {projectMix.map(mix => {
-                    const houseType = houseTypes.find(ht => ht.id === mix.houseTypeId);
-                    if (!houseType) return null;
-                    return (
-                      <div key={mix.houseTypeId} className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
-                        <div>
-                          <div className="font-medium text-white">{houseType.name}</div>
-                          <div className="text-sm text-slate-300">
-                            {houseType.beds} beds • {houseType.floorAreaSqm}m² • £{houseType.saleValuePerSqm}/m²
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <NumberInput 
-                            className="input-field w-20" 
-                            value={mix.count}
-                            onChange={(value) => handleCountChange(mix.houseTypeId, value)}
-                          />
-                          <button 
-                            onClick={() => removeFromProjectMix(mix.houseTypeId)}
-                            className="text-red-400 hover:text-red-300 transition-colors"
-                          >
-                            ❌
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Default House Types */}
-            <div>
-              <button 
-                onClick={() => setShowDefaults(!showDefaults)}
-                className="flex items-center gap-2 font-semibold text-lg mb-4 hover:text-brand-400 transition-colors"
-              >
-                <span>{showDefaults ? '▼' : '▶'}</span>
-                Default House Types
-              </button>
-              {showDefaults && (
-                <div className="grid md:grid-cols-2 gap-4">
-                  {defaultTypes.map(houseType => (
-                    <div key={houseType.id} className="p-4 bg-slate-700/20 rounded-xl border border-slate-700">
-                      <div className="font-medium mb-2 text-white">{houseType.name}</div>
-                      <div className="text-sm text-slate-300 mb-3">
-                        {houseType.beds} beds • {houseType.floorAreaSqm}m² • Build: £{houseType.buildCostPerSqm}/m² • Sale: £{houseType.saleValuePerSqm}/m²
-                      </div>
-                      <button 
-                        onClick={() => addToProjectMix(houseType.id)}
-                        className="btn-ghost text-sm w-full"
-                      >
-                        ➕ Add to Project
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* User Library */}
-            <div>
-              <button 
-                onClick={() => setShowMyLibrary(!showMyLibrary)}
-                className="flex items-center gap-2 font-semibold text-lg mb-4 hover:text-brand-400 transition-colors"
-              >
-                <span>{showMyLibrary ? '▼' : '▶'}</span>
-                My Library ({userTypes.length})
-              </button>
-              {showMyLibrary && (
-                <div className="space-y-4">
-                  {userTypes.length === 0 ? (
-                    <p className="text-slate-400">No custom house types yet. Create your first one below.</p>
-                  ) : (
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {userTypes.map(houseType => (
-                        <div key={houseType.id} className="p-4 bg-slate-700/20 rounded-xl border border-slate-700">
-                          <div className="font-medium mb-2 text-white">{houseType.name}</div>
-                          <div className="text-sm text-slate-300 mb-3">
-                            {houseType.beds} beds • {houseType.floorAreaSqm}m² • Build: £{houseType.buildCostPerSqm}/m² • Sale: £{houseType.saleValuePerSqm}/m²
-                          </div>
-                          <button 
-                            onClick={() => addToProjectMix(houseType.id)}
-                            className="btn-ghost text-sm w-full"
-                          >
-                            ➕ Add to Project
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Add Custom Type */}
-                  {!showAddCustom ? (
-                    <button 
-                      onClick={() => setShowAddCustom(true)}
-                      className="btn-primary w-full"
-                    >
-                      ➕ Create New House Type
-                    </button>
-                  ) : (
-                    <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
-                      <h4 className="font-medium mb-4 text-white">Create New House Type</h4>
-                      <div className="grid md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Name/Model</label>
-                          <input 
-                            className="input-field" 
-                            value={newHouseType.name}
-                            onChange={(e) => setNewHouseType(prev => ({...prev, name: e.target.value}))}
-                            placeholder="e.g., Custom 4-bed"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Bedrooms</label>
-                          <NumberInput 
-                            className="input-field" 
-                            value={newHouseType.beds}
-                            onChange={(value) => setNewHouseType(prev => ({...prev, beds: value}))}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Floor area (m²)</label>
-                          <NumberInput 
-                            className="input-field" 
-                            value={newHouseType.floorAreaSqm}
-                            onChange={(value) => setNewHouseType(prev => ({...prev, floorAreaSqm: value}))}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Build cost £/m²</label>
-                          <NumberInput 
-                            className="input-field" 
-                            value={newHouseType.buildCostPerSqm}
-                            onChange={(value) => setNewHouseType(prev => ({...prev, buildCostPerSqm: value}))}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Sale value £/m²</label>
-                          <NumberInput 
-                            className="input-field" 
-                            value={newHouseType.saleValuePerSqm}
-                            onChange={(value) => setNewHouseType(prev => ({...prev, saleValuePerSqm: value}))}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex gap-3">
-                        <button onClick={handleAddCustomType} className="btn-primary flex-1">
-                          💾 Save to Library
-                        </button>
-                        <button 
-                          onClick={() => setShowAddCustom(false)} 
-                          className="btn-ghost flex-1"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-          </div>
+    <div className="container py-8 space-y-8">
+      <div className="card">
+        <div className="card-header">
+          <span className="text-2xl">🏠</span>
+          <h2 className="card-title">Unit Mix & Layout</h2>
+        </div>
+        <div className="card-body">
+          <UnitMixEditor />
         </div>
       </div>
-      <Toast {...toast} onClose={hideToast} duration={1000} />
-    </>
+    </div>
   );
 }
 
