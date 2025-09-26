@@ -847,13 +847,33 @@ function ModernHomePage() {
 }
 
 function Shell() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const renderPage = () => {
+    switch (location.pathname) {
+      case '/':
+        return <ModernHomePage />;
+      case '/survey':
+        return <SurveyPage />;
+      case '/layout':
+        return <LayoutPage />;
+      case '/finance':
+        return <ModernFinancePage />;
+      case '/offer':
+        return <OfferPage />;
+      default:
+        return <ModernHomePage />;
+    }
+  };
+
   return (
     <div className="app-shell">
       <Topbar />
       <div className="flex h-screen pt-14">
         <Sidebar />
         <div className="flex-1 p-6">
-          <SurveyPage />
+          {renderPage()}
         </div>
       </div>
     </div>
@@ -864,7 +884,9 @@ export default function App() {
   return (
     <StoreProvider>
       <BrowserRouter>
-        <Shell />
+        <Routes>
+          <Route path="/*" element={<Shell />} />
+        </Routes>
       </BrowserRouter>
     </StoreProvider>
   );

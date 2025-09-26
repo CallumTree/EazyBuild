@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { MapPin, Home, Calculator, FileText, Plus, Trash2 } from 'lucide-react';
 
 type PropertyType = 'detached' | 'semi-detached' | 'terraced' | 'flat' | 'bungalow' | 'other';
@@ -412,6 +413,9 @@ export const Sidebar: React.FC = () => {
   const [contingencyPercent, setContingencyPercent] = useState('');
   const [profitPercent, setProfitPercent] = useState('');
 
+  const navigate = useNavigate();
+  const location = useLocation();
+
   // Mock current project data
   const currentProject: Project | null = {
     id: 'current-project-123',
@@ -686,7 +690,10 @@ export const Sidebar: React.FC = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as TabType)}
+                onClick={() => {
+                  setActiveTab(tab.id as TabType);
+                  navigate(`/${tab.id}`);
+                }}
                 className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
               >
                 <IconComponent size={20} className="tab-icon" />
