@@ -1,40 +1,24 @@
 
 import React, { useState } from 'react';
-import { useStore } from '../store';
+import { useViability } from '../store/viability';
 
 export function UnitMixEditor() {
-  const { 
-    houseTypes, 
-    project, 
-    updateUnitMixCount, 
-    computedMetrics 
-  } = useStore();
-  
+  const { unitTypes, updateUnitCount } = useViability();
   const [selectedTypeId, setSelectedTypeId] = useState<string>('');
 
-  const unitMix = project.unitMix || [];
-  const activeTypes = houseTypes.filter(type => {
-    const mix = unitMix.find(m => m.houseTypeId === type.id);
-    return mix && mix.count > 0;
-  }).map(type => {
-    const mix = unitMix.find(m => m.houseTypeId === type.id);
-    return { ...type, count: mix?.count || 0 };
-  });
-  
-  const availableTypes = houseTypes.filter(type => {
-    const mix = unitMix.find(m => m.houseTypeId === type.id);
-    return !mix || mix.count === 0;
-  });
+  const totalUnits = unitTypes.reduce((sum, type) => sum + type.count, 0);
+  const activeTypes = unitTypes.filter(type => type.count > 0);
+  const availableTypes = unitTypes.filter(type => type.count === 0);
 
   const handleAddType = () => {
     if (selectedTypeId) {
-      updateUnitMixCount(selectedTypeId, 1);
+      updateUnitCount(selectedTypeId, 1);
       setSelectedTypeId('');
     }
   };
 
   const handleRemoveType = (typeId: string) => {
-    updateUnitMixCount(typeId, 0);
+    updateUnitCount(typeId, 0);
   };
 
   return (
@@ -42,7 +26,7 @@ export function UnitMixEditor() {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-white">Unit Mix</h3>
         <div className="text-sm text-slate-300">
-          Estimated Units: <span className="font-semibold text-brand-400">{computedMetrics.totalUnits}</span>
+          Estimated Units: <span className="font-semibold text-brand-400">{totalUnits}</span>
         </div>
       </div>
 
@@ -58,7 +42,7 @@ export function UnitMixEditor() {
             <option value="">Select a house type...</option>
             {availableTypes.map((type) => (
               <option key={type.id} value={type.id}>
-                {type.name} - {type.floorAreaSqm}m² ({type.beds} bed)
+                {type.label} - {type.areaM2}m² ({type.floors === 1 ? 'Bungalow' : 'House'})
               </option>
             ))}
           </select>
@@ -89,14 +73,14 @@ export function UnitMixEditor() {
               {activeTypes.map((type) => (
                 <tr key={type.id} className="border-t border-slate-700">
                   <td className="py-4 px-4">
-                    <div className="font-medium text-white">{type.name}</div>
+                    <div className="font-medium text-white">{type.label}</div>
                   </td>
                   <td className="py-4 px-4">
                     <div className="text-sm text-slate-400">
-                      {type.floorAreaSqm}m² • {type.beds} bed
+                      {type.areaM2}m² • {type.floors === 1 ? 'Bungalow' : 'House'}
                     </div>
                     <div className="text-sm text-slate-500">
-                      £{type.buildCostPerSqm.toLocaleString()}/m²
+                      £{type.buildCostPerM2.toLocaleString()}/m²
                     </div>
                   </td>
                   <td className="py-4 px-4 text-center">
@@ -107,13 +91,13 @@ export function UnitMixEditor() {
                       value={type.count}
                       onChange={(e) => {
                         const count = parseInt(e.target.value) || 0;
-                        updateUnitMixCount(type.id, count);
+                        updateUnitCount(type.id, count);
                       }}
                       className="w-20 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     />
                   </td>
                   <td className="py-4 px-4 text-center text-slate-300">
-                    {(type.count * type.floorAreaSqm).toLocaleString()}m²
+                    {(type.count * type.areaM2).toLocaleString()}m²
                   </td>
                   <td className="py-4 px-4 text-center">
                     <button
@@ -138,28 +122,20 @@ export function UnitMixEditor() {
 
       {/* Summary */}
       {activeTypes.length > 0 && (
-        <div className="grid md:grid-cols-4 gap-4">
+        <div className="grid md:grid-cols-3 gap-4">
           <div className="p-4 bg-slate-700/30 rounded-xl">
             <div className="text-sm text-slate-400 mb-1">Total Units</div>
-            <div className="text-xl font-bold text-brand-400">{computedMetrics.totalUnits}</div>
+            <div className="text-xl font-bold text-brand-400">{totalUnits}</div>
           </div>
           <div className="p-4 bg-slate-700/30 rounded-xl">
             <div className="text-sm text-slate-400 mb-1">Total Floor Area</div>
             <div className="text-xl font-bold text-white">
-              {computedMetrics.totalFloorAreaSqm.toLocaleString()}m²
+              {activeTypes.reduce((sum, type) => sum + (type.count * type.areaM2), 0).toLocaleString()}m²
             </div>
           </div>
           <div className="p-4 bg-slate-700/30 rounded-xl">
-            <div className="text-sm text-slate-400 mb-1">Build Cost</div>
-            <div className="text-xl font-bold text-orange-400">
-              £{Math.round(computedMetrics.totalBuildCost).toLocaleString()}
-            </div>
-          </div>
-          <div className="p-4 bg-slate-700/30 rounded-xl">
-            <div className="text-sm text-slate-400 mb-1">Total GDV</div>
-            <div className="text-xl font-bold text-green-400">
-              £{Math.round(computedMetrics.totalGDV).toLocaleString()}
-            </div>
+            <div className="text-sm text-slate-400 mb-1">House Types</div>
+            <div className="text-xl font-bold text-slate-300">{activeTypes.length}</div>
           </div>
         </div>
       )}
