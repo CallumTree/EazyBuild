@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
-import { Home, Map, LayoutGrid, PoundSterling, FileText, Settings, Plus, Minus } from "lucide-react";
+import { Home, Map, LayoutGrid, PoundSterling, FileText, Settings, Plus, Minus, Trash } from "lucide-react";
 import { Topbar } from "./components/Topbar";
 import { Sidebar } from "./components/Sidebar";
 import { MapCanvas } from "./components/MapCanvas";
