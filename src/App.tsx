@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { Home, Map, LayoutGrid, PoundSterling, FileText, Settings, Plus, Minus } from "lucide-react";
@@ -12,57 +13,8 @@ import { StoreProvider, useStore } from "./store";
 import { Toast, useToast } from "./components/Toast";
 import { NumberInput } from "./components/NumberInput";
 import { computeTotals, formatCurrency } from "./finance";
-MapShell from "./components/MapShell";
+import MapShell from "./components/MapShell";
 import "./index.css";
-import { useViability } from './store/viability';
-import { totalGIA, totalBuildCost, totalSalesValue, margins } from './lib/calc';
-
-function TotalsBar() {
-  const { unitTypes } = useViability();
-  const { build, sales, profit, marginPct } = margins(unitTypes);
-
-  const getMarginColor = (margin: number) => {
-    if (margin >= 20) return 'bg-green-500 text-white';
-    if (margin >= 15) return 'bg-amber-500 text-white';
-    return 'bg-red-500 text-white';
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  return (
-    <div className="bg-slate-800 border-b border-slate-700 px-4 py-3">
-      <div className="flex items-center justify-between max-w-7xl mx-auto">
-        <div className="flex items-center space-x-8">
-          <div className="text-slate-300">
-            <span className="text-sm font-medium">GDV:</span>
-            <span className="ml-2 text-lg font-bold text-blue-400">{formatCurrency(sales)}</span>
-          </div>
-          <div className="text-slate-300">
-            <span className="text-sm font-medium">Build Cost:</span>
-            <span className="ml-2 text-lg font-bold text-amber-400">{formatCurrency(build)}</span>
-          </div>
-          <div className="text-slate-300">
-            <span className="text-sm font-medium">Profit:</span>
-            <span className="ml-2 text-lg font-bold text-green-400">{formatCurrency(profit)}</span>
-          </div>
-        </div>
-        <div className="flex items-center">
-          <span className="text-sm font-medium text-slate-300 mr-3">Margin:</span>
-          <span className={`px-3 py-1 rounded-full text-sm font-bold ${getMarginColor(marginPct * 100)}`}>
-            {(marginPct * 100).toFixed(1)}%
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function SurveyPage() {
   const { project, updateProject } = useStore();
@@ -71,11 +23,11 @@ function SurveyPage() {
   const [showMap, setShowMap] = useState(false);
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'getting' | 'ok' | 'error'>('idle');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-
+  
   const handleUseGPS = () => {
     setShowMap(true);
     setGpsStatus('getting');
-
+    
     if (!navigator.geolocation) {
       setGpsStatus('error');
       showToast('Geolocation not supported by this browser', 'error');
@@ -91,7 +43,7 @@ function SurveyPage() {
       (error) => {
         setGpsStatus('error');
         let message = 'GPS error occurred';
-
+        
         // Check if in iframe
         if (window.self !== window.top) {
           message = 'Your browser blocks GPS in this preview. Open in a new tab and try again.';
@@ -128,18 +80,18 @@ function SurveyPage() {
         return 'Use GPS';
     }
   };
-
+  
   const handleSave = () => {
     if (!project.name.trim()) {
       showToast('Project name is required', 'error');
       return;
     }
-
+    
     if (!project.boundary || project.boundary.length < 3) {
       showToast('Please draw a site boundary on the map', 'error');
       return;
     }
-
+    
     showToast('Project saved successfully', 'success');
   };
 
@@ -223,7 +175,7 @@ function SurveyPage() {
                 />
               </div>
             )}
-
+            
             <div className="flex flex-col sm:flex-row gap-4">
               <button className="btn-primary flex-1 sm:flex-none" onClick={handleSave}>
                 <span>💾</span>
@@ -265,7 +217,7 @@ function ModernFinancePage() {
   const [selectedScenario, setSelectedScenario] = useState<string>('');
   const [sensitivityMode, setSensitivityMode] = useState<'sale' | 'build' | null>(null);
   const [sensitivityValue, setSensitivityValue] = useState(0);
-
+  
   const finance = project.finance || {
     feesPct: '5',
     contPct: '10',
@@ -274,13 +226,13 @@ function ModernFinancePage() {
     targetProfitPct: '20',
     landAcqCosts: '25000',
   };
-
+  
   const results = computeTotals(project, finance, houseTypes);
-
+  
   // Sensitivity analysis
   const getSensitivityResults = () => {
     if (!sensitivityMode) return results;
-
+    
     const adjustedProject = { ...project };
     const adjustedHouseTypes = houseTypes.map(ht => {
       if (sensitivityMode === 'sale') {
@@ -290,28 +242,28 @@ function ModernFinancePage() {
       }
       return ht;
     });
-
+    
     return computeTotals(adjustedProject, finance, adjustedHouseTypes);
   };
-
+  
   const sensitivityResults = getSensitivityResults();
-
+  
   const updateFinance = (field: keyof typeof finance, value: string) => {
     updateProject({
       finance: { ...finance, [field]: value }
     });
   };
-
+  
   const handleDuplicate = () => {
     duplicateScenario();
     showToast('Scenario duplicated', 'success');
   };
-
+  
   const getViabilityStatus = () => {
     const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
     const actualProfitPct = sensitivityResults.actualProfitPct;
     const residual = sensitivityResults.residual;
-
+    
     if (actualProfitPct >= targetProfitNum && residual >= 0) {
       return { status: 'Viable', color: 'bg-green-500', textColor: 'text-green-400' };
     } else if (actualProfitPct >= (targetProfitNum - 10) && residual >= 0) {
@@ -320,9 +272,9 @@ function ModernFinancePage() {
       return { status: 'Unviable', color: 'bg-red-500', textColor: 'text-red-400' };
     }
   };
-
+  
   const viability = getViabilityStatus();
-
+  
   const getKPIColor = (isPositive: boolean) => {
     return isPositive ? 'text-green-400' : 'text-red-400';
   };
@@ -375,7 +327,7 @@ function ModernFinancePage() {
             </div>
           </div>
           <div className="card-body space-y-6">
-
+            
             {/* Sensitivity Analysis */}
             <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
               <h3 className="font-semibold mb-4 text-white">Sensitivity Analysis</h3>
@@ -405,7 +357,7 @@ function ModernFinancePage() {
                     5%
                   </button>
                 </div>
-
+                
                 <div className="space-x-2">
                   <span className="text-sm text-slate-300">Build Cost:</span>
                   <button 
@@ -432,7 +384,7 @@ function ModernFinancePage() {
                   </button>
                 </div>
               </div>
-
+              
               {sensitivityMode && (
                 <div className="text-sm text-slate-300">
                   Showing {sensitivityValue > 0 ? '+' : ''}{sensitivityValue}% change to {sensitivityMode === 'sale' ? 'sale prices' : 'build costs'}
@@ -466,7 +418,7 @@ function ModernFinancePage() {
                 />
               </div>
             </div>
-
+            
             <div className="grid md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Land acquisition costs (£)</label>
@@ -494,7 +446,7 @@ function ModernFinancePage() {
                 />
               </div>
             </div>
-
+            
             {/* Progress Bars */}
             <div className="grid md:grid-cols-2 gap-6">
               <div>
@@ -513,7 +465,7 @@ function ModernFinancePage() {
                   />
                 </div>
               </div>
-
+              
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-slate-300">Cost vs GDV</span>
@@ -531,7 +483,7 @@ function ModernFinancePage() {
                 </div>
               </div>
             </div>
-
+            
             {/* KPI Cards */}
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
@@ -540,21 +492,21 @@ function ModernFinancePage() {
                   {formatCurrency(sensitivityResults.gdv)}
                 </div>
               </div>
-
+              
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
                 <div className="text-sm text-slate-400 mb-2">Build Cost</div>
                 <div className="text-xl font-bold text-amber-400">
                   {formatCurrency(sensitivityResults.build)}
                 </div>
               </div>
-
+              
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
                 <div className="text-sm text-slate-400 mb-2">Total Cost</div>
                 <div className="text-xl font-bold text-slate-300">
                   {formatCurrency(sensitivityResults.totalCosts)}
                 </div>
               </div>
-
+              
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
                 <div className="text-sm text-slate-400 mb-2">Profit %</div>
                 <div className={`text-xl font-bold ${viability.textColor}`}>
@@ -562,7 +514,7 @@ function ModernFinancePage() {
                 </div>
               </div>
             </div>
-
+            
             <div className={`mt-8 p-6 rounded-2xl border ${
               sensitivityResults.residual >= 0 ? 
                 'bg-green-500/10 border-green-500/20' : 
@@ -582,12 +534,12 @@ function ModernFinancePage() {
           </div>
         </div>
       </div>
-
+      
       <AssumptionsDrawer 
         isOpen={showAssumptions} 
         onClose={() => setShowAssumptions(false)} 
       />
-
+      
       {showCompare && scenarios.length > 1 && (
         <div className="fixed inset-0 z-40 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-slate-900 rounded-xl p-6 max-w-md w-full">
@@ -629,7 +581,7 @@ function ModernFinancePage() {
           </div>
         </div>
       )}
-
+      
       <Toast {...toast} onClose={hideToast} />
     </>
   );
@@ -652,7 +604,7 @@ function OfferPage() {
     const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
     const actualProfitPct = results.actualProfitPct;
     const residual = results.residual;
-
+    
     if (actualProfitPct >= targetProfitNum && residual >= 0) {
       return { status: 'Viable', color: 'bg-green-500', textColor: 'text-green-400' };
     } else if (actualProfitPct >= (targetProfitNum - 10) && residual >= 0) {
@@ -687,7 +639,7 @@ function OfferPage() {
           <p className="text-slate-300 leading-relaxed">
             Preview & export your one-page PDF appraisal ready for lenders and agents.
           </p>
-
+          
           {!hasRequiredData() && (
             <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
               <div className="text-amber-400 font-medium mb-2">Missing Required Data</div>
@@ -735,7 +687,7 @@ function OfferPage() {
                       if (!houseType) return null;
                       const totalArea = houseType.floorAreaSqm * mix.count;
                       const totalValue = totalArea * houseType.saleValuePerSqm;
-
+                      
                       return (
                         <tr key={mix.houseTypeId} className="border-b border-slate-700">
                           <td className="py-2 text-white">{houseType.name}</td>
@@ -794,7 +746,7 @@ function ModernHomePage() {
   const { project, scenarios, houseTypes } = useStore();
   const finance = project.finance || { targetProfitPct: '20', feesPct: '5', contPct: '10', financeRatePct: '8.5', financeMonths: '18', landAcqCosts: '25000' };
   const results = computeTotals(project, finance, houseTypes);
-
+  
   const getViabilityStatus = () => {
     const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
     if (results.actualProfitPct >= targetProfitNum && results.residual >= 0) {
@@ -805,9 +757,9 @@ function ModernHomePage() {
       return { status: 'Unviable', color: 'bg-red-500/20 text-red-400' };
     }
   };
-
+  
   const viability = getViabilityStatus();
-
+  
   return (
     <div className="container py-8 space-y-8">
       <div className="card">
@@ -822,7 +774,7 @@ function ModernHomePage() {
           <p className="text-slate-300 leading-relaxed">
             Quick feasibility assessment for UK property developers (2-15 units). Draw your site, test a unit mix, and generate a lender-ready PDF appraisal.
           </p>
-
+          
           {project.name && (
             <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
               <div className="text-sm text-slate-400 mb-2">Current Project</div>
@@ -832,7 +784,7 @@ function ModernHomePage() {
               </div>
             </div>
           )}
-
+          
           <div className="flex flex-col sm:flex-row gap-4">
             <a href="/survey" className="btn-primary flex-1 sm:flex-none">
               <span>📍</span>
@@ -845,7 +797,7 @@ function ModernHomePage() {
           </div>
         </div>
       </div>
-
+      
       <div className="grid md:grid-cols-2 gap-6">
         <div className="card">
           <div className="card-body">
@@ -895,20 +847,33 @@ function ModernHomePage() {
 }
 
 function Shell() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const renderPage = () => {
+    switch (location.pathname) {
+      case '/':
+        return <ModernHomePage />;
+      case '/survey':
+        return <SurveyPage />;
+      case '/layout':
+        return <LayoutPage />;
+      case '/finance':
+        return <ModernFinancePage />;
+      case '/offer':
+        return <OfferPage />;
+      default:
+        return <ModernHomePage />;
+    }
+  };
+
   return (
     <div className="app-shell">
       <Topbar />
-      <TotalsBar />
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex h-screen pt-14">
         <Sidebar />
-        <div className="flex-1 p-6 overflow-y-auto">
-          <Routes>
-            <Route path="/" element={<ModernHomePage />} />
-            <Route path="/survey" element={<SurveyPage />} />
-            <Route path="/layout" element={<LayoutPage />} />
-            <Route path="/finance" element={<ModernFinancePage />} />
-            <Route path="/offer" element={<OfferPage />} />
-          </Routes>
+        <div className="flex-1 p-6">
+          {renderPage()}
         </div>
       </div>
     </div>
