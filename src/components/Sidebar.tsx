@@ -558,71 +558,11 @@ export const Sidebar: React.FC = () => {
       case 'finance':
         return (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Price per sqft (£)
-                </label>
-                <input
-                  type="number"
-                  value={pricePerSqft}
-                  onChange={(e) => setPricePerSqft(e.target.value)}
-                  placeholder="500"
-                  className="input-field"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Build cost per sqft (£)
-                </label>
-                <input
-                  type="number"
-                  value={buildCostPerSqft}
-                  onChange={(e) => setBuildCostPerSqft(e.target.value)}
-                  placeholder="150"
-                  className="input-field"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Fees (%)
-                </label>
-                <input
-                  type="number"
-                  value={feesPercent}
-                  onChange={(e) => setFeesPercent(e.target.value)}
-                  placeholder="5"
-                  className="input-field"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contingency (%)
-                </label>
-                <input
-                  type="number"
-                  value={contingencyPercent}
-                  onChange={(e) => setContingencyPercent(e.target.value)}
-                  placeholder="10"
-                  className="input-field"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Profit (%)
-                </label>
-                <input
-                  type="number"
-                  value={profitPercent}
-                  onChange={(e) => setProfitPercent(e.target.value)}
-                  placeholder="20"
-                  className="input-field"
-                />
-              </div>
+            <div className="p-4 bg-slate-700/30 rounded-xl">
+              <h3 className="font-semibold text-white mb-3">Finance Settings</h3>
+              <p className="text-sm text-slate-400">
+                Pricing is managed per unit type in the Layout tab. Use the main Finance page to configure fees, contingency, and other financial parameters.
+              </p>
             </div>
 
             {/* KPI Cards */}
