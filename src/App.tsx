@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { Home, Map, LayoutGrid, PoundSterling, FileText, Settings, Plus, Minus } from "lucide-react";
@@ -15,6 +14,64 @@ import { NumberInput } from "./components/NumberInput";
 import { computeTotals, formatCurrency } from "./finance";
 import MapShell from "./components/MapShell";
 import "./index.css";
+import { useViability } from './store/viability';
+import { totalGIA, totalBuildCost, totalSalesValue, margins } from './lib/calc';
+
+// Placeholder for TotalsBar component (assuming it's defined elsewhere or will be created)
+const TotalsBar = () => {
+  const { project, houseTypes } = useStore();
+  const finance = project.finance || {
+    feesPct: '5',
+    contPct: '10',
+    financeRatePct: '8.5',
+    financeMonths: '18',
+    targetProfitPct: '20',
+    landAcqCosts: '25000',
+  };
+  const results = computeTotals(project, finance, houseTypes);
+
+  const getViabilityStatus = () => {
+    const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
+    const actualProfitPct = results.actualProfitPct;
+    const residual = results.residual;
+
+    if (actualProfitPct >= targetProfitNum && residual >= 0) {
+      return { status: 'Viable', color: 'bg-green-500', textColor: 'text-green-400' };
+    } else if (actualProfitPct >= (targetProfitNum - 10) && residual >= 0) {
+      return { status: 'At Risk', color: 'bg-amber-500', textColor: 'text-amber-400' };
+    } else {
+      return { status: 'Unviable', color: 'bg-red-500', textColor: 'text-red-400' };
+    }
+  };
+
+  const viability = getViabilityStatus();
+
+  return (
+    <div className="sticky top-14 z-10 bg-slate-800 border-b border-slate-700 p-3 flex justify-between items-center">
+      <div className="flex items-center gap-4">
+        <span className="text-lg font-semibold text-white">Project Totals</span>
+        <span className={`px-3 py-1 rounded-full text-sm font-medium ${viability.color} text-white`}>
+          {viability.status}
+        </span>
+      </div>
+      <div className="flex items-center gap-6">
+        <div className="text-sm">
+          <span className="text-slate-400">GDV: </span>
+          <span className="font-medium text-brand-400">{formatCurrency(results.gdv)}</span>
+        </div>
+        <div className="text-sm">
+          <span className="text-slate-400">Residual Land Value: </span>
+          <span className={`font-medium ${viability.textColor}`}>{formatCurrency(results.residual)}</span>
+        </div>
+        <div className="text-sm">
+          <span className="text-slate-400">Profit: </span>
+          <span className={`font-medium ${viability.textColor}`}>{results.actualProfitPct.toFixed(1)}%</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 function SurveyPage() {
   const { project, updateProject } = useStore();
@@ -23,11 +80,11 @@ function SurveyPage() {
   const [showMap, setShowMap] = useState(false);
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'getting' | 'ok' | 'error'>('idle');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  
+
   const handleUseGPS = () => {
     setShowMap(true);
     setGpsStatus('getting');
-    
+
     if (!navigator.geolocation) {
       setGpsStatus('error');
       showToast('Geolocation not supported by this browser', 'error');
@@ -43,7 +100,7 @@ function SurveyPage() {
       (error) => {
         setGpsStatus('error');
         let message = 'GPS error occurred';
-        
+
         // Check if in iframe
         if (window.self !== window.top) {
           message = 'Your browser blocks GPS in this preview. Open in a new tab and try again.';
@@ -62,10 +119,10 @@ function SurveyPage() {
         }
         showToast(message, 'error');
       },
-      { 
-        enableHighAccuracy: true, 
-        timeout: 10000, 
-        maximumAge: 0 
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
       }
     );
   };
@@ -80,18 +137,18 @@ function SurveyPage() {
         return 'Use GPS';
     }
   };
-  
+
   const handleSave = () => {
     if (!project.name.trim()) {
       showToast('Project name is required', 'error');
       return;
     }
-    
+
     if (!project.boundary || project.boundary.length < 3) {
       showToast('Please draw a site boundary on the map', 'error');
       return;
     }
-    
+
     showToast('Project saved successfully', 'success');
   };
 
@@ -122,8 +179,8 @@ function SurveyPage() {
             <div className="grid sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Project name</label>
-                <input 
-                  className="input-field" 
+                <input
+                  className="input-field"
                   placeholder="Enter project name"
                   value={project.name}
                   onChange={(e) => updateProject({ name: e.target.value })}
@@ -131,8 +188,8 @@ function SurveyPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Site efficiency (%)</label>
-                <NumberInput 
-                  className="input-field" 
+                <NumberInput
+                  className="input-field"
                   value={project.efficiency || 65}
                   onChange={(value) => updateProject({ efficiency: parseFloat(value) || 65 })}
                 />
@@ -140,7 +197,7 @@ function SurveyPage() {
             </div>
 
             <div className="flex gap-4">
-              <button 
+              <button
                 onClick={handleUseGPS}
                 disabled={gpsStatus === 'getting'}
                 className="btn-secondary"
@@ -175,7 +232,7 @@ function SurveyPage() {
                 />
               </div>
             )}
-            
+
             <div className="flex flex-col sm:flex-row gap-4">
               <button className="btn-primary flex-1 sm:flex-none" onClick={handleSave}>
                 <span>💾</span>
@@ -217,7 +274,7 @@ function ModernFinancePage() {
   const [selectedScenario, setSelectedScenario] = useState<string>('');
   const [sensitivityMode, setSensitivityMode] = useState<'sale' | 'build' | null>(null);
   const [sensitivityValue, setSensitivityValue] = useState(0);
-  
+
   const finance = project.finance || {
     feesPct: '5',
     contPct: '10',
@@ -226,13 +283,13 @@ function ModernFinancePage() {
     targetProfitPct: '20',
     landAcqCosts: '25000',
   };
-  
+
   const results = computeTotals(project, finance, houseTypes);
-  
+
   // Sensitivity analysis
   const getSensitivityResults = () => {
     if (!sensitivityMode) return results;
-    
+
     const adjustedProject = { ...project };
     const adjustedHouseTypes = houseTypes.map(ht => {
       if (sensitivityMode === 'sale') {
@@ -242,28 +299,28 @@ function ModernFinancePage() {
       }
       return ht;
     });
-    
+
     return computeTotals(adjustedProject, finance, adjustedHouseTypes);
   };
-  
+
   const sensitivityResults = getSensitivityResults();
-  
+
   const updateFinance = (field: keyof typeof finance, value: string) => {
     updateProject({
       finance: { ...finance, [field]: value }
     });
   };
-  
+
   const handleDuplicate = () => {
     duplicateScenario();
     showToast('Scenario duplicated', 'success');
   };
-  
+
   const getViabilityStatus = () => {
     const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
     const actualProfitPct = sensitivityResults.actualProfitPct;
     const residual = sensitivityResults.residual;
-    
+
     if (actualProfitPct >= targetProfitNum && residual >= 0) {
       return { status: 'Viable', color: 'bg-green-500', textColor: 'text-green-400' };
     } else if (actualProfitPct >= (targetProfitNum - 10) && residual >= 0) {
@@ -272,9 +329,9 @@ function ModernFinancePage() {
       return { status: 'Unviable', color: 'bg-red-500', textColor: 'text-red-400' };
     }
   };
-  
+
   const viability = getViabilityStatus();
-  
+
   const getKPIColor = (isPositive: boolean) => {
     return isPositive ? 'text-green-400' : 'text-red-400';
   };
@@ -295,6 +352,7 @@ function ModernFinancePage() {
 
   return (
     <>
+      <TotalsBar />
       <div className="container py-8 space-y-8">
         <div className="card">
           <div className="card-header">
@@ -306,7 +364,7 @@ function ModernFinancePage() {
               <span className={`px-3 py-1 rounded-full text-sm font-medium text-white ${viability.color}`}>
                 {viability.status}
               </span>
-              <button 
+              <button
                 onClick={() => setShowAssumptions(true)}
                 className="btn-ghost text-sm"
               >
@@ -317,7 +375,7 @@ function ModernFinancePage() {
                 📋 Duplicate Scenario
               </button>
               {scenarios.length > 1 && (
-                <button 
+                <button
                   onClick={() => setShowCompare(true)}
                   className="btn-ghost text-sm"
                 >
@@ -327,29 +385,29 @@ function ModernFinancePage() {
             </div>
           </div>
           <div className="card-body space-y-6">
-            
+
             {/* Sensitivity Analysis */}
             <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
               <h3 className="font-semibold mb-4 text-white">Sensitivity Analysis</h3>
               <div className="flex gap-4 mb-4">
                 <div className="space-x-2">
                   <span className="text-sm text-slate-300">Sale Price:</span>
-                  <button 
+                  <button
                     onClick={() => handleSensitivityChange('sale', -5)}
                     className={`px-3 py-1 rounded text-sm transition-colors ${
-                      sensitivityMode === 'sale' && sensitivityValue === -5 
-                        ? 'bg-red-500 text-white' 
+                      sensitivityMode === 'sale' && sensitivityValue === -5
+                        ? 'bg-red-500 text-white'
                         : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
                     }`}
                   >
                     <Minus size={12} className="inline mr-1" />
                     5%
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleSensitivityChange('sale', 5)}
                     className={`px-3 py-1 rounded text-sm transition-colors ${
-                      sensitivityMode === 'sale' && sensitivityValue === 5 
-                        ? 'bg-green-500 text-white' 
+                      sensitivityMode === 'sale' && sensitivityValue === 5
+                        ? 'bg-green-500 text-white'
                         : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
                     }`}
                   >
@@ -357,25 +415,25 @@ function ModernFinancePage() {
                     5%
                   </button>
                 </div>
-                
+
                 <div className="space-x-2">
                   <span className="text-sm text-slate-300">Build Cost:</span>
-                  <button 
+                  <button
                     onClick={() => handleSensitivityChange('build', -5)}
                     className={`px-3 py-1 rounded text-sm transition-colors ${
-                      sensitivityMode === 'build' && sensitivityValue === -5 
-                        ? 'bg-green-500 text-white' 
+                      sensitivityMode === 'build' && sensitivityValue === -5
+                        ? 'bg-green-500 text-white'
                         : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
                     }`}
                   >
                     <Minus size={12} className="inline mr-1" />
                     5%
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleSensitivityChange('build', 5)}
                     className={`px-3 py-1 rounded text-sm transition-colors ${
-                      sensitivityMode === 'build' && sensitivityValue === 5 
-                        ? 'bg-red-500 text-white' 
+                      sensitivityMode === 'build' && sensitivityValue === 5
+                        ? 'bg-red-500 text-white'
                         : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
                     }`}
                   >
@@ -384,7 +442,7 @@ function ModernFinancePage() {
                   </button>
                 </div>
               </div>
-              
+
               {sensitivityMode && (
                 <div className="text-sm text-slate-300">
                   Showing {sensitivityValue > 0 ? '+' : ''}{sensitivityValue}% change to {sensitivityMode === 'sale' ? 'sale prices' : 'build costs'}
@@ -395,43 +453,43 @@ function ModernFinancePage() {
             <div className="grid md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Build cost £/m²</label>
-                <NumberInput 
-                  className="input-field" 
+                <NumberInput
+                  className="input-field"
                   value={project.buildCostPerSqm || 1650}
                   onChange={(value) => updateProject({ buildCostPerSqm: parseFloat(value) || 1650 })}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Fees %</label>
-                <NumberInput 
-                  className="input-field" 
+                <NumberInput
+                  className="input-field"
                   value={finance.feesPct}
                   onChange={(value) => updateFinance('feesPct', value)}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Contingency %</label>
-                <NumberInput 
-                  className="input-field" 
+                <NumberInput
+                  className="input-field"
                   value={finance.contPct}
                   onChange={(value) => updateFinance('contPct', value)}
                 />
               </div>
             </div>
-            
+
             <div className="grid md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Land acquisition costs (£)</label>
-                <NumberInput 
-                  className="input-field" 
+                <NumberInput
+                  className="input-field"
                   value={finance.landAcqCosts}
                   onChange={(value) => updateFinance('landAcqCosts', value)}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Finance rate %</label>
-                <NumberInput 
-                  className="input-field" 
+                <NumberInput
+                  className="input-field"
                   step="0.1"
                   value={finance.financeRatePct}
                   onChange={(value) => updateFinance('financeRatePct', value)}
@@ -439,14 +497,14 @@ function ModernFinancePage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Target profit %</label>
-                <NumberInput 
-                  className="input-field" 
+                <NumberInput
+                  className="input-field"
                   value={finance.targetProfitPct}
                   onChange={(value) => updateFinance('targetProfitPct', value)}
                 />
               </div>
             </div>
-            
+
             {/* Progress Bars */}
             <div className="grid md:grid-cols-2 gap-6">
               <div>
@@ -457,7 +515,7 @@ function ModernFinancePage() {
                   </span>
                 </div>
                 <div className="relative bg-slate-700 h-2 rounded">
-                  <div 
+                  <div
                     className={`h-full rounded transition-all duration-300 ${
                       isViableProfit ? 'bg-green-400' : 'bg-red-400'
                     }`}
@@ -465,7 +523,7 @@ function ModernFinancePage() {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-slate-300">Cost vs GDV</span>
@@ -474,16 +532,16 @@ function ModernFinancePage() {
                   </span>
                 </div>
                 <div className="relative bg-slate-700 h-2 rounded">
-                  <div 
+                  <div
                     className="bg-amber-400 h-full rounded transition-all duration-300"
-                    style={{ 
-                      width: `${Math.min((sensitivityResults.totalCosts / sensitivityResults.gdv * 100), 100)}%` 
+                    style={{
+                      width: `${Math.min((sensitivityResults.totalCosts / sensitivityResults.gdv * 100), 100)}%`
                     }}
                   />
                 </div>
               </div>
             </div>
-            
+
             {/* KPI Cards */}
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
@@ -492,21 +550,21 @@ function ModernFinancePage() {
                   {formatCurrency(sensitivityResults.gdv)}
                 </div>
               </div>
-              
+
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
                 <div className="text-sm text-slate-400 mb-2">Build Cost</div>
                 <div className="text-xl font-bold text-amber-400">
                   {formatCurrency(sensitivityResults.build)}
                 </div>
               </div>
-              
+
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
                 <div className="text-sm text-slate-400 mb-2">Total Cost</div>
                 <div className="text-xl font-bold text-slate-300">
                   {formatCurrency(sensitivityResults.totalCosts)}
                 </div>
               </div>
-              
+
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
                 <div className="text-sm text-slate-400 mb-2">Profit %</div>
                 <div className={`text-xl font-bold ${viability.textColor}`}>
@@ -514,10 +572,10 @@ function ModernFinancePage() {
                 </div>
               </div>
             </div>
-            
+
             <div className={`mt-8 p-6 rounded-2xl border ${
-              sensitivityResults.residual >= 0 ? 
-                'bg-green-500/10 border-green-500/20' : 
+              sensitivityResults.residual >= 0 ?
+                'bg-green-500/10 border-green-500/20' :
                 'bg-red-500/10 border-red-500/20'
             }`}>
               <div className="text-slate-300 mb-3 font-medium">Residual Land Value</div>
@@ -534,12 +592,12 @@ function ModernFinancePage() {
           </div>
         </div>
       </div>
-      
-      <AssumptionsDrawer 
-        isOpen={showAssumptions} 
-        onClose={() => setShowAssumptions(false)} 
+
+      <AssumptionsDrawer
+        isOpen={showAssumptions}
+        onClose={() => setShowAssumptions(false)}
       />
-      
+
       {showCompare && scenarios.length > 1 && (
         <div className="fixed inset-0 z-40 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-slate-900 rounded-xl p-6 max-w-md w-full">
@@ -550,8 +608,8 @@ function ModernFinancePage() {
                   key={scenario.id}
                   onClick={() => setSelectedScenario(scenario.id)}
                   className={`w-full text-left p-3 rounded-lg transition-colors ${
-                    selectedScenario === scenario.id 
-                      ? 'bg-brand-500 text-white' 
+                    selectedScenario === scenario.id
+                      ? 'bg-brand-500 text-white'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                   }`}
                 >
@@ -560,7 +618,7 @@ function ModernFinancePage() {
               ))}
             </div>
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={() => {
                   if (selectedScenario) {
                     const scenario = scenarios.find(s => s.id === selectedScenario);
@@ -581,7 +639,7 @@ function ModernFinancePage() {
           </div>
         </div>
       )}
-      
+
       <Toast {...toast} onClose={hideToast} />
     </>
   );
@@ -604,7 +662,7 @@ function OfferPage() {
     const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
     const actualProfitPct = results.actualProfitPct;
     const residual = results.residual;
-    
+
     if (actualProfitPct >= targetProfitNum && residual >= 0) {
       return { status: 'Viable', color: 'bg-green-500', textColor: 'text-green-400' };
     } else if (actualProfitPct >= (targetProfitNum - 10) && residual >= 0) {
@@ -617,8 +675,8 @@ function OfferPage() {
   const viability = getViabilityBadge();
 
   const hasRequiredData = () => {
-    return project.name && 
-           unitMix.length > 0 && 
+    return project.name &&
+           unitMix.length > 0 &&
            parseFloat(finance.targetProfitPct) > 0 &&
            parseFloat(finance.feesPct) > 0;
   };
@@ -639,7 +697,7 @@ function OfferPage() {
           <p className="text-slate-300 leading-relaxed">
             Preview & export your one-page PDF appraisal ready for lenders and agents.
           </p>
-          
+
           {!hasRequiredData() && (
             <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
               <div className="text-amber-400 font-medium mb-2">Missing Required Data</div>
@@ -687,7 +745,7 @@ function OfferPage() {
                       if (!houseType) return null;
                       const totalArea = houseType.floorAreaSqm * mix.count;
                       const totalValue = totalArea * houseType.saleValuePerSqm;
-                      
+
                       return (
                         <tr key={mix.houseTypeId} className="border-b border-slate-700">
                           <td className="py-2 text-white">{houseType.name}</td>
@@ -724,7 +782,7 @@ function OfferPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
-            <button 
+            <button
               className={`btn-primary flex-1 sm:flex-none ${!hasRequiredData() ? 'opacity-50 cursor-not-allowed' : ''}`}
               disabled={!hasRequiredData()}
             >
@@ -746,7 +804,7 @@ function ModernHomePage() {
   const { project, scenarios, houseTypes } = useStore();
   const finance = project.finance || { targetProfitPct: '20', feesPct: '5', contPct: '10', financeRatePct: '8.5', financeMonths: '18', landAcqCosts: '25000' };
   const results = computeTotals(project, finance, houseTypes);
-  
+
   const getViabilityStatus = () => {
     const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
     if (results.actualProfitPct >= targetProfitNum && results.residual >= 0) {
@@ -757,9 +815,9 @@ function ModernHomePage() {
       return { status: 'Unviable', color: 'bg-red-500/20 text-red-400' };
     }
   };
-  
+
   const viability = getViabilityStatus();
-  
+
   return (
     <div className="container py-8 space-y-8">
       <div className="card">
@@ -774,7 +832,7 @@ function ModernHomePage() {
           <p className="text-slate-300 leading-relaxed">
             Quick feasibility assessment for UK property developers (2-15 units). Draw your site, test a unit mix, and generate a lender-ready PDF appraisal.
           </p>
-          
+
           {project.name && (
             <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
               <div className="text-sm text-slate-400 mb-2">Current Project</div>
@@ -784,7 +842,7 @@ function ModernHomePage() {
               </div>
             </div>
           )}
-          
+
           <div className="flex flex-col sm:flex-row gap-4">
             <a href="/survey" className="btn-primary flex-1 sm:flex-none">
               <span>📍</span>
@@ -797,7 +855,7 @@ function ModernHomePage() {
           </div>
         </div>
       </div>
-      
+
       <div className="grid md:grid-cols-2 gap-6">
         <div className="card">
           <div className="card-body">
