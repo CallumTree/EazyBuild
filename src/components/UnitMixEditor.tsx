@@ -1,19 +1,66 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useViability } from '../store/viability';
+import { CustomUnitTypeModal } from './CustomUnitTypeModal';
 
 export function UnitMixEditor() {
-  const { unitTypes, updateUnitCount } = useViability();
+  const { unitTypes, updateUnitCount, addCustomUnitType, loadCustomUnitTypes } = useViability();
   const [selectedTypeId, setSelectedTypeId] = useState<string>('');
+  const [showCustomModal, setShowCustomModal] = useState(false);
 
   const totalUnits = unitTypes.reduce((sum, type) => sum + type.count, 0);
   const activeTypes = unitTypes.filter(type => type.count > 0);
   const availableTypes = unitTypes.filter(type => type.count === 0);
 
+  useEffect(() => {
+    loadCustomUnitTypes();
+  }, [loadCustomUnitTypes]);
+
   const handleAddType = () => {
-    if (selectedTypeId) {
+    if (selectedTypeId === 'custom') {
+      setShowCustomModal(true);
+      setSelectedTypeId('');
+    } else if (selectedTypeId) {
       updateUnitCount(selectedTypeId, 1);
       setSelectedTypeId('');
+    }
+  };
+
+  const handleCustomUnitAdd = (
+    unitTypeData: {
+      label: string;
+      category: 'house' | 'bungalow' | 'apartment';
+      areaM2: number;
+      floors: number;
+      buildCostPerM2: number;
+      salePricePerUnit: number;
+    },
+    saveToPresets: boolean
+  ) => {
+    const newUnitType = addCustomUnitType({
+      ...unitTypeData,
+      isCustom: true,
+    });
+
+    // Add to mix immediately
+    updateUnitCount(newUnitType.id, 1);
+
+    // Save to presets if requested
+    if (saveToPresets) {
+      try {
+        const existing = localStorage.getItem('eazybuild:customUnitTypes');
+        const customTypes = existing ? JSON.parse(existing) : [];
+        const unitTypeToSave = {
+          ...unitTypeData,
+          id: crypto.randomUUID(),
+          count: 0,
+          isCustom: true,
+        };
+        customTypes.push(unitTypeToSave);
+        localStorage.setItem('eazybuild:customUnitTypes', JSON.stringify(customTypes));
+      } catch (error) {
+        console.warn('Failed to save custom unit type:', error);
+      }
     }
   };
 
@@ -43,15 +90,17 @@ export function UnitMixEditor() {
             {availableTypes.map((type) => (
               <option key={type.id} value={type.id}>
                 {type.label} - {type.areaM2}m² ({type.floors === 1 ? 'Bungalow' : 'House'})
+                {type.isCustom ? ' (Custom)' : ''}
               </option>
             ))}
+            <option value="custom">Custom...</option>
           </select>
           <button
             onClick={handleAddType}
             disabled={!selectedTypeId}
             className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Add
+            {selectedTypeId === 'custom' ? 'Custom...' : 'Add'}
           </button>
         </div>
       </div>
@@ -139,6 +188,12 @@ export function UnitMixEditor() {
           </div>
         </div>
       )}
+
+      <CustomUnitTypeModal
+        isOpen={showCustomModal}
+        onClose={() => setShowCustomModal(false)}
+        onAddToMix={handleCustomUnitAdd}
+      />
     </div>
   );
 }

@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 
 export type UnitType = {
@@ -10,6 +9,8 @@ export type UnitType = {
   salePricePerM2?: number;
   count: number;
   floors: number;           // 1 for bungalow, 2 for houses
+  isCustom?: boolean;
+  category?: 'house' | 'bungalow' | 'apartment';
 };
 
 export type LatLngLiteral = { lat: number; lng: number };
@@ -31,6 +32,8 @@ type Actions = {
   updateUnitCount: (id: string, count: number) => void;
   toggleFootprints: (on?: boolean) => void;
   setFootprintScale: (s: number) => void;
+  addCustomUnitType: (unitType: Omit<UnitType, 'id' | 'count'>) => UnitType;
+  loadCustomUnitTypes: () => void;
 };
 
 const defaults: UnitType[] = [
@@ -90,11 +93,13 @@ const defaults: UnitType[] = [
   },
 ];
 
-export const useViability = create<State & Actions>((set) => ({
+const defaultUnitTypes = defaults; // Keep original name for backward compatibility
+
+export const useViability = create<State & Actions>((set, get) => ({
   polygonAreaM2: 0,
   polygonCoords: [],
   infraAllowancePct: 0.25,
-  unitTypes: defaults,
+  unitTypes: defaultUnitTypes,
   showFootprints: true,
   footprintScale: 1.0,
 
@@ -102,9 +107,46 @@ export const useViability = create<State & Actions>((set) => ({
   setPolygon: (pts) => set({ polygonCoords: pts }),
   setInfraAllowancePct: (pct) => set({ infraAllowancePct: Math.max(0, Math.min(0.9, pct)) }),
   setUnitTypes: (u) => set({ unitTypes: u }),
-  updateUnitCount: (id, count) => set((s) => ({
-    unitTypes: s.unitTypes.map(x => x.id === id ? { ...x, count: Math.max(0, Math.round(count)) } : x)
-  })),
+  updateUnitCount: (unitTypeId: string, count: number) => {
+    set((state) => ({
+      unitTypes: state.unitTypes.map((unit) =>
+        unit.id === unitTypeId ? { ...unit, count: Math.max(0, Math.round(count)) } : unit
+      ),
+    }));
+  },
   toggleFootprints: (on) => set((s) => ({ showFootprints: on ?? !s.showFootprints })),
   setFootprintScale: (s) => set({ footprintScale: Math.max(0.6, Math.min(1.6, s)) }),
+
+  addCustomUnitType: (unitType: Omit<UnitType, 'id' | 'count'>) => {
+    const newUnitType: UnitType = {
+      ...unitType,
+      id: crypto.randomUUID(),
+      count: 0,
+      isCustom: true,
+    };
+
+    set((state) => ({
+      unitTypes: [...state.unitTypes, newUnitType],
+    }));
+
+    // Return the new unit type so it can be used immediately
+    return newUnitType;
+  },
+
+  loadCustomUnitTypes: () => {
+    try {
+      const saved = localStorage.getItem('eazybuild:customUnitTypes');
+      if (saved) {
+        const customTypes: UnitType[] = JSON.parse(saved);
+        set((state) => ({
+          unitTypes: [
+            ...state.unitTypes.filter(unit => !unit.isCustom),
+            ...customTypes.map(unit => ({ ...unit, count: 0 }))
+          ],
+        }));
+      }
+    } catch (error) {
+      console.warn('Failed to load custom unit types:', error);
+    }
+  },
 }));
