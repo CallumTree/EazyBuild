@@ -55,10 +55,10 @@ export function computeTotals(project: Project, inputs: FinanceInputs, houseType
       }
     });
   } else {
-    // Fallback to legacy calculations
+    // Fallback to legacy calculations - but only if we have meaningful data
     totalUnits = project.estimatedUnits || 0;
     gdv = totalUnits * (project.gdvPerUnit || 0);
-    build = totalUnits * (project.floorAreaPerUnit || 0) * parseNumber(project.buildCostPerSqm, 1650);
+    build = totalUnits * (project.floorAreaPerUnit || 0) * parseNumber(project.buildCostPerSqm, 0);
   }
 
   // Parse inputs safely

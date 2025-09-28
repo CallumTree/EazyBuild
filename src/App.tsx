@@ -30,17 +30,38 @@ const TotalsBar = () => {
   };
   const results = computeTotals(project, finance, houseTypes);
 
-  const getViabilityStatus = () => {
-    const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
-    const actualProfitPct = results.actualProfitPct;
-    const residual = results.residual;
+  // Check if we have any meaningful data
+  const hasData = (project.unitMix && project.unitMix.length > 0 && project.unitMix.some(mix => mix.count > 0)) ||
+                  (project.siteArea && project.siteArea > 0);
 
-    if (actualProfitPct >= targetProfitNum && residual >= 0) {
-      return { status: 'Viable', color: 'bg-green-500', textColor: 'text-green-400' };
-    } else if (actualProfitPct >= (targetProfitNum - 10) && residual >= 0) {
-      return { status: 'At Risk', color: 'bg-amber-500', textColor: 'text-amber-400' };
+  const getViabilityStatus = () => {
+    if (!hasData) {
+      return {
+        status: 'No Data',
+        color: 'bg-slate-500',
+        textColor: 'text-slate-400'
+      };
+    }
+
+    const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
+    if (results.actualProfitPct >= targetProfitNum && results.residual >= 0) {
+      return {
+        status: 'Viable',
+        color: 'bg-green-500',
+        textColor: 'text-green-400'
+      };
+    } else if (results.actualProfitPct >= (targetProfitNum - 10) && results.residual >= 0) {
+      return {
+        status: 'At Risk',
+        color: 'bg-amber-500',
+        textColor: 'text-amber-400'
+      };
     } else {
-      return { status: 'Unviable', color: 'bg-red-500', textColor: 'text-red-400' };
+      return {
+        status: 'Unviable',
+        color: 'bg-red-500',
+        textColor: 'text-red-400'
+      };
     }
   };
 
@@ -76,7 +97,7 @@ const TotalsBar = () => {
 function SurveyPage() {
   const { project, updateProject } = useStore();
   const { toast, showToast, hideToast } = useToast();
-  const [siteArea, setSiteArea] = useState(0);
+  const [siteArea, setSiteArea] = useState(project.siteArea || 0); // Initialize with stored value or 0
   const [showMap, setShowMap] = useState(false);
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'getting' | 'ok' | 'error'>('idle');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -196,19 +217,42 @@ function SurveyPage() {
               </div>
             </div>
 
-            <div className="flex gap-4">
-              <button
-                onClick={handleUseGPS}
-                disabled={gpsStatus === 'getting'}
-                className="btn-secondary"
-              >
-                📍 {getGPSButtonText()}
-              </button>
-              {window.self !== window.top && gpsStatus === 'error' && (
-                <div className="text-sm text-amber-400 flex items-center">
-                  Your browser blocks GPS in this preview. Open in a new tab and try again.
-                </div>
-              )}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Manual Site Area (m²)
+                </label>
+                <NumberInput
+                  value={siteArea.toString()}
+                  onChange={(value) => {
+                    const numValue = parseFloat(value) || 0;
+                    setSiteArea(numValue);
+                    updateProject({ siteArea: numValue });
+                  }}
+                  className="input w-full"
+                  placeholder="Enter site area in square meters"
+                />
+                {siteArea > 0 && (
+                  <p className="text-sm text-slate-400 mt-1">
+                    {formatArea(siteArea)}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <button
+                  onClick={handleUseGPS}
+                  disabled={gpsStatus === 'getting'}
+                  className="btn-secondary"
+                >
+                  📍 {getGPSButtonText()}
+                </button>
+                {window.self !== window.top && gpsStatus === 'error' && (
+                  <div className="text-sm text-amber-400 flex items-center">
+                    Your browser blocks GPS in this preview. Open in a new tab and try again.
+                  </div>
+                )}
+              </div>
             </div>
 
             {siteArea > 0 && (
@@ -251,6 +295,21 @@ function SurveyPage() {
 }
 
 function LayoutPage() {
+  const { project, updateProject, houseTypes } = useStore();
+
+  // Calculate estimated units based on site area and efficiency
+  const siteArea = project.siteArea || 0;
+  const efficiency = project.efficiency || 65;
+  const avgUnitFootprint = 150; // Average footprint per unit including gardens, roads etc
+  const estimatedUnits = siteArea > 0 ? Math.floor((siteArea * efficiency / 100) / avgUnitFootprint) : 0;
+
+  // Update project with estimated units if it's not already set or needs updating
+  React.useEffect(() => {
+    if (project.estimatedUnits !== estimatedUnits) {
+      updateProject({ estimatedUnits });
+    }
+  }, [estimatedUnits, updateProject, project.estimatedUnits]);
+
   return (
     <div className="container py-8 space-y-8">
       <div className="card">
@@ -258,7 +317,30 @@ function LayoutPage() {
           <span className="text-2xl">🏠</span>
           <h2 className="card-title">Unit Mix & Layout</h2>
         </div>
-        <div className="card-body">
+        <div className="card-body space-y-6">
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
+              <div className="text-sm text-slate-400 mb-2">Site Area</div>
+              <div className="text-xl font-bold text-white">
+                {siteArea > 0 ? formatArea(siteArea) : 'Not set (go to Survey tab)'}
+              </div>
+            </div>
+            <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
+              <div className="text-sm text-slate-400 mb-2">Estimated Units</div>
+              <div className="text-xl font-bold text-brand-400">
+                {siteArea > 0 ? estimatedUnits : 0}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                Based on {efficiency}% efficiency
+              </div>
+            </div>
+            <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
+              <div className="text-sm text-slate-400 mb-2">GDV</div>
+              <div className="text-xl font-bold text-brand-400">
+                {formatCurrency(computeTotals(project, project.finance || {}, houseTypes).gdv)}
+              </div>
+            </div>
+          </div>
           <UnitMixEditor />
         </div>
       </div>
@@ -275,13 +357,14 @@ function ModernFinancePage() {
   const [sensitivityMode, setSensitivityMode] = useState<'sale' | 'build' | null>(null);
   const [sensitivityValue, setSensitivityValue] = useState(0);
 
+  // Initialize finance with default zero values if not present
   const finance = project.finance || {
-    feesPct: '5',
-    contPct: '10',
-    financeRatePct: '8.5',
-    financeMonths: '18',
-    targetProfitPct: '20',
-    landAcqCosts: '25000',
+    feesPct: '0', // Default to 0
+    contPct: '0', // Default to 0
+    financeRatePct: '0', // Default to 0
+    financeMonths: '0', // Default to 0
+    targetProfitPct: '0', // Default to 0
+    landAcqCosts: '0', // Default to 0
   };
 
   const results = computeTotals(project, finance, houseTypes);
@@ -317,7 +400,7 @@ function ModernFinancePage() {
   };
 
   const getViabilityStatus = () => {
-    const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
+    const targetProfitNum = parseFloat(finance.targetProfitPct) || 0; // Default to 0
     const actualProfitPct = sensitivityResults.actualProfitPct;
     const residual = sensitivityResults.residual;
 
@@ -336,7 +419,7 @@ function ModernFinancePage() {
     return isPositive ? 'text-green-400' : 'text-red-400';
   };
 
-  const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
+  const targetProfitNum = parseFloat(finance.targetProfitPct) || 0; // Default to 0
   const isViableProfit = sensitivityResults.actualProfitPct >= targetProfitNum && sensitivityResults.residual >= 0;
 
   const handleSensitivityChange = (mode: 'sale' | 'build', delta: number) => {
@@ -648,18 +731,18 @@ function ModernFinancePage() {
 function OfferPage() {
   const { project, houseTypes } = useStore();
   const finance = project.finance || {
-    feesPct: '5',
-    contPct: '10',
-    financeRatePct: '8.5',
-    financeMonths: '18',
-    targetProfitPct: '20',
-    landAcqCosts: '25000',
+    feesPct: '0', // Default to 0
+    contPct: '0', // Default to 0
+    financeRatePct: '0', // Default to 0
+    financeMonths: '0', // Default to 0
+    targetProfitPct: '0', // Default to 0
+    landAcqCosts: '0', // Default to 0
   };
   const results = computeTotals(project, finance, houseTypes);
   const unitMix = project.unitMix || [];
 
   const getViabilityBadge = () => {
-    const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
+    const targetProfitNum = parseFloat(finance.targetProfitPct) || 0; // Default to 0
     const actualProfitPct = results.actualProfitPct;
     const residual = results.residual;
 
@@ -802,11 +885,11 @@ function OfferPage() {
 
 function ModernHomePage() {
   const { project, scenarios, houseTypes } = useStore();
-  const finance = project.finance || { targetProfitPct: '20', feesPct: '5', contPct: '10', financeRatePct: '8.5', financeMonths: '18', landAcqCosts: '25000' };
+  const finance = project.finance || { targetProfitPct: '0', feesPct: '0', contPct: '0', financeRatePct: '0', financeMonths: '0', landAcqCosts: '0' };
   const results = computeTotals(project, finance, houseTypes);
 
   const getViabilityStatus = () => {
-    const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
+    const targetProfitNum = parseFloat(finance.targetProfitPct) || 0;
     if (results.actualProfitPct >= targetProfitNum && results.residual >= 0) {
       return { status: 'Viable', color: 'bg-green-500/20 text-green-400' };
     } else if (results.actualProfitPct >= (targetProfitNum - 10) && results.residual >= 0) {
