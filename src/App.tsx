@@ -211,9 +211,8 @@ function SurveyPage() {
                 <label className="block text-sm font-medium text-slate-300 mb-2">Site efficiency (%)</label>
                 <NumberInput
                   className="input-field"
-                  value={project.efficiency || 0}
-                  onChange={(value) => updateProject({ efficiency: parseFloat(value) || 0 })}
-                  placeholder="e.g. 65"
+                  value={project.efficiency || 65}
+                  onChange={(value) => updateProject({ efficiency: parseFloat(value) || 65 })}
                 />
               </div>
             </div>
@@ -300,9 +299,9 @@ function LayoutPage() {
 
   // Calculate estimated units based on site area and efficiency
   const siteArea = project.siteArea || 0;
-  const efficiency = project.efficiency || 0;
+  const efficiency = project.efficiency || 65;
   const avgUnitFootprint = 150; // Average footprint per unit including gardens, roads etc
-  const estimatedUnits = (siteArea > 0 && efficiency > 0) ? Math.floor((siteArea * efficiency / 100) / avgUnitFootprint) : 0;
+  const estimatedUnits = siteArea > 0 ? Math.floor((siteArea * efficiency / 100) / avgUnitFootprint) : 0;
 
   // Update project with estimated units if it's not already set or needs updating
   React.useEffect(() => {
@@ -332,7 +331,7 @@ function LayoutPage() {
                 {siteArea > 0 ? estimatedUnits : 0}
               </div>
               <div className="text-xs text-slate-500 mt-1">
-                {efficiency > 0 ? `Based on ${efficiency}% efficiency` : 'Set efficiency in Survey tab'}
+                Based on {efficiency}% efficiency
               </div>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
@@ -989,19 +988,33 @@ function ModernHomePage() {
 }
 
 function Shell() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const renderPage = () => {
+    switch (location.pathname) {
+      case '/':
+        return <ModernHomePage />;
+      case '/survey':
+        return <SurveyPage />;
+      case '/layout':
+        return <LayoutPage />;
+      case '/finance':
+        return <ModernFinancePage />;
+      case '/offer':
+        return <OfferPage />;
+      default:
+        return <ModernHomePage />;
+    }
+  };
+
   return (
     <div className="app-shell">
       <Topbar />
       <div className="flex h-screen pt-14">
         <Sidebar />
         <div className="flex-1 p-6">
-          <Routes>
-            <Route path="/" element={<ModernHomePage />} />
-            <Route path="/survey" element={<SurveyPage />} />
-            <Route path="/layout" element={<LayoutPage />} />
-            <Route path="/finance" element={<ModernFinancePage />} />
-            <Route path="/offer" element={<OfferPage />} />
-          </Routes>
+          {renderPage()}
         </div>
       </div>
     </div>
@@ -1012,7 +1025,9 @@ export default function App() {
   return (
     <StoreProvider>
       <BrowserRouter>
-        <Shell />
+        <Routes>
+          <Route path="/*" element={<Shell />} />
+        </Routes>
       </BrowserRouter>
     </StoreProvider>
   );
