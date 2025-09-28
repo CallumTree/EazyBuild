@@ -1,33 +1,60 @@
 
+
 import type { UnitType } from '../store/viability';
-
-export function netDevelopableArea(polygonAreaM2: number, infraAllowancePct: number) {
-  return polygonAreaM2 * (1 - clamp(infraAllowancePct, 0, 0.9));
-}
-
-export function totalGIA(unitTypes: UnitType[]) {
-  return unitTypes.reduce((sum, u) => sum + u.areaM2 * u.count, 0);
-}
-
-export function totalBuildCost(unitTypes: UnitType[]) {
-  return unitTypes.reduce((sum, u) => sum + (u.areaM2 * u.buildCostPerM2) * u.count, 0);
-}
-
-export function totalSalesValue(unitTypes: UnitType[]) {
-  return unitTypes.reduce((sum, u) => {
-    const sales = u.salePricePerUnit ?? (u.salePricePerM2 ? u.salePricePerM2 * u.areaM2 : 0);
-    return sum + sales * u.count;
-  }, 0);
-}
-
-export function margins(unitTypes: UnitType[]) {
-  const build = totalBuildCost(unitTypes);
-  const sales = totalSalesValue(unitTypes);
-  const profit = sales - build;
-  const marginPct = sales > 0 ? profit / sales : 0;
-  return { build, sales, profit, marginPct };
-}
+import type { HouseType, UnitMix } from '../store';
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
+}
+
+export function netDevelopableArea(siteAreaM2: number, infraAllowancePct: number) {
+  return siteAreaM2 * (1 - clamp(infraAllowancePct / 100, 0, 0.9));
+}
+
+export function selectedUnits(unitMix: UnitMix[]) {
+  return unitMix.reduce((sum, mix) => sum + mix.count, 0);
+}
+
+export function totalGIA(unitMix: UnitMix[], houseTypes: HouseType[]) {
+  return unitMix.reduce((sum, mix) => {
+    const houseType = houseTypes.find(ht => ht.id === mix.houseTypeId);
+    return sum + (houseType ? houseType.floorAreaSqm * mix.count : 0);
+  }, 0);
+}
+
+export function totalBuildCost(unitMix: UnitMix[], houseTypes: HouseType[]) {
+  return unitMix.reduce((sum, mix) => {
+    const houseType = houseTypes.find(ht => ht.id === mix.houseTypeId);
+    return sum + (houseType ? houseType.floorAreaSqm * houseType.buildCostPerSqm * mix.count : 0);
+  }, 0);
+}
+
+export function totalSalesValue(unitMix: UnitMix[], houseTypes: HouseType[]) {
+  return unitMix.reduce((sum, mix) => {
+    const houseType = houseTypes.find(ht => ht.id === mix.houseTypeId);
+    return sum + (houseType ? houseType.floorAreaSqm * houseType.saleValuePerSqm * mix.count : 0);
+  }, 0);
+}
+
+export function margins(unitMix: UnitMix[], houseTypes: HouseType[]) {
+  const build = totalBuildCost(unitMix, houseTypes);
+  const sales = totalSalesValue(unitMix, houseTypes);
+  const profit = sales - build;
+  const marginPct = sales > 0 ? (profit / sales) * 100 : 0;
+  return { build, sales, profit, marginPct };
+}
+
+export function formatCurrency(amount: number): string {
+  if (amount === 0) return '£0';
+  if (amount >= 1000000) {
+    return `£${(amount / 1000000).toFixed(1)}M`;
+  }
+  if (amount >= 1000) {
+    return `£${(amount / 1000).toFixed(0)}k`;
+  }
+  return `£${amount.toFixed(0)}`;
+}
+
+export function formatArea(areaM2: number): string {
+  return `${Math.round(areaM2).toLocaleString()}m²`;
 }

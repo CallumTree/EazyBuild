@@ -15,19 +15,24 @@ import { computeTotals, formatCurrency } from "./finance";
 import MapShell from "./components/MapShell";
 import "./index.css";
 import { useViability } from './store/viability';
-import { totalGIA, totalBuildCost, totalSalesValue, margins } from './lib/calc';
+import { netDevelopableArea, totalGIA, totalBuildCost, totalSalesValue, margins, clamp } from './lib/calc'; // Import new helpers
 
 // Placeholder for TotalsBar component (assuming it's defined elsewhere or will be created)
 const TotalsBar = () => {
   const { project, houseTypes } = useStore();
   const finance = project.finance || {
-    feesPct: '5',
-    contPct: '10',
-    financeRatePct: '8.5',
-    financeMonths: '18',
-    targetProfitPct: '20',
-    landAcqCosts: '25000',
+    feesPct: '0', // Default to 0
+    contPct: '0', // Default to 0
+    financeRatePct: '0', // Default to 0
+    financeMonths: '0', // Default to 0
+    targetProfitPct: '0', // Default to 0
+    landAcqCosts: '0', // Default to 0
   };
+  const unitMix = project.unitMix || [];
+  const gdv = totalSalesValue(unitMix, houseTypes);
+  const buildCost = totalBuildCost(unitMix, houseTypes);
+  const { marginPct } = margins(unitMix, houseTypes);
+
   const results = computeTotals(project, finance, houseTypes);
 
   // Check if we have any meaningful data
@@ -43,7 +48,7 @@ const TotalsBar = () => {
       };
     }
 
-    const targetProfitNum = parseFloat(finance.targetProfitPct) || 20;
+    const targetProfitNum = parseFloat(finance.targetProfitPct) || 0; // Default to 0
     if (results.actualProfitPct >= targetProfitNum && results.residual >= 0) {
       return {
         status: 'Viable',
@@ -296,19 +301,28 @@ function SurveyPage() {
 
 function LayoutPage() {
   const { project, updateProject, houseTypes } = useStore();
-
-  // Calculate estimated units based on site area and efficiency
   const siteArea = project.siteArea || 0;
-  const efficiency = project.efficiency || 65;
-  const avgUnitFootprint = 150; // Average footprint per unit including gardens, roads etc
-  const estimatedUnits = siteArea > 0 ? Math.floor((siteArea * efficiency / 100) / avgUnitFootprint) : 0;
+  const densityUnitsPerHa = project.densityUnitsPerHa || 30; // Default to 30
 
-  // Update project with estimated units if it's not already set or needs updating
+  // Calculate net developable area
+  const infraAllowancePct = project.infraAllowancePct || 0; // Default to 0
+  const netDevelopableAreaM2 = netDevelopableArea(siteArea, infraAllowancePct);
+
+  // Calculate estimated units based on net developable area and density
+  const estimatedUnits = siteArea > 0 ? Math.floor(netDevelopableAreaM2 / 10000 * densityUnitsPerHa) : 0;
+
+  // Update project with estimated units and density if they change or are not set
   React.useEffect(() => {
+    if (project.densityUnitsPerHa !== densityUnitsPerHa) {
+      updateProject({ densityUnitsPerHa });
+    }
     if (project.estimatedUnits !== estimatedUnits) {
       updateProject({ estimatedUnits });
     }
-  }, [estimatedUnits, updateProject, project.estimatedUnits]);
+  }, [densityUnitsPerHa, estimatedUnits, updateProject, project.estimatedUnits, project.densityUnitsPerHa]);
+
+  // Calculate selected units from unit mix
+  const selectedUnits = (project.unitMix || []).reduce((sum, mix) => sum + (mix.count || 0), 0);
 
   return (
     <div className="container py-8 space-y-8">
@@ -318,29 +332,51 @@ function LayoutPage() {
           <h2 className="card-title">Unit Mix & Layout</h2>
         </div>
         <div className="card-body space-y-6">
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-4 gap-6">
             <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
               <div className="text-sm text-slate-400 mb-2">Site Area</div>
               <div className="text-xl font-bold text-white">
-                {siteArea > 0 ? formatArea(siteArea) : 'Not set (go to Survey tab)'}
+                {siteArea > 0 ? `${siteArea.toLocaleString()} m²` : 'Not set (go to Survey tab)'}
               </div>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
-              <div className="text-sm text-slate-400 mb-2">Estimated Units</div>
+              <div className="text-sm text-slate-400 mb-2">Net Developable Area</div>
               <div className="text-xl font-bold text-brand-400">
-                {siteArea > 0 ? estimatedUnits : 0}
+                {netDevelopableAreaM2.toLocaleString()} m²
+              </div>
+            </div>
+            <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
+              <div className="text-sm text-slate-400 mb-2">Estimated Units (Capacity)</div>
+              <div className="text-xl font-bold text-brand-400">
+                {estimatedUnits}
               </div>
               <div className="text-xs text-slate-500 mt-1">
-                Based on {efficiency}% efficiency
+                Based on {densityUnitsPerHa} units/ha
               </div>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
-              <div className="text-sm text-slate-400 mb-2">GDV</div>
+              <div className="text-sm text-slate-400 mb-2">Selected Units</div>
               <div className="text-xl font-bold text-brand-400">
-                {formatCurrency(computeTotals(project, project.finance || {}, houseTypes).gdv)}
+                {selectedUnits}
               </div>
             </div>
           </div>
+
+          {/* Density Control */}
+          <div className="flex items-center gap-4">
+            <label className="text-sm text-slate-300">Density (units/ha):</label>
+            <NumberInput
+              value={densityUnitsPerHa.toString()}
+              onChange={(value) => {
+                const numValue = parseFloat(value) || 0;
+                updateProject({ densityUnitsPerHa: Math.max(10, Math.min(60, numValue)) }); // Clamp between 10 and 60
+              }}
+              className="input w-24"
+              min={10}
+              max={60}
+            />
+          </div>
+
           <UnitMixEditor />
         </div>
       </div>
@@ -366,6 +402,16 @@ function ModernFinancePage() {
     targetProfitPct: '0', // Default to 0
     landAcqCosts: '0', // Default to 0
   };
+
+  const unitMix = project.unitMix || [];
+  const gdv = totalSalesValue(unitMix, houseTypes);
+  const buildCost = totalBuildCost(unitMix, houseTypes);
+  const { marginPct } = margins(unitMix, houseTypes);
+
+  // Calculate net developable area for finance calculations
+  const siteArea = project.siteArea || 0;
+  const infraAllowancePct = project.infraAllowancePct || 0;
+  const netDevelopableAreaM2 = netDevelopableArea(siteArea, infraAllowancePct);
 
   const results = computeTotals(project, finance, houseTypes);
 
@@ -415,7 +461,8 @@ function ModernFinancePage() {
 
   const viability = getViabilityStatus();
 
-  const getKPIColor = (isPositive: boolean) => {
+  const getKPIColor = (value: number, isPositive: boolean) => {
+    if (value === 0) return 'text-slate-400'; // Handle zero case
     return isPositive ? 'text-green-400' : 'text-red-400';
   };
 
@@ -431,6 +478,25 @@ function ModernFinancePage() {
       setSensitivityMode(mode);
       setSensitivityValue(delta);
     }
+  };
+
+  const handleFinanceInputChange = (field: keyof typeof finance, value: string) => {
+    updateFinance(field, value);
+  };
+
+  // Handle cases where sales or counts are zero to avoid NaN/Infinity
+  const displayValue = (value: number) => {
+    if (value === 0 || !isFinite(value)) {
+      return '0';
+    }
+    return formatCurrency(value);
+  };
+
+  const displayPercentage = (value: number) => {
+    if (value === 0 || !isFinite(value)) {
+      return '0%';
+    }
+    return `${value.toFixed(1)}%`;
   };
 
   return (
@@ -547,7 +613,7 @@ function ModernFinancePage() {
                 <NumberInput
                   className="input-field"
                   value={finance.feesPct}
-                  onChange={(value) => updateFinance('feesPct', value)}
+                  onChange={(value) => handleFinanceInputChange('feesPct', value)}
                 />
               </div>
               <div>
@@ -555,7 +621,7 @@ function ModernFinancePage() {
                 <NumberInput
                   className="input-field"
                   value={finance.contPct}
-                  onChange={(value) => updateFinance('contPct', value)}
+                  onChange={(value) => handleFinanceInputChange('contPct', value)}
                 />
               </div>
             </div>
@@ -566,7 +632,7 @@ function ModernFinancePage() {
                 <NumberInput
                   className="input-field"
                   value={finance.landAcqCosts}
-                  onChange={(value) => updateFinance('landAcqCosts', value)}
+                  onChange={(value) => handleFinanceInputChange('landAcqCosts', value)}
                 />
               </div>
               <div>
@@ -575,7 +641,7 @@ function ModernFinancePage() {
                   className="input-field"
                   step="0.1"
                   value={finance.financeRatePct}
-                  onChange={(value) => updateFinance('financeRatePct', value)}
+                  onChange={(value) => handleFinanceInputChange('financeRatePct', value)}
                 />
               </div>
               <div>
@@ -583,7 +649,7 @@ function ModernFinancePage() {
                 <NumberInput
                   className="input-field"
                   value={finance.targetProfitPct}
-                  onChange={(value) => updateFinance('targetProfitPct', value)}
+                  onChange={(value) => handleFinanceInputChange('targetProfitPct', value)}
                 />
               </div>
             </div>
@@ -593,8 +659,8 @@ function ModernFinancePage() {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-slate-300">Profit vs Target</span>
-                  <span className={getKPIColor(isViableProfit)}>
-                    {sensitivityResults.actualProfitPct.toFixed(1)}% / {targetProfitNum}%
+                  <span className={getKPIColor(sensitivityResults.actualProfitPct, isViableProfit)}>
+                    {displayPercentage(sensitivityResults.actualProfitPct)} / {displayPercentage(targetProfitNum)}
                   </span>
                 </div>
                 <div className="relative bg-slate-700 h-2 rounded">
@@ -602,7 +668,7 @@ function ModernFinancePage() {
                     className={`h-full rounded transition-all duration-300 ${
                       isViableProfit ? 'bg-green-400' : 'bg-red-400'
                     }`}
-                    style={{ width: `${Math.min((sensitivityResults.actualProfitPct / targetProfitNum) * 100, 100)}%` }}
+                    style={{ width: `${Math.min((sensitivityResults.actualProfitPct / (targetProfitNum || 1)) * 100, 100)}%` }}
                   />
                 </div>
               </div>
@@ -611,14 +677,14 @@ function ModernFinancePage() {
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-slate-300">Cost vs GDV</span>
                   <span className="text-slate-400">
-                    {(sensitivityResults.totalCosts / sensitivityResults.gdv * 100).toFixed(1)}%
+                    {displayPercentage(sensitivityResults.totalCosts / (sensitivityResults.gdv || 1))}
                   </span>
                 </div>
                 <div className="relative bg-slate-700 h-2 rounded">
                   <div
                     className="bg-amber-400 h-full rounded transition-all duration-300"
                     style={{
-                      width: `${Math.min((sensitivityResults.totalCosts / sensitivityResults.gdv * 100), 100)}%`
+                      width: `${Math.min((sensitivityResults.totalCosts / (sensitivityResults.gdv || 1)) * 100, 100)}%`
                     }}
                   />
                 </div>
@@ -630,28 +696,28 @@ function ModernFinancePage() {
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
                 <div className="text-sm text-slate-400 mb-2">GDV</div>
                 <div className="text-xl font-bold text-brand-400">
-                  {formatCurrency(sensitivityResults.gdv)}
+                  {displayValue(sensitivityResults.gdv)}
                 </div>
               </div>
 
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
                 <div className="text-sm text-slate-400 mb-2">Build Cost</div>
                 <div className="text-xl font-bold text-amber-400">
-                  {formatCurrency(sensitivityResults.build)}
+                  {displayValue(sensitivityResults.build)}
                 </div>
               </div>
 
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
                 <div className="text-sm text-slate-400 mb-2">Total Cost</div>
                 <div className="text-xl font-bold text-slate-300">
-                  {formatCurrency(sensitivityResults.totalCosts)}
+                  {displayValue(sensitivityResults.totalCosts)}
                 </div>
               </div>
 
               <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
                 <div className="text-sm text-slate-400 mb-2">Profit %</div>
                 <div className={`text-xl font-bold ${viability.textColor}`}>
-                  {sensitivityResults.actualProfitPct.toFixed(1)}%
+                  {displayPercentage(sensitivityResults.actualProfitPct)}
                 </div>
               </div>
             </div>
@@ -662,14 +728,14 @@ function ModernFinancePage() {
                 'bg-red-500/10 border-red-500/20'
             }`}>
               <div className="text-slate-300 mb-3 font-medium">Residual Land Value</div>
-              <div className={`text-3xl font-bold ${getKPIColor(sensitivityResults.residual >= 0)}`}>
-                {formatCurrency(sensitivityResults.residual)}
+              <div className={`text-3xl font-bold ${getKPIColor(sensitivityResults.residual, sensitivityResults.residual >= 0)}`}>
+                {displayValue(sensitivityResults.residual)}
               </div>
               <div className="mt-3 text-sm text-slate-400 font-mono">
                 Formula: GDV - Build Cost - Fees - Contingency - Finance Cost - Target Profit
               </div>
               <div className="mt-2 text-xs text-slate-500 font-mono">
-                {formatCurrency(sensitivityResults.gdv)} - {formatCurrency(sensitivityResults.build)} - {formatCurrency(sensitivityResults.fees)} - {formatCurrency(sensitivityResults.contingency)} - {formatCurrency(sensitivityResults.financeCost)} - {formatCurrency(sensitivityResults.targetProfit)}
+                {displayValue(sensitivityResults.gdv)} - {displayValue(sensitivityResults.build)} - {displayValue(sensitivityResults.fees)} - {displayValue(sensitivityResults.contingency)} - {displayValue(sensitivityResults.financeCost)} - {displayValue(sensitivityResults.targetProfit)}
               </div>
             </div>
           </div>
@@ -738,8 +804,12 @@ function OfferPage() {
     targetProfitPct: '0', // Default to 0
     landAcqCosts: '0', // Default to 0
   };
-  const results = computeTotals(project, finance, houseTypes);
   const unitMix = project.unitMix || [];
+  const gdv = totalSalesValue(unitMix, houseTypes);
+  const buildCost = totalBuildCost(unitMix, houseTypes);
+  const { marginPct } = margins(unitMix, houseTypes);
+
+  const results = computeTotals(project, finance, houseTypes);
 
   const getViabilityBadge = () => {
     const targetProfitNum = parseFloat(finance.targetProfitPct) || 0; // Default to 0
@@ -762,6 +832,21 @@ function OfferPage() {
            unitMix.length > 0 &&
            parseFloat(finance.targetProfitPct) > 0 &&
            parseFloat(finance.feesPct) > 0;
+  };
+
+  // Handle cases where sales or counts are zero to avoid NaN/Infinity
+  const displayValue = (value: number) => {
+    if (value === 0 || !isFinite(value)) {
+      return '0';
+    }
+    return formatCurrency(value);
+  };
+
+  const displayPercentage = (value: number) => {
+    if (value === 0 || !isFinite(value)) {
+      return '0%';
+    }
+    return `${value.toFixed(1)}%`;
   };
 
   return (
@@ -797,12 +882,12 @@ function OfferPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
               <div className="text-sm text-slate-400 mb-2">Total GDV</div>
-              <div className="text-2xl font-bold text-brand-400">{formatCurrency(results.gdv)}</div>
+              <div className="text-2xl font-bold text-brand-400">{displayValue(results.gdv)}</div>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
               <div className="text-sm text-slate-400 mb-2">Residual Land Value</div>
               <div className={`text-2xl font-bold ${results.residual >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {formatCurrency(results.residual)}
+                {displayValue(results.residual)}
               </div>
             </div>
           </div>
@@ -815,27 +900,27 @@ function OfferPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-600">
-                      <th className="text-left py-2 text-slate-300">Type</th>
-                      <th className="text-right py-2 text-slate-300">Count</th>
-                      <th className="text-right py-2 text-slate-300">Area (m²)</th>
-                      <th className="text-right py-2 text-slate-300">Total Area</th>
-                      <th className="text-right py-2 text-slate-300">Sale Value</th>
+                      <th className="text-left py-2 px-3 text-slate-300">Type</th>
+                      <th className="text-right py-2 px-3 text-slate-300">Count</th>
+                      <th className="text-right py-2 px-3 text-slate-300">Area (m²)</th>
+                      <th className="text-right py-2 px-3 text-slate-300">Total Area</th>
+                      <th className="text-right py-2 px-3 text-slate-300">Sale Value</th>
                     </tr>
                   </thead>
                   <tbody>
                     {unitMix.map(mix => {
                       const houseType = houseTypes.find(ht => ht.id === mix.houseTypeId);
                       if (!houseType) return null;
-                      const totalArea = houseType.floorAreaSqm * mix.count;
-                      const totalValue = totalArea * houseType.saleValuePerSqm;
+                      const totalArea = (houseType.floorAreaSqm || 0) * (mix.count || 0);
+                      const totalValue = totalArea * (houseType.saleValuePerSqm || 0);
 
                       return (
                         <tr key={mix.houseTypeId} className="border-b border-slate-700">
-                          <td className="py-2 text-white">{houseType.name}</td>
-                          <td className="text-right py-2 text-slate-300">{mix.count}</td>
-                          <td className="text-right py-2 text-slate-300">{houseType.floorAreaSqm}</td>
-                          <td className="text-right py-2 text-slate-300">{totalArea}</td>
-                          <td className="text-right py-2 text-brand-400">{formatCurrency(totalValue)}</td>
+                          <td className="py-2 px-3 text-white">{houseType.name}</td>
+                          <td className="text-right py-2 px-3 text-slate-300">{mix.count}</td>
+                          <td className="text-right py-2 px-3 text-slate-300">{houseType.floorAreaSqm}</td>
+                          <td className="text-right py-2 px-3 text-slate-300">{totalArea.toLocaleString()}</td>
+                          <td className="text-right py-2 px-3 text-brand-400">{displayValue(totalValue)}</td>
                         </tr>
                       );
                     })}
@@ -886,6 +971,11 @@ function OfferPage() {
 function ModernHomePage() {
   const { project, scenarios, houseTypes } = useStore();
   const finance = project.finance || { targetProfitPct: '0', feesPct: '0', contPct: '0', financeRatePct: '0', financeMonths: '0', landAcqCosts: '0' };
+  const unitMix = project.unitMix || [];
+  const gdv = totalSalesValue(unitMix, houseTypes);
+  const buildCost = totalBuildCost(unitMix, houseTypes);
+  const { marginPct } = margins(unitMix, houseTypes);
+
   const results = computeTotals(project, finance, houseTypes);
 
   const getViabilityStatus = () => {

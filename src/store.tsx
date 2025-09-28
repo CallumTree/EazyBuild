@@ -25,7 +25,10 @@ export interface Project {
   updatedAt: string;
   boundary?: Array<{ lat: number; lng: number }>;
   siteArea?: number;
+  siteAreaM2?: number;
   efficiency?: number;
+  infraAllowancePct?: number;
+  densityUnitsPerHa?: number;
   estimatedUnits?: number;
   floorAreaPerUnit?: number;
   gdvPerUnit?: number;
@@ -136,19 +139,22 @@ const defaultProject: Project = {
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   siteArea: 0,
+  siteAreaM2: 0,
   efficiency: 65,
+  infraAllowancePct: 15,
+  densityUnitsPerHa: 30,
   estimatedUnits: 0,
   floorAreaPerUnit: 0,
   gdvPerUnit: 0,
   buildCostPerSqm: 0,
   unitMix: [],
   finance: {
-    feesPct: '5',
-    contPct: '10',
-    financeRatePct: '8.5',
-    financeMonths: '18',
-    targetProfitPct: '20',
-    landAcqCosts: '25000',
+    feesPct: '0',
+    contPct: '0',
+    financeRatePct: '0',
+    financeMonths: '0',
+    targetProfitPct: '0',
+    landAcqCosts: '0',
   },
 };
 
@@ -156,6 +162,8 @@ interface StoreContextType {
   project: Project;
   setProject: (project: Project) => void;
   updateProject: (updates: Partial<Project>) => void;
+  setSiteAreaM2: (siteAreaM2: number) => void;
+  setDensityUnitsPerHa: (density: number) => void;
   scenarios: Scenario[];
   duplicateScenario: () => void;
   houseTypes: HouseType[];
@@ -247,6 +255,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return newHouseType;
   };
 
+  const setSiteAreaM2 = (siteAreaM2: number) => {
+    updateProject({ siteAreaM2 });
+  };
+
+  const setDensityUnitsPerHa = (densityUnitsPerHa: number) => {
+    updateProject({ densityUnitsPerHa });
+  };
+
   const updateUnitMix = (unitMix: UnitMix[]) => {
     updateProject({ unitMix });
   };
@@ -256,6 +272,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       project,
       setProject,
       updateProject,
+      setSiteAreaM2,
+      setDensityUnitsPerHa,
       scenarios,
       duplicateScenario,
       houseTypes,
