@@ -311,13 +311,6 @@ function LayoutPage() {
   // Calculate estimated units based on net developable area and density
   const estimatedUnits = siteArea > 0 ? Math.floor(netDevelopableAreaM2 / 10000 * densityUnitsPerHa) : 0;
 
-  // Update estimated units only when the calculation actually changes
-  React.useEffect(() => {
-    if (project.estimatedUnits !== estimatedUnits) {
-      updateProject({ estimatedUnits });
-    }
-  }, [estimatedUnits, project.estimatedUnits, updateProject]);
-
   // Calculate selected units from unit mix
   const selectedUnits = (project.unitMix || []).reduce((sum, mix) => sum + (mix.count || 0), 0);
 
