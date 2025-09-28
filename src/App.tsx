@@ -190,7 +190,7 @@ function SurveyPage() {
 
   const handleAreaChange = (areaM2: number) => {
     setSiteArea(areaM2);
-    updateProject({ siteArea: areaM2 });
+    updateProject({ siteArea: areaM2, siteAreaM2: areaM2 });
   };
 
   return (
@@ -232,7 +232,7 @@ function SurveyPage() {
                   onChange={(value) => {
                     const numValue = parseFloat(value) || 0;
                     setSiteArea(numValue);
-                    updateProject({ siteArea: numValue });
+                    updateProject({ siteArea: numValue, siteAreaM2: numValue });
                   }}
                   className="input w-full"
                   placeholder="Enter site area in square meters"
@@ -305,21 +305,16 @@ function LayoutPage() {
   const densityUnitsPerHa = project.densityUnitsPerHa || 30; // Default to 30
 
   // Calculate net developable area
-  const infraAllowancePct = project.infraAllowancePct || 0; // Default to 0
+  const infraAllowancePct = project.infraAllowancePct || 15; // Default to 15%
   const netDevelopableAreaM2 = netDevelopableArea(siteArea, infraAllowancePct);
 
   // Calculate estimated units based on net developable area and density
   const estimatedUnits = siteArea > 0 ? Math.floor(netDevelopableAreaM2 / 10000 * densityUnitsPerHa) : 0;
 
-  // Update project with estimated units and density if they change or are not set
+  // Always update estimated units when they change (live updates)
   React.useEffect(() => {
-    if (project.densityUnitsPerHa !== densityUnitsPerHa) {
-      updateProject({ densityUnitsPerHa });
-    }
-    if (project.estimatedUnits !== estimatedUnits) {
-      updateProject({ estimatedUnits });
-    }
-  }, [densityUnitsPerHa, estimatedUnits, updateProject, project.estimatedUnits, project.densityUnitsPerHa]);
+    updateProject({ estimatedUnits });
+  }, [estimatedUnits, updateProject]);
 
   // Calculate selected units from unit mix
   const selectedUnits = (project.unitMix || []).reduce((sum, mix) => sum + (mix.count || 0), 0);
@@ -343,6 +338,9 @@ function LayoutPage() {
               <div className="text-sm text-slate-400 mb-2">Net Developable Area</div>
               <div className="text-xl font-bold text-brand-400">
                 {netDevelopableAreaM2.toLocaleString()} m²
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                {infraAllowancePct}% infrastructure allowance
               </div>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-xl border border-slate-600">
@@ -501,7 +499,6 @@ function ModernFinancePage() {
 
   return (
     <>
-      <TotalsBar />
       <div className="container py-8 space-y-8">
         <div className="card">
           <div className="card-header">
@@ -1100,6 +1097,7 @@ function Shell() {
 
   return (
     <div className="app-shell">
+      <TotalsBar />
       <Topbar />
       <div className="flex h-screen pt-14">
         <Sidebar />
