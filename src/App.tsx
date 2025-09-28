@@ -12,7 +12,7 @@ import { StoreProvider, useStore } from "./store";
 import { Toast, useToast } from "./components/Toast";
 import { NumberInput } from "./components/NumberInput";
 import { computeTotals, formatCurrency } from "./finance";
-import MapShell from "./components/MapShell";
+MapShell from "./components/MapShell";
 import "./index.css";
 import { useViability } from './store/viability';
 import { totalGIA, totalBuildCost, totalSalesValue, margins } from './lib/calc';
