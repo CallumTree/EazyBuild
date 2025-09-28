@@ -1,62 +1,65 @@
 
-import React, { useState, useEffect } from 'react';
-import { useViability } from '../store/viability';
+import React, { useState } from 'react';
+import { useStore } from '../store';
 import { CustomUnitTypeModal } from './CustomUnitTypeModal';
 
 export function UnitMixEditor() {
-  const { unitTypes, updateUnitCount, addCustomUnitType, loadCustomUnitTypes } = useViability();
+  const { project, houseTypes, updateProject, addCustomHouseType } = useStore();
   const [selectedTypeId, setSelectedTypeId] = useState<string>('');
   const [showCustomModal, setShowCustomModal] = useState(false);
 
-  const totalUnits = unitTypes.reduce((sum, type) => sum + type.count, 0);
-  const activeTypes = unitTypes.filter(type => type.count > 0);
-  const availableTypes = unitTypes.filter(type => type.count === 0);
-
-  useEffect(() => {
-    loadCustomUnitTypes();
-  }, [loadCustomUnitTypes]);
+  const unitMix = project.unitMix || [];
+  const totalUnits = unitMix.reduce((sum, mix) => sum + mix.count, 0);
+  const activeTypes = unitMix.filter(mix => mix.count > 0);
+  const availableTypes = houseTypes.filter(ht => 
+    !unitMix.find(mix => mix.houseTypeId === ht.id && mix.count > 0)
+  );
 
   const handleAddType = () => {
     if (selectedTypeId === 'custom') {
       setShowCustomModal(true);
       setSelectedTypeId('');
     } else if (selectedTypeId) {
-      updateUnitCount(selectedTypeId, 1);
+      const newUnitMix = [...unitMix];
+      const existingIndex = newUnitMix.findIndex(mix => mix.houseTypeId === selectedTypeId);
+      
+      if (existingIndex >= 0) {
+        newUnitMix[existingIndex].count = 1;
+      } else {
+        newUnitMix.push({ houseTypeId: selectedTypeId, count: 1 });
+      }
+      
+      updateProject({ unitMix: newUnitMix });
       setSelectedTypeId('');
     }
   };
 
   const handleCustomUnitAdd = (
     unitTypeData: {
-      label: string;
+      name: string;
       category: 'house' | 'bungalow' | 'apartment';
-      areaM2: number;
+      floorAreaSqm: number;
       floors: number;
-      buildCostPerM2: number;
-      salePricePerUnit: number;
+      buildCostPerSqm: number;
+      saleValuePerSqm: number;
     },
     saveToPresets: boolean
   ) => {
-    const newUnitType = addCustomUnitType({
+    const newHouseType = addCustomHouseType({
       ...unitTypeData,
       isCustom: true,
     });
 
     // Add to mix immediately
-    updateUnitCount(newUnitType.id, 1);
+    const newUnitMix = [...unitMix, { houseTypeId: newHouseType.id, count: 1 }];
+    updateProject({ unitMix: newUnitMix });
 
     // Save to presets if requested
     if (saveToPresets) {
       try {
         const existing = localStorage.getItem('eazybuild:customUnitTypes');
         const customTypes = existing ? JSON.parse(existing) : [];
-        const unitTypeToSave = {
-          ...unitTypeData,
-          id: crypto.randomUUID(),
-          count: 0,
-          isCustom: true,
-        };
-        customTypes.push(unitTypeToSave);
+        customTypes.push({ ...unitTypeData, id: crypto.randomUUID(), isCustom: true });
         localStorage.setItem('eazybuild:customUnitTypes', JSON.stringify(customTypes));
       } catch (error) {
         console.warn('Failed to save custom unit type:', error);
@@ -64,8 +67,23 @@ export function UnitMixEditor() {
     }
   };
 
-  const handleRemoveType = (typeId: string) => {
-    updateUnitCount(typeId, 0);
+  const handleUpdateCount = (houseTypeId: string, count: number) => {
+    const newUnitMix = unitMix.map(mix => 
+      mix.houseTypeId === houseTypeId 
+        ? { ...mix, count: Math.max(0, count) }
+        : mix
+    ).filter(mix => mix.count > 0);
+
+    updateProject({ unitMix: newUnitMix });
+  };
+
+  const handleRemoveType = (houseTypeId: string) => {
+    const newUnitMix = unitMix.filter(mix => mix.houseTypeId !== houseTypeId);
+    updateProject({ unitMix: newUnitMix });
+  };
+
+  const getHouseTypeDetails = (houseTypeId: string) => {
+    return houseTypes.find(ht => ht.id === houseTypeId);
   };
 
   return (
@@ -73,7 +91,7 @@ export function UnitMixEditor() {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-white">Unit Mix</h3>
         <div className="text-sm text-slate-300">
-          Estimated Units: <span className="font-semibold text-brand-400">{totalUnits}</span>
+          Total Units: <span className="font-semibold text-brand-400">{totalUnits}</span>
         </div>
       </div>
 
@@ -89,7 +107,7 @@ export function UnitMixEditor() {
             <option value="">Select a house type...</option>
             {availableTypes.map((type) => (
               <option key={type.id} value={type.id}>
-                {type.label} - {type.areaM2}m² ({type.floors === 1 ? 'Bungalow' : 'House'})
+                {type.name} - {type.floorAreaSqm}m² ({type.floors === 1 ? 'Bungalow' : 'House'})
                 {type.isCustom ? ' (Custom)' : ''}
               </option>
             ))}
@@ -115,50 +133,62 @@ export function UnitMixEditor() {
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Details</th>
                 <th className="text-center py-3 px-4 text-sm font-medium text-slate-300">Units</th>
                 <th className="text-center py-3 px-4 text-sm font-medium text-slate-300">Total Area</th>
+                <th className="text-center py-3 px-4 text-sm font-medium text-slate-300">Total Value</th>
                 <th className="text-center py-3 px-4 text-sm font-medium text-slate-300">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-slate-800/30">
-              {activeTypes.map((type) => (
-                <tr key={type.id} className="border-t border-slate-700">
-                  <td className="py-4 px-4">
-                    <div className="font-medium text-white">{type.label}</div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="text-sm text-slate-400">
-                      {type.areaM2}m² • {type.floors === 1 ? 'Bungalow' : 'House'}
-                    </div>
-                    <div className="text-sm text-slate-500">
-                      £{type.buildCostPerM2.toLocaleString()}/m²
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    <input
-                      type="number"
-                      min="0"
-                      max="99"
-                      value={type.count}
-                      onChange={(e) => {
-                        const count = parseInt(e.target.value) || 0;
-                        updateUnitCount(type.id, count);
-                      }}
-                      className="w-20 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                    />
-                  </td>
-                  <td className="py-4 px-4 text-center text-slate-300">
-                    {(type.count * type.areaM2).toLocaleString()}m²
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    <button
-                      onClick={() => handleRemoveType(type.id)}
-                      className="px-3 py-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
-                      title="Remove from mix"
-                    >
-                      Remove
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {activeTypes.map((mix) => {
+                const houseType = getHouseTypeDetails(mix.houseTypeId);
+                if (!houseType) return null;
+                
+                const totalArea = houseType.floorAreaSqm * mix.count;
+                const totalValue = totalArea * houseType.saleValuePerSqm;
+
+                return (
+                  <tr key={mix.houseTypeId} className="border-t border-slate-700">
+                    <td className="py-4 px-4">
+                      <div className="font-medium text-white">{houseType.name}</div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="text-sm text-slate-400">
+                        {houseType.floorAreaSqm}m² • {houseType.floors === 1 ? 'Bungalow' : 'House'}
+                      </div>
+                      <div className="text-sm text-slate-500">
+                        £{houseType.buildCostPerSqm.toLocaleString()}/m² build • £{houseType.saleValuePerSqm.toLocaleString()}/m² sale
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      <input
+                        type="number"
+                        min="0"
+                        max="99"
+                        value={mix.count}
+                        onChange={(e) => {
+                          const count = parseInt(e.target.value) || 0;
+                          handleUpdateCount(mix.houseTypeId, count);
+                        }}
+                        className="w-20 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                      />
+                    </td>
+                    <td className="py-4 px-4 text-center text-slate-300">
+                      {totalArea.toLocaleString()}m²
+                    </td>
+                    <td className="py-4 px-4 text-center text-brand-400 font-medium">
+                      £{totalValue.toLocaleString()}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      <button
+                        onClick={() => handleRemoveType(mix.houseTypeId)}
+                        className="px-3 py-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
+                        title="Remove from mix"
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -179,12 +209,20 @@ export function UnitMixEditor() {
           <div className="p-4 bg-slate-700/30 rounded-xl">
             <div className="text-sm text-slate-400 mb-1">Total Floor Area</div>
             <div className="text-xl font-bold text-white">
-              {activeTypes.reduce((sum, type) => sum + (type.count * type.areaM2), 0).toLocaleString()}m²
+              {activeTypes.reduce((sum, mix) => {
+                const houseType = getHouseTypeDetails(mix.houseTypeId);
+                return sum + (houseType ? mix.count * houseType.floorAreaSqm : 0);
+              }, 0).toLocaleString()}m²
             </div>
           </div>
           <div className="p-4 bg-slate-700/30 rounded-xl">
-            <div className="text-sm text-slate-400 mb-1">House Types</div>
-            <div className="text-xl font-bold text-slate-300">{activeTypes.length}</div>
+            <div className="text-sm text-slate-400 mb-1">Estimated GDV</div>
+            <div className="text-xl font-bold text-green-400">
+              £{activeTypes.reduce((sum, mix) => {
+                const houseType = getHouseTypeDetails(mix.houseTypeId);
+                return sum + (houseType ? mix.count * houseType.floorAreaSqm * houseType.saleValuePerSqm : 0);
+              }, 0).toLocaleString()}
+            </div>
           </div>
         </div>
       )}

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 
@@ -6,59 +5,63 @@ interface CustomUnitTypeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddToMix: (unitType: {
-    label: string;
+    name: string;
     category: 'house' | 'bungalow' | 'apartment';
-    areaM2: number;
+    floorAreaSqm: number;
     floors: number;
-    buildCostPerM2: number;
-    salePricePerUnit: number;
+    buildCostPerSqm: number;
+    saleValuePerSqm: number;
   }, saveToPresets: boolean) => void;
 }
 
 export function CustomUnitTypeModal({ isOpen, onClose, onAddToMix }: CustomUnitTypeModalProps) {
   const [formData, setFormData] = useState({
-    label: '',
+    name: '',
     category: 'house' as 'house' | 'bungalow' | 'apartment',
-    areaM2: '',
-    floors: '2',
-    buildCostPerM2: '1650',
-    salePricePerUnit: '',
+    floorAreaSqm: '',
+    floors: 2,
+    buildCostPerSqm: '2000',
+    saleValuePerSqm: '',
   });
   const [saveToPresets, setSaveToPresets] = useState(false);
 
-  const isValid = 
-    formData.label.trim() !== '' &&
-    parseFloat(formData.areaM2) > 0 &&
-    parseFloat(formData.buildCostPerM2) > 0 &&
-    parseFloat(formData.salePricePerUnit) > 0;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isValid) return;
-
-    const unitType = {
-      label: formData.label.trim(),
-      category: formData.category,
-      areaM2: parseFloat(formData.areaM2),
-      floors: parseInt(formData.floors),
-      buildCostPerM2: parseFloat(formData.buildCostPerM2),
-      salePricePerUnit: parseFloat(formData.salePricePerUnit),
-    };
-
-    onAddToMix(unitType, saveToPresets);
-    handleClose();
+  const isValid = () => {
+    return (
+      formData.name.trim() &&
+      parseFloat(formData.floorAreaSqm) > 0 &&
+      parseFloat(formData.buildCostPerSqm) > 0 &&
+      parseFloat(formData.saleValuePerSqm) > 0
+    );
   };
 
-  const handleClose = () => {
+  const handleReset = () => {
     setFormData({
-      label: '',
+      name: '',
       category: 'house',
-      areaM2: '',
-      floors: '2',
-      buildCostPerM2: '1650',
-      salePricePerUnit: '',
+      floorAreaSqm: '',
+      floors: 2,
+      buildCostPerSqm: '2000',
+      saleValuePerSqm: '',
     });
     setSaveToPresets(false);
+  };
+
+  const handleSubmit = () => {
+    if (!isValid()) return;
+
+    onAddToMix(
+      {
+        name: formData.name,
+        category: formData.category,
+        floorAreaSqm: parseFloat(formData.floorAreaSqm),
+        floors: formData.floors,
+        buildCostPerSqm: parseFloat(formData.buildCostPerSqm),
+        saleValuePerSqm: parseFloat(formData.saleValuePerSqm),
+      },
+      saveToPresets
+    );
+
+    handleReset();
     onClose();
   };
 
@@ -77,17 +80,17 @@ export function CustomUnitTypeModal({ isOpen, onClose, onAddToMix }: CustomUnitT
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
               Name
             </label>
             <input
               type="text"
-              value={formData.label}
-              onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               placeholder="e.g., Client 3-bed special"
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               required
             />
           </div>
@@ -114,12 +117,12 @@ export function CustomUnitTypeModal({ isOpen, onClose, onAddToMix }: CustomUnitT
               </label>
               <input
                 type="number"
-                value={formData.areaM2}
-                onChange={(e) => setFormData({ ...formData, areaM2: e.target.value })}
-                placeholder="120"
                 min="1"
                 step="1"
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                value={formData.floorAreaSqm}
+                onChange={(e) => setFormData(prev => ({ ...prev, floorAreaSqm: e.target.value }))}
+                placeholder="90"
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 required
               />
             </div>
@@ -130,7 +133,7 @@ export function CustomUnitTypeModal({ isOpen, onClose, onAddToMix }: CustomUnitT
               </label>
               <select
                 value={formData.floors}
-                onChange={(e) => setFormData({ ...formData, floors: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, floors: parseInt(e.target.value) })}
                 className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               >
                 <option value="1">1</option>
@@ -145,28 +148,28 @@ export function CustomUnitTypeModal({ isOpen, onClose, onAddToMix }: CustomUnitT
             </label>
             <input
               type="number"
-              value={formData.buildCostPerM2}
-              onChange={(e) => setFormData({ ...formData, buildCostPerM2: e.target.value })}
-              placeholder="1650"
               min="1"
-              step="1"
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              step="50"
+              value={formData.buildCostPerSqm}
+              onChange={(e) => setFormData(prev => ({ ...prev, buildCostPerSqm: e.target.value }))}
+              placeholder="2000"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               required
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
-              Sale price per unit
+              Sale price per m² (£)
             </label>
             <input
               type="number"
-              value={formData.salePricePerUnit}
-              onChange={(e) => setFormData({ ...formData, salePricePerUnit: e.target.value })}
-              placeholder="350000"
               min="1"
-              step="1"
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              step="100"
+              value={formData.saleValuePerSqm}
+              onChange={(e) => setFormData(prev => ({ ...prev, saleValuePerSqm: e.target.value }))}
+              placeholder="2800"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               required
             />
           </div>
@@ -194,7 +197,7 @@ export function CustomUnitTypeModal({ isOpen, onClose, onAddToMix }: CustomUnitT
             </button>
             <button
               type="submit"
-              disabled={!isValid}
+              disabled={!isValid()}
               className="flex-1 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Add to mix
