@@ -1,0 +1,105 @@
+TITLE: Reset all totals to zero, add manual Site Area input, and link tabs together
+
+DO ONLY THIS (small + safe):
+
+A) Store (single source of truth)
+
+In the existing store (do not create a new one), ensure we have:
+
+siteAreaM2: number default 0
+
+setSiteAreaM2(n: number)
+
+infraAllowancePct: number (keep current)
+
+unitTypes[] with count default 0 for every type
+
+Leave cost/price defaults as they are, but totals must still be 0 until counts > 0.
+
+Add a derived helper in src/lib/calc.ts:
+
+netDevelopableArea(siteAreaM2, infraPct) = siteAreaM2 * (1 - clamp(infraPct, 0, 0.9))
+
+B) Survey tab
+
+Add a number input at the top: “Site Area (m²)”.
+
+It writes to setSiteAreaM2(...).
+
+Under it, show: “Net developable: X m²” using netDevelopableArea(...).
+
+Start values must be 0. No pre-filled 2450 etc.
+
+If there’s any old value sticking around, remove it and make sure initial render shows 0.
+
+C) Layout tab
+
+At the very top, show Estimated Units with this rule:
+
+If sum(unitTypes.map(u=>u.count)) > 0 → show that sum.
+
+Else, show 0 (we will add an auto-estimate later; for now, zero to avoid confusion).
+
+Keep your “Add House Type” & unit mix list working as is.
+
+No hard-coded numbers (e.g., remove the “12” placeholder).
+
+D) Finance tab (and Offer if present)
+
+Totals must be 0 until there are units:
+
+totalGIA = Σ(areaM2 * count)
+
+totalBuild = Σ(areaM2 * buildCostPerM2 * count)
+
+totalSales = Σ((salePricePerUnit OR salePricePerM2*areaM2) * count)
+
+profit = totalSales - totalBuild
+
+marginPct = profit / totalSales (guard: if totalSales===0 → margin = 0)
+
+Remove/avoid any placeholder totals. Everything should read 0 when counts are all 0.
+
+Any “GDV”, “Residual”, “Viability” boxes must use the same functions above so they match, and show 0 until inputs exist.
+
+E) Formatting & guards
+
+All number renders should handle 0 cleanly (no NaN/Infinity).
+
+Round m² to whole numbers; money to neat short form (e.g., 0, 12.3k, 1.20m).
+
+F) Where to mount
+
+Survey: add the Site Area input + Net line near the top.
+
+Layout: show “Estimated Units: 0” until unit counts exist.
+
+Finance (and Offer): totals bar shows all zeros until counts exist.
+
+ACCEPTANCE CHECKS (double-check, then check again):
+
+Refresh the app → all totals are 0 across all tabs.
+
+On Survey, type 2450 and keep infra at 25% → Net shows 1,838 m².
+
+On Layout, before adding any counts → Estimated Units: 0.
+Add 3 semis + 2 det = Estimated Units: 5.
+
+On Finance, before counts → GDV/Build/Profit/Margin = 0.
+After adding counts and leaving default costs/prices → numbers update and match the formulas above.
+
+No console errors, no TypeScript errors.
+
+GUARDRAILS:
+
+Do not create a new store file. Use the current one.
+
+Do not touch map code.
+
+Do not add auto-estimate logic yet (that comes later).
+
+Keep TypeScript strict. Use relative imports only.
+
+DELIVERABLES:
+
+Files changed (one line each).
