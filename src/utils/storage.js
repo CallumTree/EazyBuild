@@ -1,10 +1,12 @@
 
+// Simple localStorage-based project storage for EazyBuild
+
 export function getProjects() {
   try {
-    const stored = localStorage.getItem('eazybuild_projects');
-    return stored ? JSON.parse(stored) : [];
+    const projects = localStorage.getItem('eazybuild:projects');
+    return projects ? JSON.parse(projects) : [];
   } catch (error) {
-    console.warn('Failed to load projects from localStorage:', error);
+    console.error('Error getting projects:', error);
     return [];
   }
 }
@@ -12,51 +14,63 @@ export function getProjects() {
 export function saveProject(project) {
   try {
     const projects = getProjects();
-    const updatedProjects = [...projects, project];
-    localStorage.setItem('eazybuild_projects', JSON.stringify(updatedProjects));
-    return project;
+    const newProject = {
+      ...project,
+      id: project.id || `proj_${Date.now()}`,
+      createdAt: project.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    projects.push(newProject);
+    localStorage.setItem('eazybuild:projects', JSON.stringify(projects));
+    return newProject;
   } catch (error) {
-    console.error('Failed to save project:', error);
+    console.error('Error saving project:', error);
     throw error;
   }
 }
 
-export function updateProject(projectId, updates) {
+export function updateProject(id, updates) {
   try {
     const projects = getProjects();
-    const updatedProjects = projects.map(p => 
-      p.id === projectId ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p
-    );
-    localStorage.setItem('eazybuild_projects', JSON.stringify(updatedProjects));
-    return updatedProjects.find(p => p.id === projectId);
+    const projectIndex = projects.findIndex(p => p.id === id);
+    
+    if (projectIndex === -1) {
+      throw new Error(`Project with id ${id} not found`);
+    }
+    
+    projects[projectIndex] = {
+      ...projects[projectIndex],
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+    
+    localStorage.setItem('eazybuild:projects', JSON.stringify(projects));
+    return projects[projectIndex];
   } catch (error) {
-    console.error('Failed to update project:', error);
+    console.error('Error updating project:', error);
     throw error;
   }
 }
 
-export function updateProject(projectId, updates) {
+export function deleteProject(id) {
   try {
     const projects = getProjects();
-    const updatedProjects = projects.map(p => 
-      p.id === projectId ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p
-    );
-    localStorage.setItem('eazybuild_projects', JSON.stringify(updatedProjects));
-    return updatedProjects.find(p => p.id === projectId);
-  } catch (error) {
-    console.error('Failed to update project:', error);
-    throw error;
-  }
-}
-
-export function deleteProject(projectId) {
-  try {
-    const projects = getProjects();
-    const filteredProjects = projects.filter(p => p.id !== projectId);
-    localStorage.setItem('eazybuild_projects', JSON.stringify(filteredProjects));
+    const filteredProjects = projects.filter(p => p.id !== id);
+    localStorage.setItem('eazybuild:projects', JSON.stringify(filteredProjects));
     return true;
   } catch (error) {
-    console.error('Failed to delete project:', error);
-    throw error;
+    console.error('Error deleting project:', error);
+    return false;
+  }
+}
+
+export function getProject(id) {
+  try {
+    const projects = getProjects();
+    return projects.find(p => p.id === id) || null;
+  } catch (error) {
+    console.error('Error getting project:', error);
+    return null;
   }
 }

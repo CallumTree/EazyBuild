@@ -1106,7 +1106,7 @@ function Shell() {
 }
 
 const USE_NEW_HOMEPAGE = true; // Toggle to true for new, false for old tabs
-const USE_SITE_STAGE = true; // Toggle for site phase functionality
+const USE_SITE_PHASE = true; // Toggle for site phase functionality
 
 function OldTabs() {
   return (
