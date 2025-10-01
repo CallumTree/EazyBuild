@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -8,8 +7,8 @@ import 'leaflet-draw/dist/leaflet.draw.css';
 import { getProjects, updateProject } from '../utils/storage';
 import { calcSiteArea } from '../utils/calculators';
 
-// Fix for default markers
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+// Fix for default markers (JS version, no TypeScript)
+delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
@@ -283,7 +282,7 @@ export function SiteStage({ projectId, onBack, onNext }) {
                   Calculated Site Area
                 </label>
                 <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
-                  <div className="kpi-value text-brand-400">
+                  <div className="kpi-value text-accent-primary">
                     {formatArea(siteAreaM2)}
                   </div>
                 </div>
