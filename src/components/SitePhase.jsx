@@ -1,6 +1,118 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet-draw';
+import * as turf from '@turf/turf';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet-draw/dist/leaflet.draw.css';
 import { getProject, updateProject } from '../utils/storage';
+import { calcSiteArea } from '../utils/calculators';
+
+// Fix for default markers
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
+function MapWithDraw({ onAreaChange, onPolygonChange }) {
+  const map = useMap();
+  const drawControlRef = useRef(null);
+  const polygonLayerRef = useRef(null);
+  const featureGroupRef = useRef(new L.FeatureGroup());
+
+  useEffect(() => {
+    map.addLayer(featureGroupRef.current);
+
+    const drawControl = new L.Control.Draw({
+      position: 'topright',
+      draw: {
+        polygon: {
+          allowIntersection: false,
+          showArea: true,
+          shapeOptions: {
+            color: '#10b981',
+            fillColor: '#10b981',
+            fillOpacity: 0.2,
+          }
+        },
+        polyline: false,
+        rectangle: false,
+        circle: false,
+        marker: false,
+        circlemarker: false,
+      },
+      edit: {
+        featureGroup: featureGroupRef.current,
+      }
+    });
+
+    map.addControl(drawControl);
+    drawControlRef.current = drawControl;
+
+    const handleDrawCreated = (e) => {
+      const { layer } = e;
+      
+      // Remove existing polygon
+      if (polygonLayerRef.current) {
+        featureGroupRef.current.removeLayer(polygonLayerRef.current);
+      }
+
+      featureGroupRef.current.addLayer(layer);
+      polygonLayerRef.current = layer;
+
+      const latLngs = layer.getLatLngs()[0];
+      
+      // Calculate area using turf
+      const coords = latLngs.map((ll) => [ll.lng, ll.lat]);
+      coords.push(coords[0]); // Close the polygon
+      const geoJsonFeature = turf.polygon([coords]);
+      const area = calcSiteArea(geoJsonFeature);
+      
+      onAreaChange(Math.round(area));
+      onPolygonChange(geoJsonFeature);
+    };
+
+    const handleDrawEdited = (e) => {
+      const { layers } = e;
+      layers.eachLayer((layer) => {
+        const latLngs = layer.getLatLngs()[0];
+        
+        const coords = latLngs.map((ll) => [ll.lng, ll.lat]);
+        coords.push(coords[0]);
+        const geoJsonFeature = turf.polygon([coords]);
+        const area = calcSiteArea(geoJsonFeature);
+        
+        onAreaChange(Math.round(area));
+        onPolygonChange(geoJsonFeature);
+      });
+    };
+
+    const handleDrawDeleted = () => {
+      polygonLayerRef.current = null;
+      onAreaChange(0);
+      onPolygonChange(null);
+    };
+
+    map.on(L.Draw.Event.CREATED, handleDrawCreated);
+    map.on(L.Draw.Event.EDITED, handleDrawEdited);
+    map.on(L.Draw.Event.DELETED, handleDrawDeleted);
+
+    return () => {
+      if (drawControlRef.current) {
+        map.removeControl(drawControlRef.current);
+      }
+      map.removeLayer(featureGroupRef.current);
+      map.off(L.Draw.Event.CREATED, handleDrawCreated);
+      map.off(L.Draw.Event.EDITED, handleDrawEdited);
+      map.off(L.Draw.Event.DELETED, handleDrawDeleted);
+    };
+  }, [map, onAreaChange, onPolygonChange]);
+
+  return null;
+}
 
 export function SitePhase({ projectId, onBack, onNext }) {
   const [project, setProject] = useState(null);
@@ -9,6 +121,7 @@ export function SitePhase({ projectId, onBack, onNext }) {
   const [constraintsNote, setConstraintsNote] = useState('');
   const [localAuthority, setLocalAuthority] = useState('');
   const [densityHint, setDensityHint] = useState('');
+  const [polygon, setPolygon] = useState(null);
 
   useEffect(() => {
     console.log('SitePhase loaded for project ID:', projectId);
@@ -21,6 +134,7 @@ export function SitePhase({ projectId, onBack, onNext }) {
         setConstraintsNote(projectData.constraintsNote || '');
         setLocalAuthority(projectData.localAuthority || '');
         setDensityHint(projectData.densityHint || '');
+        setPolygon(projectData.polygon || null);
       }
     }
   }, [projectId]);
@@ -38,6 +152,14 @@ export function SitePhase({ projectId, onBack, onNext }) {
     }
   };
 
+  const handleAreaChange = (area) => {
+    setSiteAreaM2(area);
+  };
+
+  const handlePolygonChange = (geoJSON) => {
+    setPolygon(geoJSON);
+  };
+
   const handleNext = () => {
     if (!postcode.trim()) {
       alert('Please enter a postcode');
@@ -45,7 +167,7 @@ export function SitePhase({ projectId, onBack, onNext }) {
     }
     
     if (siteAreaM2 <= 0) {
-      alert('Please enter a site area greater than 0');
+      alert('Please enter a site area greater than 0 or draw a boundary on the map');
       return;
     }
 
@@ -55,7 +177,8 @@ export function SitePhase({ projectId, onBack, onNext }) {
         siteAreaM2,
         constraintsNote: constraintsNote.trim(),
         localAuthority,
-        densityHint
+        densityHint,
+        polygon
       });
       
       alert('Site phase data saved!');
@@ -115,6 +238,32 @@ export function SitePhase({ projectId, onBack, onNext }) {
               )}
             </div>
 
+            {/* Map Section */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Draw Site Boundary (Optional)
+              </label>
+              <p className="text-xs text-slate-400 mb-3">
+                Draw boundary on the map or use manual area input below. Use the polygon tool in the top-right corner.
+              </p>
+              <div className="leaflet-container h-[400px] rounded-xl border border-slate-700 overflow-hidden">
+                <MapContainer
+                  center={[55, -4]}
+                  zoom={6}
+                  style={{ height: '100%', width: '100%' }}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <MapWithDraw 
+                    onAreaChange={handleAreaChange}
+                    onPolygonChange={handlePolygonChange}
+                  />
+                </MapContainer>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Site Area (m²) *
@@ -122,7 +271,7 @@ export function SitePhase({ projectId, onBack, onNext }) {
               <input
                 type="number"
                 className="input-field"
-                placeholder="Enter site area"
+                placeholder="Enter site area or draw on map"
                 value={siteAreaM2}
                 onChange={(e) => setSiteAreaM2(parseFloat(e.target.value) || 0)}
                 required
