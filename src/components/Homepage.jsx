@@ -1,6 +1,102 @@
-
 import React, { useState, useEffect } from 'react';
-import { getProjects, saveProject, deleteProject } from '../utils/storage';
+import { getProjects, saveProject, deleteProject, updateProject } from '../utils/storage';
+
+// Mock SitePhase component for now, will be replaced by the actual component
+// const SitePhase = ({ projectId, onBack, onNext }) => {
+//   const [postcode, setPostcode] = useState('');
+//   const [siteAreaM2, setSiteAreaM2] = useState(0);
+//   const [constraintsNote, setConstraintsNote] = useState('');
+
+//   // Mock loading project data
+//   useEffect(() => {
+//     // In a real app, you'd fetch project details using projectId
+//     console.log("Mock SitePhase loaded for project ID:", projectId);
+//     // Mock pre-filling data if available
+//     if (projectId) {
+//       const mockProject = {
+//         id: projectId,
+//         name: "Example Project",
+//         postcode: "SW1A 1AA",
+//         siteAreaM2: 5000,
+//         constraintsNote: "Existing trees on site."
+//       };
+//       setPostcode(mockProject.postcode || '');
+//       setSiteAreaM2(mockProject.siteAreaM2 || 0);
+//       setConstraintsNote(mockProject.constraintsNote || '');
+//     }
+//   }, [projectId]);
+
+//   const handleNext = () => {
+//     const updatedData = { postcode, siteAreaM2, constraintsNote };
+//     // In a real app, this would call an API or update localStorage
+//     console.log(`Mock Saving Site Phase data for Project ${projectId}:`, updatedData);
+//     alert('Site phase data saved (mock)!');
+//     onNext();
+//   };
+
+//   const isNextDisabled = siteAreaM2 <= 0 || !postcode.trim();
+
+//   return (
+//     <div className="container py-8">
+//       <div className="card">
+//         <div className="card-header">
+//           <button onClick={onBack} className="btn-ghost mr-4">
+//             ← Back
+//           </button>
+//           <span className="text-2xl">🗺️</span>
+//           <h2 className="card-title">Site Phase: Define Your Land</h2>
+//           <p className="text-slate-400 ml-auto">Project ID: {projectId}</p>
+//         </div>
+//         <div className="card-body space-y-6">
+//           <div>
+//             <label className="block text-sm font-medium text-slate-300 mb-2">Postcode *</label>
+//             <input
+//               type="text"
+//               value={postcode}
+//               onChange={(e) => setPostcode(e.target.value.toUpperCase())}
+//               className="input-field"
+//               placeholder="e.g. SW1A 1AA"
+//             />
+//             {postcode.length >= 5 && (
+//               <p className="text-xs text-slate-500 mt-1">
+//                 Mock LA/Density: London Borough of Example, Avg 50-100 units/ha
+//               </p>
+//             )}
+//           </div>
+//           <div>
+//             <label className="block text-sm font-medium text-slate-300 mb-2">Site Area (m²) *</label>
+//             <input
+//               type="number"
+//               value={siteAreaM2}
+//               onChange={(e) => setSiteAreaM2(parseFloat(e.target.value) || 0)}
+//               className="input-field"
+//               min="0"
+//               placeholder="Enter site area"
+//             />
+//           </div>
+//           <div>
+//             <label className="block text-sm font-medium text-slate-300 mb-2">Constraints Note</label>
+//             <textarea
+//               value={constraintsNote}
+//               onChange={(e) => setConstraintsNote(e.target.value)}
+//               className="input-field"
+//               rows="3"
+//               placeholder="Add any site constraints or notes"
+//             />
+//           </div>
+//         </div>
+//         <div className="card-footer flex justify-between items-center">
+//           <span className={`text-lg ${siteAreaM2 > 0 ? 'text-green-400' : 'text-red-400'}`}>
+//             {siteAreaM2 > 0 ? '🟢' : '🔴'} Status: {siteAreaM2 > 0 ? 'Area Defined' : 'No Area'}
+//           </span>
+//           <button onClick={handleNext} className="btn-primary" disabled={isNextDisabled}>
+//             Next: Mix Phase →
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
 
 // Room Components (placeholders for now)
 function SiteRoom({ project, onBack }) {
@@ -43,9 +139,122 @@ function ViabilityRoom({ project, onBack }) {
   );
 }
 
+// SitePhase Component
+function SitePhase({ projectId, onBack, onNext }) {
+  const [postcode, setPostcode] = useState('');
+  const [siteAreaM2, setSiteAreaM2] = useState(0);
+  const [constraintsNote, setConstraintsNote] = useState('');
+  const [projectData, setProjectData] = useState(null);
+
+  useEffect(() => {
+    if (projectId) {
+      const projects = getProjects();
+      const project = projects.find(p => p.id === projectId);
+      setProjectData(project);
+      if (project) {
+        setPostcode(project.postcode || '');
+        setSiteAreaM2(project.siteAreaM2 || 0);
+        setConstraintsNote(project.constraintsNote || '');
+      }
+    }
+  }, [projectId]);
+
+  const handleSaveAndNext = () => {
+    if (!postcode.trim() || siteAreaM2 <= 0) {
+      alert('Please enter a valid postcode and site area.');
+      return;
+    }
+
+    const updatedProjectData = {
+      ...projectData,
+      postcode: postcode.toUpperCase(),
+      siteAreaM2: siteAreaM2,
+      constraintsNote: constraintsNote,
+      updatedAt: new Date().toISOString(),
+      status: siteAreaM2 > 0 ? 'green' : projectData?.status || 'amber'
+    };
+
+    try {
+      updateProject(projectId, updatedProjectData);
+      alert('Site phase data saved!');
+      onNext();
+    } catch (error) {
+      alert('Failed to save site phase data. Please try again.');
+      console.error("Error saving site phase:", error);
+    }
+  };
+
+  const isNextDisabled = !postcode.trim() || siteAreaM2 <= 0;
+  const projectName = projectData ? projectData.name : 'Loading...';
+
+  return (
+    <div className="container py-8">
+      <div className="card">
+        <div className="card-header">
+          <button onClick={onBack} className="btn-ghost mr-4">
+            ← Back
+          </button>
+          <span className="text-2xl">🗺️</span>
+          <h2 className="card-title">Site Phase: Define Your Land</h2>
+          <p className="text-slate-400 ml-auto">Project: {projectName}</p>
+        </div>
+        <div className="card-body space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Postcode *</label>
+            <input
+              type="text"
+              value={postcode}
+              onChange={(e) => setPostcode(e.target.value.toUpperCase())}
+              className="input-field"
+              placeholder="e.g. SW1A 1AA"
+            />
+            {postcode.length >= 5 && (
+              <p className="text-xs text-slate-500 mt-1">
+                Mock LA/Density: London Borough of Example, Avg 50-100 units/ha
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Site Area (m²) *</label>
+            <input
+              type="number"
+              value={siteAreaM2}
+              onChange={(e) => setSiteAreaM2(parseFloat(e.target.value) || 0)}
+              className="input-field"
+              min="0"
+              placeholder="Enter site area"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Constraints Note</label>
+            <textarea
+              value={constraintsNote}
+              onChange={(e) => setConstraintsNote(e.target.value)}
+              className="input-field"
+              rows="3"
+              placeholder="Add any site constraints or notes"
+            />
+          </div>
+        </div>
+        <div className="card-footer flex justify-between items-center">
+          <span className={`text-lg ${siteAreaM2 > 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {siteAreaM2 > 0 ? '🟢' : '🔴'} Status: {siteAreaM2 > 0 ? 'Area Defined' : 'No Area'}
+          </span>
+          <button onClick={handleSaveAndNext} className="btn-primary" disabled={isNextDisabled}>
+            Next: Mix Phase →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export function Homepage() {
   const [currentRoom, setCurrentRoom] = useState('homepage');
   const [currentProject, setCurrentProject] = useState(null);
+  const [currentPhase, setCurrentPhase] = useState('home');
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [projects, setProjects] = useState([]);
   const [showOptionalDetails, setShowOptionalDetails] = useState(false);
   const [formData, setFormData] = useState({
@@ -94,7 +303,7 @@ export function Homepage() {
 
   const handleCreateProject = (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     try {
@@ -116,8 +325,9 @@ export function Homepage() {
       saveProject(newProject);
       setProjects(getProjects());
       setCurrentProject(newProject);
-      setCurrentRoom('site');
-      
+      setSelectedProjectId(newProject.id);
+      setCurrentPhase('site'); // Navigate to site phase
+
       // Reset form
       setFormData({
         name: '',
@@ -129,7 +339,7 @@ export function Homepage() {
         dealType: 'Acquisition',
         notes: ''
       });
-      
+
       alert('Project created!');
     } catch (error) {
       alert('Failed to create project. Please try again.');
@@ -173,6 +383,8 @@ export function Homepage() {
       dealType: project.dealType,
       notes: project.notes || ''
     });
+    // Optionally, you might want to set the currentPhase to 'home' or handle editing differently
+    // setCurrentPhase('home');
   };
 
   const handleDeleteProject = (projectId) => {
@@ -180,6 +392,12 @@ export function Homepage() {
       try {
         deleteProject(projectId);
         setProjects(getProjects());
+        // If the deleted project was the current one being edited or viewed, clear it
+        if (currentProject && currentProject.id === projectId) {
+          setCurrentProject(null);
+          setSelectedProjectId(null);
+          setCurrentPhase('home');
+        }
       } catch (error) {
         alert('Failed to delete project. Please try again.');
       }
@@ -204,16 +422,47 @@ export function Homepage() {
     }
   };
 
-  // Room routing
-  if (currentRoom === 'site') {
-    return <SiteRoom project={currentProject} onBack={() => setCurrentRoom('homepage')} />;
+  // Phase routing
+  if (currentPhase === 'site') {
+    return <SitePhase 
+      projectId={selectedProjectId} 
+      onBack={() => {
+        setCurrentPhase('home');
+        setSelectedProjectId(null);
+      }}
+      onNext={() => setCurrentPhase('mix')}
+    />;
   }
 
-  if (currentRoom === 'viability') {
-    return <ViabilityRoom project={currentProject} onBack={() => setCurrentRoom('homepage')} />;
+  if (currentPhase === 'mix') {
+    return (
+      <div className="container py-8">
+        <div className="card">
+          <div className="card-header">
+            <span className="text-2xl">🏠</span>
+            <h2 className="card-title">Mix Phase: Coming Soon</h2>
+          </div>
+          <div className="card-body space-y-6">
+            <p className="text-slate-300">Mix Phase placeholder - Unit types and density coming soon!</p>
+            <p className="text-slate-400">Project ID: {selectedProjectId}</p>
+            <div className="flex gap-4">
+              <button onClick={() => setCurrentPhase('site')} className="btn-secondary">
+                ← Back to Site
+              </button>
+              <button onClick={() => {
+                setCurrentPhase('home');
+                setSelectedProjectId(null);
+              }} className="btn-ghost">
+                Home
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  // Main Homepage
+  // Main Homepage - wrap in phase condition
   return (
     <div className="app-shell">
       <div className="container py-8 space-y-8">
@@ -425,7 +674,13 @@ export function Homepage() {
                     </p>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleEditProject(project)}
+                        onClick={() => {
+                          handleEditProject(project);
+                          // When editing, we might want to go back to the homepage phase
+                          // to see the form pre-filled, or handle it within the project list.
+                          // For now, let's assume editing means going back to the form state.
+                          setCurrentPhase('home');
+                        }}
                         className="btn-ghost text-xs flex-1"
                       >
                         Edit
