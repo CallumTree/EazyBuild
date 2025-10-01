@@ -48,6 +48,7 @@ export function Homepage() {
   const [currentRoom, setCurrentRoom] = useState('homepage');
   const [currentProject, setCurrentProject] = useState(null);
   const [currentStage, setCurrentStage] = useState('homepage');
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [projects, setProjects] = useState([]);
   const [showOptionalDetails, setShowOptionalDetails] = useState(false);
   const [formData, setFormData] = useState({
@@ -118,6 +119,7 @@ export function Homepage() {
       saveProject(newProject);
       setProjects(getProjects());
       setCurrentProject(newProject);
+      setSelectedProjectId(newProject.id);
       setCurrentStage('site');
       
       // Reset form
@@ -208,9 +210,13 @@ export function Homepage() {
 
   // Stage routing
   if (currentStage === 'site') {
+    console.log('Rendering SiteStage with ID:', selectedProjectId);
     return <SiteStage 
-      projectId={currentProject?.id} 
-      onBack={() => setCurrentStage('homepage')}
+      projectId={selectedProjectId} 
+      onBack={() => {
+        setCurrentStage('homepage');
+        setSelectedProjectId(null);
+      }}
       onNext={() => setCurrentStage('mix')}
     />;
   }
@@ -225,7 +231,11 @@ export function Homepage() {
           </div>
           <div className="card-body space-y-6">
             <p className="text-slate-300">Mix Stage placeholder - Unit types and density coming soon!</p>
-            <button onClick={() => setCurrentStage('homepage')} className="btn-secondary">
+            <p className="text-slate-400">Project ID: {selectedProjectId}</p>
+            <button onClick={() => {
+              setCurrentStage('homepage');
+              setSelectedProjectId(null);
+            }} className="btn-secondary">
               ← Back to Dashboard
             </button>
           </div>
