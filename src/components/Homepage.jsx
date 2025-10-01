@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { getProjects, saveProject, deleteProject } from '../utils/storage';
-import { SiteStage } from './SiteStage';
 
 // Room Components (placeholders for now)
 function SiteRoom({ project, onBack }) {
@@ -47,8 +46,6 @@ function ViabilityRoom({ project, onBack }) {
 export function Homepage() {
   const [currentRoom, setCurrentRoom] = useState('homepage');
   const [currentProject, setCurrentProject] = useState(null);
-  const [currentStage, setCurrentStage] = useState('homepage');
-  const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [projects, setProjects] = useState([]);
   const [showOptionalDetails, setShowOptionalDetails] = useState(false);
   const [formData, setFormData] = useState({
@@ -119,8 +116,7 @@ export function Homepage() {
       saveProject(newProject);
       setProjects(getProjects());
       setCurrentProject(newProject);
-      setSelectedProjectId(newProject.id);
-      setCurrentStage('site');
+      setCurrentRoom('site');
       
       // Reset form
       setFormData({
@@ -208,43 +204,7 @@ export function Homepage() {
     }
   };
 
-  // Stage routing
-  if (currentStage === 'site') {
-    console.log('Rendering SiteStage with ID:', selectedProjectId);
-    return <SiteStage 
-      projectId={selectedProjectId} 
-      onBack={() => {
-        setCurrentStage('homepage');
-        setSelectedProjectId(null);
-      }}
-      onNext={() => setCurrentStage('mix')}
-    />;
-  }
-
-  if (currentStage === 'mix') {
-    return (
-      <div className="container py-8">
-        <div className="card">
-          <div className="card-header">
-            <span className="text-2xl">🏠</span>
-            <h2 className="card-title">Mix Stage: Add units here</h2>
-          </div>
-          <div className="card-body space-y-6">
-            <p className="text-slate-300">Mix Stage placeholder - Unit types and density coming soon!</p>
-            <p className="text-slate-400">Project ID: {selectedProjectId}</p>
-            <button onClick={() => {
-              setCurrentStage('homepage');
-              setSelectedProjectId(null);
-            }} className="btn-secondary">
-              ← Back to Dashboard
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Room routing (legacy)
+  // Room routing
   if (currentRoom === 'site') {
     return <SiteRoom project={currentProject} onBack={() => setCurrentRoom('homepage')} />;
   }
