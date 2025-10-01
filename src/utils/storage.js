@@ -35,6 +35,20 @@ export function updateProject(projectId, updates) {
   }
 }
 
+export function updateProject(projectId, updates) {
+  try {
+    const projects = getProjects();
+    const updatedProjects = projects.map(p => 
+      p.id === projectId ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p
+    );
+    localStorage.setItem('eazybuild_projects', JSON.stringify(updatedProjects));
+    return updatedProjects.find(p => p.id === projectId);
+  } catch (error) {
+    console.error('Failed to update project:', error);
+    throw error;
+  }
+}
+
 export function deleteProject(projectId) {
   try {
     const projects = getProjects();

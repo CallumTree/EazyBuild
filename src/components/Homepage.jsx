@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getProjects, saveProject, deleteProject } from '../utils/storage';
+import { SiteStage } from './SiteStage';
 
 // Room Components (placeholders for now)
 function SiteRoom({ project, onBack }) {
@@ -46,6 +47,7 @@ function ViabilityRoom({ project, onBack }) {
 export function Homepage() {
   const [currentRoom, setCurrentRoom] = useState('homepage');
   const [currentProject, setCurrentProject] = useState(null);
+  const [currentStage, setCurrentStage] = useState('homepage');
   const [projects, setProjects] = useState([]);
   const [showOptionalDetails, setShowOptionalDetails] = useState(false);
   const [formData, setFormData] = useState({
@@ -116,7 +118,7 @@ export function Homepage() {
       saveProject(newProject);
       setProjects(getProjects());
       setCurrentProject(newProject);
-      setCurrentRoom('site');
+      setCurrentStage('site');
       
       // Reset form
       setFormData({
@@ -204,7 +206,35 @@ export function Homepage() {
     }
   };
 
-  // Room routing
+  // Stage routing
+  if (currentStage === 'site') {
+    return <SiteStage 
+      projectId={currentProject?.id} 
+      onBack={() => setCurrentStage('homepage')}
+      onNext={() => setCurrentStage('mix')}
+    />;
+  }
+
+  if (currentStage === 'mix') {
+    return (
+      <div className="container py-8">
+        <div className="card">
+          <div className="card-header">
+            <span className="text-2xl">🏠</span>
+            <h2 className="card-title">Mix Stage: Add units here</h2>
+          </div>
+          <div className="card-body space-y-6">
+            <p className="text-slate-300">Mix Stage placeholder - Unit types and density coming soon!</p>
+            <button onClick={() => setCurrentStage('homepage')} className="btn-secondary">
+              ← Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Room routing (legacy)
   if (currentRoom === 'site') {
     return <SiteRoom project={currentProject} onBack={() => setCurrentRoom('homepage')} />;
   }
