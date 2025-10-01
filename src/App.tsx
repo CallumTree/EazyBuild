@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { Homepage } from "./components/Homepage";
 import { Home, Map, LayoutGrid, PoundSterling, FileText, Settings, Plus, Minus } from "lucide-react";
 import { Topbar } from "./components/Topbar";
 import { Sidebar } from "./components/Sidebar";
@@ -1104,7 +1105,9 @@ function Shell() {
   );
 }
 
-export default function App() {
+const USE_NEW_HOMEPAGE = true; // Toggle to true for new, false for old tabs
+
+function OldTabs() {
   return (
     <StoreProvider>
       <BrowserRouter>
@@ -1114,4 +1117,12 @@ export default function App() {
       </BrowserRouter>
     </StoreProvider>
   );
+}
+
+export default function App() {
+  if (USE_NEW_HOMEPAGE) {
+    return <Homepage />;
+  }
+
+  return <OldTabs />;
 }
