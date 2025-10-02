@@ -139,66 +139,13 @@ export function SitePhase({ projectId, onBack, onNext }) {
     }
   }, [projectId]);
 
-  const handlePostcodeChange = async (value) => {
+  const handlePostcodeChange = (value) => {
     setPostcode(value.toUpperCase());
     
-    // Fetch region multiplier when postcode has 5+ characters
+    // Mock lookup when postcode has 5+ characters
     if (value.length >= 5) {
-      try {
-        const response = await fetch(`https://api.postcodes.io/postcodes/${value.replace(/\s/g, '')}`);
-        const data = await response.json();
-        
-        if (data.status === 200 && data.result) {
-          const region = data.result.admin_district || data.result.region || '';
-          setLocalAuthority(region);
-          
-          // Map region to multiplier
-          const regionMultipliers = {
-            'London': 1.8,
-            'South East': 1.25,
-            'East of England': 1.1,
-            'South West': 1.15,
-            'West Midlands': 0.95,
-            'East Midlands': 0.9,
-            'North West': 0.85,
-            'North East': 0.8,
-            'Yorkshire and The Humber': 0.9,
-            'Scotland': 0.85,
-            'Wales': 0.9,
-            'Northern Ireland': 0.95
-          };
-          
-          // Find matching multiplier (case-insensitive, partial match)
-          let multiplier = 1.0;
-          for (const [key, value] of Object.entries(regionMultipliers)) {
-            if (region.toLowerCase().includes(key.toLowerCase())) {
-              multiplier = value;
-              break;
-            }
-          }
-          
-          setDensityHint(`Avg 50-100 units/ha | Regional factor: ${multiplier}x`);
-          
-          // Save multiplier to project
-          if (projectId) {
-            updateProject(projectId, { multiplier });
-          }
-        } else {
-          // API failed, use defaults
-          setLocalAuthority('Unknown Area');
-          setDensityHint('Avg 50-100 units/ha');
-          if (projectId) {
-            updateProject(projectId, { multiplier: 1.0 });
-          }
-        }
-      } catch (error) {
-        console.warn('Postcode API error:', error);
-        setLocalAuthority('Unknown Area');
-        setDensityHint('Avg 50-100 units/ha');
-        if (projectId) {
-          updateProject(projectId, { multiplier: 1.0 });
-        }
-      }
+      setLocalAuthority('London Borough of Example');
+      setDensityHint('Avg 50-100 units/ha');
     } else {
       setLocalAuthority('');
       setDensityHint('');
