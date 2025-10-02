@@ -39,6 +39,7 @@ export function updateProject(id, updates) {
       throw new Error(`Project with id ${id} not found`);
     }
     
+    // Merge updates, ensuring arrays like unitMix are properly replaced
     projects[projectIndex] = {
       ...projects[projectIndex],
       ...updates,

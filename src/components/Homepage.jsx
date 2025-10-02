@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getProjects, saveProject, deleteProject, updateProject } from '../utils/storage';
 import { SitePhase } from './SitePhase';
+import { MixPhase } from './MixPhase';
 
 export function Homepage() {
   const [projects, setProjects] = useState([]);
@@ -88,21 +89,32 @@ export function Homepage() {
     );
   }
 
-  // Mix Phase placeholder
-  if (currentPhase === 'mix') {
+  // Mix Phase
+  if (currentPhase === 'mix' && selectedProjectId) {
+    return (
+      <MixPhase
+        projectId={selectedProjectId}
+        onBack={() => setCurrentPhase('site')}
+        onNext={() => setCurrentPhase('viability')}
+      />
+    );
+  }
+
+  // Viability Phase placeholder
+  if (currentPhase === 'viability') {
     return (
       <div className="container py-8">
         <div className="card">
           <div className="card-header">
-            <span className="text-2xl">🏠</span>
-            <h2 className="card-title">Mix Phase: Coming Soon</h2>
+            <span className="text-2xl">💰</span>
+            <h2 className="card-title">Viability Phase: Coming Soon</h2>
           </div>
           <div className="card-body space-y-6">
-            <p className="text-slate-300">Mix Phase placeholder - Unit types and density coming soon!</p>
+            <p className="text-slate-300">Viability analysis coming soon!</p>
             <p className="text-slate-400">Project ID: {selectedProjectId}</p>
             <div className="flex gap-4">
-              <button onClick={() => setCurrentPhase('site')} className="btn-secondary">
-                ← Back to Site
+              <button onClick={() => setCurrentPhase('mix')} className="btn-secondary">
+                ← Back to Mix
               </button>
               <button onClick={() => {
                 setCurrentPhase('home');
