@@ -12,40 +12,74 @@ export const calcSiteArea = (geoJSON) => {
 };
 
 /**
- * Get default size for unit type
+ * Get default size for unit type (2025 UK averages)
  * @param {string} type - Unit type
  * @returns {number} Default size in m²
  */
-export const getDefaultSize = (type) => {
-  const defaults = {
+export const estSize = (type) => {
+  const sizes = {
     '2-bed Semi/Terrace': 70,
-    '3-bed Semi/Detached': 90,
-    '4-bed Detached': 120,
-    '2-bed Bungalow': 85,
-    '3-bed Bungalow': 110,
-    'Custom/Other': 80
+    '2-bed Detached': 80,
+    '3-bed Semi': 95,
+    '3-bed Detached': 110,
+    '4-bed Detached': 135,
+    '2-bed Bungalow': 60,
+    '3-bed Bungalow': 80,
+    'Custom': 80
   };
-  return defaults[type] || 80;
+  return sizes[type] || 80;
 };
 
+// Backward compatibility
+export const getDefaultSize = estSize;
+
 /**
- * Estimate sales price for unit type
+ * Estimate base sales price for unit type (2025 UK averages)
  * @param {string} type - Unit type
  * @param {boolean} garage - Has garage
- * @returns {number} Estimated sales price
+ * @returns {number} Base sales price (before regional multiplier)
  */
-export const estSales = (type, garage = false) => {
+export const estBaseSales = (type, garage = false) => {
   const basePrices = {
-    '2-bed Semi/Terrace': 250000,
-    '3-bed Semi/Detached': 300000,
-    '4-bed Detached': 400000,
-    '2-bed Bungalow': 270000,
-    '3-bed Bungalow': 370000,
-    'Custom/Other': 280000
+    '2-bed Semi/Terrace': 240000,
+    '2-bed Detached': 300000,
+    '3-bed Semi': 280000,
+    '3-bed Detached': 380000,
+    '4-bed Detached': 452000,
+    '2-bed Bungalow': 260000,
+    '3-bed Bungalow': 330000,
+    'Custom': 280000
   };
   
   const basePrice = basePrices[type] || 280000;
-  return garage ? basePrice + 10000 : basePrice;
+  return garage ? basePrice + 20000 : basePrice;
+};
+
+// Backward compatibility
+export const estSales = estBaseSales;
+
+/**
+ * Apply regional multiplier to base price
+ * @param {number} basePrice - Base price
+ * @param {number} multiplier - Regional multiplier (default 1.0)
+ * @returns {number} Adjusted price
+ */
+export const applyMultiplier = (basePrice, multiplier = 1.0) => {
+  return Math.round(basePrice * multiplier);
+};
+
+/**
+ * Calculate total GDV with regional multiplier
+ * @param {Array} mixRows - Unit mix array
+ * @param {number} multiplier - Regional multiplier (default 1.0)
+ * @returns {number} Total GDV
+ */
+export const calcGDV = (mixRows, multiplier = 1.0) => {
+  return mixRows.reduce((sum, row) => {
+    const units = parseInt(row.units) || 0;
+    const basePrice = parseFloat(row.baseSalesPrice) || 0;
+    return sum + (units * applyMultiplier(basePrice, multiplier));
+  }, 0);
 };
 
 /**
@@ -62,4 +96,12 @@ export const adjustGarage = (currentSize, hasGarage, hadGarage) => {
     return currentSize - 15;
   }
   return currentSize;
+};
+
+/**
+ * Get garage bonus for sales price
+ * @returns {number} Garage price bonus
+ */
+export const getGarageBonus = () => {
+  return 20000;
 };

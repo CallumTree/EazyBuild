@@ -1,34 +1,19 @@
 
+```jsx
 import React, { useState, useEffect } from 'react';
 import { getProject, updateProject } from '../utils/storage';
-import { estSales, adjustGarage, getDefaultSize } from '../utils/calculators';
+import { estSize, estBaseSales, applyMultiplier, adjustGarage, getGarageBonus } from '../utils/calculators';
 
 const UNIT_TYPES = [
   '2-bed Semi/Terrace',
-  '3-bed Semi/Detached',
+  '2-bed Detached',
+  '3-bed Semi',
+  '3-bed Detached',
   '4-bed Detached',
   '2-bed Bungalow',
   '3-bed Bungalow',
-  'Custom/Other'
+  'Custom'
 ];
-
-const PRESETS = {
-  'Starter Suburb': [
-    { type: '2-bed Semi/Terrace', units: 6, sizeM2: 70, garage: false },
-    { type: '3-bed Semi/Detached', units: 5, sizeM2: 90, garage: true },
-    { type: '2-bed Bungalow', units: 3, sizeM2: 85, garage: false },
-  ],
-  'Family Mix': [
-    { type: '3-bed Semi/Detached', units: 7, sizeM2: 90, garage: true },
-    { type: '4-bed Detached', units: 4, sizeM2: 120, garage: true },
-    { type: '2-bed Bungalow', units: 2, sizeM2: 85, garage: false },
-  ],
-  'Balanced': [
-    { type: '2-bed Semi/Terrace', units: 5, sizeM2: 70, garage: false },
-    { type: '3-bed Semi/Detached', units: 6, sizeM2: 90, garage: true },
-    { type: '3-bed Bungalow', units: 3, sizeM2: 110, garage: false },
-  ]
-};
 
 export function MixPhase({ projectId, onBack, onNext }) {
   const [project, setProject] = useState(null);
@@ -53,13 +38,16 @@ export function MixPhase({ projectId, onBack, onNext }) {
   }, [projectId]);
 
   function createEmptyRow() {
+    const type = '2-bed Semi/Terrace';
+    const basePrice = estBaseSales(type, false);
     return {
       id: crypto.randomUUID(),
-      type: '2-bed Semi/Terrace',
+      type,
       units: 0,
-      sizeM2: 70,
+      sizeM2: estSize(type),
       garage: false,
-      salesPrice: 250000
+      baseSalesPrice: basePrice,
+      salesPrice: basePrice
     };
   }
 
@@ -76,20 +64,25 @@ export function MixPhase({ projectId, onBack, onNext }) {
   };
 
   const handleRowChange = (id, field, value) => {
+    const multiplier = project?.multiplier || 1.0;
+    
     setMixRows(mixRows.map(row => {
       if (row.id === id) {
         const updated = { ...row, [field]: value };
         
         // Update defaults when type changes
         if (field === 'type') {
-          updated.sizeM2 = getDefaultSize(value);
-          updated.salesPrice = estSales(value);
+          updated.sizeM2 = estSize(value);
+          updated.garage = false;
+          updated.baseSalesPrice = estBaseSales(value, false);
+          updated.salesPrice = applyMultiplier(updated.baseSalesPrice, multiplier);
         }
         
         // Adjust for garage
         if (field === 'garage') {
           updated.sizeM2 = adjustGarage(row.sizeM2, value, row.garage);
-          updated.salesPrice = estSales(row.type, value);
+          updated.baseSalesPrice = estBaseSales(row.type, value);
+          updated.salesPrice = applyMultiplier(updated.baseSalesPrice, multiplier);
         }
         
         return updated;
@@ -98,20 +91,13 @@ export function MixPhase({ projectId, onBack, onNext }) {
     }));
   };
 
-  const handleLoadPreset = (presetName) => {
-    const preset = PRESETS[presetName];
-    if (preset) {
-      const loaded = preset.map(p => ({
-        ...p,
-        id: crypto.randomUUID(),
-        salesPrice: estSales(p.type, p.garage)
-      }));
-      setMixRows(loaded);
-    }
-  };
-
   const handleLoadSuggestion = (suggestion) => {
-    setMixRows(suggestion.mix);
+    const multiplier = project?.multiplier || 1.0;
+    const loaded = suggestion.mix.map(m => ({
+      ...m,
+      salesPrice: applyMultiplier(m.baseSalesPrice, multiplier)
+    }));
+    setMixRows(loaded);
     setShowSuggestions(false);
   };
 
@@ -145,6 +131,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
     );
   }
 
+  const multiplier = project.multiplier || 1.0;
   const totalUnits = mixRows.reduce((sum, row) => sum + (parseInt(row.units) || 0), 0);
   const totalGDV = mixRows.reduce((sum, row) => 
     sum + ((parseInt(row.units) || 0) * (parseFloat(row.salesPrice) || 0)), 0
@@ -158,39 +145,46 @@ export function MixPhase({ projectId, onBack, onNext }) {
 
   const isReady = totalUnits > 0;
 
-  // Mock suggestions
+  // Mock suggestions with base prices
   const suggestions = [
     {
       name: 'Balanced Mix',
       description: '40% semis, 30% bungalows',
-      gdv: '£5.2m',
+      baseGdv: 3800000,
       mix: [
-        { id: crypto.randomUUID(), type: '2-bed Semi/Terrace', units: 6, sizeM2: 70, garage: false, salesPrice: 250000 },
-        { id: crypto.randomUUID(), type: '3-bed Semi/Detached', units: 4, sizeM2: 90, garage: true, salesPrice: 310000 },
-        { id: crypto.randomUUID(), type: '2-bed Bungalow', units: 3, sizeM2: 85, garage: false, salesPrice: 270000 },
+        { id: crypto.randomUUID(), type: '2-bed Semi/Terrace', units: 6, sizeM2: 70, garage: false, baseSalesPrice: 240000 },
+        { id: crypto.randomUUID(), type: '3-bed Semi', units: 4, sizeM2: 95, garage: true, baseSalesPrice: 300000 },
+        { id: crypto.randomUUID(), type: '2-bed Bungalow', units: 3, sizeM2: 60, garage: false, baseSalesPrice: 260000 },
       ]
     },
     {
       name: 'Family Focus',
       description: '50% 3-bed+, high value',
-      gdv: '£6.8m',
+      baseGdv: 5200000,
       mix: [
-        { id: crypto.randomUUID(), type: '3-bed Semi/Detached', units: 7, sizeM2: 90, garage: true, salesPrice: 310000 },
-        { id: crypto.randomUUID(), type: '4-bed Detached', units: 5, sizeM2: 120, garage: true, salesPrice: 420000 },
-        { id: crypto.randomUUID(), type: '2-bed Semi/Terrace', units: 3, sizeM2: 70, garage: false, salesPrice: 250000 },
+        { id: crypto.randomUUID(), type: '3-bed Semi', units: 7, sizeM2: 95, garage: true, baseSalesPrice: 300000 },
+        { id: crypto.randomUUID(), type: '4-bed Detached', units: 5, sizeM2: 135, garage: true, baseSalesPrice: 472000 },
+        { id: crypto.randomUUID(), type: '2-bed Semi/Terrace', units: 3, sizeM2: 70, garage: false, baseSalesPrice: 240000 },
       ]
     },
     {
       name: 'Retirement Ready',
       description: '60% bungalows, accessible',
-      gdv: '£4.9m',
+      baseGdv: 4100000,
       mix: [
-        { id: crypto.randomUUID(), type: '2-bed Bungalow', units: 7, sizeM2: 85, garage: false, salesPrice: 270000 },
-        { id: crypto.randomUUID(), type: '3-bed Bungalow', units: 4, sizeM2: 110, garage: true, salesPrice: 385000 },
-        { id: crypto.randomUUID(), type: '2-bed Semi/Terrace', units: 2, sizeM2: 70, garage: false, salesPrice: 250000 },
+        { id: crypto.randomUUID(), type: '2-bed Bungalow', units: 7, sizeM2: 60, garage: false, baseSalesPrice: 260000 },
+        { id: crypto.randomUUID(), type: '3-bed Bungalow', units: 4, sizeM2: 80, garage: true, baseSalesPrice: 350000 },
+        { id: crypto.randomUUID(), type: '2-bed Semi/Terrace', units: 2, sizeM2: 70, garage: false, baseSalesPrice: 240000 },
       ]
     }
   ];
+
+  const getRegionText = () => {
+    if (multiplier === 1.0) return '';
+    const pct = Math.round((multiplier - 1) * 100);
+    if (pct > 0) return ` (+${pct}%)`;
+    return ` (${pct}%)`;
+  };
 
   return (
     <div className="container py-8 pb-32">
@@ -203,25 +197,12 @@ export function MixPhase({ projectId, onBack, onNext }) {
             <h1 className="card-title">Mix Phase: Optimal Unit Mix</h1>
             <p className="text-slate-400 text-sm mt-1">
               {project.name} • Site: {siteAreaM2.toLocaleString()} m²
+              {multiplier !== 1.0 && <span className="text-brand-400"> • Regional factor: {multiplier}x</span>}
             </p>
           </div>
         </div>
         
         <div className="card-body space-y-6">
-          {/* Presets */}
-          <div className="flex gap-2 flex-wrap">
-            <span className="text-sm text-slate-300 self-center">Quick Presets:</span>
-            {Object.keys(PRESETS).map(preset => (
-              <button
-                key={preset}
-                onClick={() => handleLoadPreset(preset)}
-                className="btn-ghost text-sm"
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
-
           {/* Mobile: Card Stack - Desktop: Table */}
           <div className="space-y-3">
             {/* Desktop Table (hidden on mobile) */}
@@ -285,8 +266,15 @@ export function MixPhase({ projectId, onBack, onNext }) {
                             </label>
                           </div>
                         </td>
-                        <td className="py-2 px-3 text-right text-brand-400 font-medium">
-                          £{(row.salesPrice || 0).toLocaleString()}
+                        <td className="py-2 px-3 text-right">
+                          <div className="text-brand-400 font-medium">
+                            £{(row.salesPrice || 0).toLocaleString()}
+                          </div>
+                          {multiplier !== 1.0 && (
+                            <div className="text-xs text-slate-500">
+                              £{(row.baseSalesPrice || 0).toLocaleString()} base{getRegionText()}
+                            </div>
+                          )}
                         </td>
                         <td className="py-2 px-3 text-center">
                           <button
@@ -374,16 +362,23 @@ export function MixPhase({ projectId, onBack, onNext }) {
                               onChange={(e) => handleRowChange(row.id, 'garage', e.target.checked)}
                               className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-brand-500"
                             />
-                            <span className="text-xs text-slate-300">Garage<br/>(+15m²/£5k)</span>
+                            <span className="text-xs text-slate-300">Garage<br/>(+15m²/£20k)</span>
                           </label>
                         </div>
 
                         <div className="pt-2 border-t border-slate-700">
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-slate-400">Sales Price</span>
-                            <span className="text-lg font-semibold text-brand-400">
-                              £{(row.salesPrice || 0).toLocaleString()}
-                            </span>
+                            <div className="text-right">
+                              <div className="text-lg font-semibold text-brand-400">
+                                £{(row.salesPrice || 0).toLocaleString()}
+                              </div>
+                              {multiplier !== 1.0 && (
+                                <div className="text-xs text-slate-500">
+                                  £{(row.baseSalesPrice || 0).toLocaleString()} base{getRegionText()}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -431,28 +426,32 @@ export function MixPhase({ projectId, onBack, onNext }) {
           {showSuggestions && (
             <div className="space-y-3 p-4 bg-slate-700/30 rounded-xl border border-slate-600">
               <h3 className="font-semibold text-white">Suggested Mixes:</h3>
-              {suggestions.map((suggestion, idx) => (
-                <div
-                  key={idx}
-                  className="p-3 bg-slate-800/50 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer"
-                  onClick={() => {
-                    if (confirm(`Load "${suggestion.name}"? This will replace your current mix.`)) {
-                      handleLoadSuggestion(suggestion);
-                    }
-                  }}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-medium text-white">{suggestion.name}</h4>
-                      <p className="text-sm text-slate-400">{suggestion.description}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-brand-400">{suggestion.gdv}</p>
-                      <p className="text-xs text-slate-500">GDV</p>
+              <p className="text-xs text-slate-400">Adjusted for region</p>
+              {suggestions.map((suggestion, idx) => {
+                const adjustedGdv = applyMultiplier(suggestion.baseGdv, multiplier);
+                return (
+                  <div
+                    key={idx}
+                    className="p-3 bg-slate-800/50 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer"
+                    onClick={() => {
+                      if (confirm(`Load "${suggestion.name}"? This will replace your current mix.`)) {
+                        handleLoadSuggestion(suggestion);
+                      }
+                    }}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium text-white">{suggestion.name}</h4>
+                        <p className="text-sm text-slate-400">{suggestion.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-brand-400">£{(adjustedGdv / 1000000).toFixed(1)}m</p>
+                        <p className="text-xs text-slate-500">GDV</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <button
                 onClick={() => setShowSuggestions(false)}
                 className="btn-ghost text-sm w-full"
@@ -502,3 +501,4 @@ export function MixPhase({ projectId, onBack, onNext }) {
     </div>
   );
 }
+```
