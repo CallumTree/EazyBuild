@@ -16,36 +16,69 @@ export const calcSiteArea = (geoJSON) => {
  * @param {string} type - Unit type
  * @returns {number} Default size in m²
  */
-export const getDefaultSize = (type) => {
-  const defaults = {
+export const estSize = (type) => {
+  const sizes = {
     '2-bed Semi/Terrace': 70,
-    '3-bed Semi/Detached': 90,
-    '4-bed Detached': 120,
-    '2-bed Bungalow': 85,
-    '3-bed Bungalow': 110,
-    'Custom/Other': 80
+    '2-bed Detached': 80,
+    '3-bed Semi': 95,
+    '3-bed Detached': 110,
+    '4-bed Detached': 135,
+    '2-bed Bungalow': 60,
+    '3-bed Bungalow': 80,
+    'Custom': 80
   };
-  return defaults[type] || 80;
+  return sizes[type] || 80;
 };
 
+export const getDefaultSize = estSize; // Backward compatibility
+
 /**
- * Estimate sales price for unit type
+ * Estimate base sales price for unit type
  * @param {string} type - Unit type
  * @param {boolean} garage - Has garage
- * @returns {number} Estimated sales price
+ * @returns {number} Base sales price (before regional multiplier)
  */
-export const estSales = (type, garage = false) => {
+export const estBaseSales = (type, garage = false) => {
   const basePrices = {
-    '2-bed Semi/Terrace': 250000,
-    '3-bed Semi/Detached': 300000,
-    '4-bed Detached': 400000,
-    '2-bed Bungalow': 270000,
-    '3-bed Bungalow': 370000,
-    'Custom/Other': 280000
+    '2-bed Semi/Terrace': 240000,
+    '2-bed Detached': 300000,
+    '3-bed Semi': 280000,
+    '3-bed Detached': 380000,
+    '4-bed Detached': 452000,
+    '2-bed Bungalow': 260000,
+    '3-bed Bungalow': 330000,
+    'Custom': 280000
   };
   
   const basePrice = basePrices[type] || 280000;
-  return garage ? basePrice + 10000 : basePrice;
+  return garage ? basePrice + 20000 : basePrice;
+};
+
+export const estSales = estBaseSales; // Backward compatibility
+
+/**
+ * Apply regional multiplier to base price
+ * @param {number} base - Base price
+ * @param {number} multiplier - Regional multiplier
+ * @returns {number} Adjusted price
+ */
+export const applyMultiplier = (base, multiplier = 1.0) => {
+  return Math.round(base * multiplier);
+};
+
+/**
+ * Calculate total GDV with regional multiplier
+ * @param {Array} mix - Unit mix array
+ * @param {number} multiplier - Regional multiplier
+ * @returns {number} Total GDV
+ */
+export const calcGDV = (mix, multiplier = 1.0) => {
+  return mix.reduce((sum, row) => {
+    const units = parseInt(row.units) || 0;
+    const baseSales = estBaseSales(row.type, row.garage);
+    const adjustedSales = applyMultiplier(baseSales, multiplier);
+    return sum + (units * adjustedSales);
+  }, 0);
 };
 
 /**

@@ -139,13 +139,54 @@ export function SitePhase({ projectId, onBack, onNext }) {
     }
   }, [projectId]);
 
-  const handlePostcodeChange = (value) => {
+  const handlePostcodeChange = async (value) => {
     setPostcode(value.toUpperCase());
     
-    // Mock lookup when postcode has 5+ characters
+    // Fetch region and multiplier when postcode has 5+ characters
     if (value.length >= 5) {
-      setLocalAuthority('London Borough of Example');
-      setDensityHint('Avg 50-100 units/ha');
+      try {
+        const response = await fetch(`https://api.postcodes.io/postcodes/${value.replace(/\s/g, '')}`);
+        const data = await response.json();
+        
+        if (data.status === 200 && data.result) {
+          const region = data.result.region || '';
+          const adminDistrict = data.result.admin_district || '';
+          
+          // Map region to multiplier
+          const regionMultipliers = {
+            'London': 1.8,
+            'South East': 1.25,
+            'East of England': 1.1,
+            'South West': 1.15,
+            'West Midlands': 0.95,
+            'East Midlands': 0.9,
+            'North West': 0.85,
+            'North East': 0.8,
+            'Yorkshire and The Humber': 0.9,
+            'Scotland': 0.85,
+            'Wales': 0.9,
+            'Northern Ireland': 0.95
+          };
+          
+          const multiplier = regionMultipliers[region] || 1.0;
+          
+          setLocalAuthority(adminDistrict);
+          setDensityHint(`${region} (${multiplier}x value uplift)`);
+          
+          // Save multiplier to project
+          updateProject(projectId, { multiplier });
+        } else {
+          // Fallback
+          setLocalAuthority('Unknown');
+          setDensityHint('');
+          updateProject(projectId, { multiplier: 1.0 });
+        }
+      } catch (error) {
+        console.error('Postcode lookup failed:', error);
+        setLocalAuthority('Unknown');
+        setDensityHint('');
+        updateProject(projectId, { multiplier: 1.0 });
+      }
     } else {
       setLocalAuthority('');
       setDensityHint('');
