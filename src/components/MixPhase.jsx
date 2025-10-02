@@ -182,8 +182,8 @@ export function MixPhase({ projectId, onBack, onNext }) {
   const getRegionText = () => {
     if (multiplier === 1.0) return '';
     const pct = Math.round((multiplier - 1) * 100);
-    if (pct > 0) return ` (+${pct}%)`;
-    return ` (${pct}%)`;
+    if (pct > 0) return ' (+' + pct + '%)';
+    return ' (' + pct + '%)';
   };
 
   return (
