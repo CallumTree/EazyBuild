@@ -227,7 +227,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
             <table className="w-full text-sm">
               <thead className="bg-slate-700/50">
                 <tr>
-                  <th className="text-left py-3 px-3 text-slate-300">Type</th>
+                  <th className="text-left py-3 px-3 text-slate-300 w-1/3">Type</th>
                   <th className="text-center py-3 px-3 text-slate-300">Units</th>
                   <th className="text-center py-3 px-3 text-slate-300">Size (m²)</th>
                   <th className="text-center py-3 px-3 text-slate-300">Garage?</th>
@@ -236,59 +236,67 @@ export function MixPhase({ projectId, onBack, onNext }) {
                 </tr>
               </thead>
               <tbody className="bg-slate-800/30">
-                {mixRows.map(row => (
-                  <tr key={row.id} className="border-t border-slate-700">
-                    <td className="py-2 px-3">
-                      <select
-                        value={row.type}
-                        onChange={(e) => handleRowChange(row.id, 'type', e.target.value)}
-                        className="input-field input-field-sm w-full"
-                      >
-                        {UNIT_TYPES.map(type => (
-                          <option key={type} value={type}>{type}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="py-2 px-3">
-                      <input
-                        type="number"
-                        value={row.units}
-                        onChange={(e) => handleRowChange(row.id, 'units', parseInt(e.target.value) || 0)}
-                        className="input-field input-field-sm w-20 text-center"
-                        min="0"
-                      />
-                    </td>
-                    <td className="py-2 px-3">
-                      <input
-                        type="number"
-                        value={row.sizeM2}
-                        onChange={(e) => handleRowChange(row.id, 'sizeM2', parseInt(e.target.value) || 0)}
-                        className="input-field input-field-sm w-20 text-center"
-                        min="0"
-                      />
-                    </td>
-                    <td className="py-2 px-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={row.garage}
-                        onChange={(e) => handleRowChange(row.id, 'garage', e.target.checked)}
-                        className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-brand-500 focus:ring-brand-500"
-                      />
-                    </td>
-                    <td className="py-2 px-3 text-right text-brand-400 font-medium">
-                      £{(row.salesPrice || 0).toLocaleString()}
-                    </td>
-                    <td className="py-2 px-3 text-center">
-                      <button
-                        onClick={() => handleRemoveRow(row.id)}
-                        disabled={mixRows.length === 1}
-                        className="text-red-400 hover:text-red-300 disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        ✕
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {mixRows.map(row => {
+                  const displayType = row.garage ? `${row.type} (w/ Garage)` : row.type;
+                  return (
+                    <tr key={row.id} className="border-t border-slate-700">
+                      <td className="py-2 px-3 w-1/3">
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={row.type}
+                            onChange={(e) => handleRowChange(row.id, 'type', e.target.value)}
+                            className="input-field input-field-sm w-full text-xs"
+                          >
+                            {UNIT_TYPES.map(type => (
+                              <option key={type} value={type}>{type}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1 truncate" title={displayType}>
+                          {displayType}
+                        </div>
+                      </td>
+                      <td className="py-2 px-3">
+                        <input
+                          type="number"
+                          value={row.units}
+                          onChange={(e) => handleRowChange(row.id, 'units', parseInt(e.target.value) || 0)}
+                          className="input-field input-field-sm w-20 text-center"
+                          min="0"
+                        />
+                      </td>
+                      <td className="py-2 px-3">
+                        <input
+                          type="number"
+                          value={row.sizeM2}
+                          onChange={(e) => handleRowChange(row.id, 'sizeM2', parseInt(e.target.value) || 0)}
+                          className="input-field input-field-sm w-20 text-center"
+                          min="0"
+                        />
+                      </td>
+                      <td className="py-2 px-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={row.garage}
+                          onChange={(e) => handleRowChange(row.id, 'garage', e.target.checked)}
+                          className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-brand-500 focus:ring-brand-500"
+                        />
+                      </td>
+                      <td className="py-2 px-3 text-right text-brand-400 font-medium">
+                        £{(row.salesPrice || 0).toLocaleString()}
+                      </td>
+                      <td className="py-2 px-3 text-center">
+                        <button
+                          onClick={() => handleRemoveRow(row.id)}
+                          disabled={mixRows.length === 1}
+                          className="text-red-400 hover:text-red-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
                 <tr className="border-t-2 border-slate-600 bg-slate-700/30 font-semibold">
                   <td className="py-3 px-3 text-white">Total</td>
                   <td className="py-3 px-3 text-center text-brand-400">{totalUnits}</td>
@@ -316,20 +324,17 @@ export function MixPhase({ projectId, onBack, onNext }) {
                 <strong>Est. Density:</strong> {estDensity} units/ha
               </p>
               {densityHigh && (
-                <p className="text-amber-400">
-                  ⚠️ High—consider adding bungalows for balance
-                </p>
+                <>
+                  <p className="text-amber-400">
+                    ⚠️ High—consider adding bungalows for balance
+                  </p>
+                  <p className="text-slate-500 text-xs">
+                    Tip: Swap to bungalows for balance?
+                  </p>
+                </>
               )}
             </div>
           </div>
-
-          {/* Suggest Mix Button */}
-          <button
-            onClick={() => setShowSuggestions(!showSuggestions)}
-            className="btn-primary"
-          >
-            💡 Suggest Mix
-          </button>
 
           {/* Suggestions Modal */}
           {showSuggestions && (
@@ -339,7 +344,11 @@ export function MixPhase({ projectId, onBack, onNext }) {
                 <div
                   key={idx}
                   className="p-3 bg-slate-800/50 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer"
-                  onClick={() => handleLoadSuggestion(suggestion)}
+                  onClick={() => {
+                    if (confirm(`Load "${suggestion.name}"? This will replace your current mix.`)) {
+                      handleLoadSuggestion(suggestion);
+                    }
+                  }}
                 >
                   <div className="flex justify-between items-start">
                     <div>
@@ -366,8 +375,17 @@ export function MixPhase({ projectId, onBack, onNext }) {
           <div className="card bg-slate-700/30 border-slate-600">
             <div className="card-body">
               <div className="flex items-center justify-between">
-                <div className={`btn-ghost text-sm ${isReady ? 'text-green-400' : 'text-red-400'}`}>
-                  {isReady ? '🟢 Ready—Proceed to Viability' : '🔴 Add units first'}
+                <div className="flex items-center gap-3">
+                  <div className={`btn-ghost text-sm ${isReady ? 'text-green-400' : 'text-red-400'}`}>
+                    {isReady ? '🟢 Ready—Proceed to Viability' : '🔴 Add units first'}
+                  </div>
+                  <button
+                    onClick={() => setShowSuggestions(!showSuggestions)}
+                    className="btn-ghost text-xs"
+                    title="AI Ideas"
+                  >
+                    💡
+                  </button>
                 </div>
                 
                 <button
