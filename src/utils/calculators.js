@@ -1,4 +1,3 @@
-
 import * as turf from '@turf/turf';
 
 /**
@@ -49,7 +48,7 @@ export const estBaseSales = (type, garage = false) => {
     '3-bed Bungalow': 330000,
     'Custom': 280000
   };
-  
+
   const basePrice = basePrices[type] || 280000;
   return garage ? basePrice + 20000 : basePrice;
 };
@@ -95,4 +94,37 @@ export const adjustGarage = (currentSize, hasGarage, hadGarage) => {
     return currentSize - 15;
   }
   return currentSize;
+};
+
+/**
+ * Calculate build cost per m² for unit type
+ * @param {Object} row - Unit mix row
+ * @returns {number} Build cost per m²
+ */
+export const calcBuildCost = (row) => {
+  if (row.buildCostPerM2) return row.buildCostPerM2;
+
+  const buildCosts = {
+    '2-bed Semi/Terrace': 1450,
+    '2-bed Detached': 1500,
+    '3-bed Semi': 1500,
+    '3-bed Detached': 1550,
+    '4-bed Detached': 1600,
+    '2-bed Bungalow': 1550,
+    '3-bed Bungalow': 1600,
+  };
+
+  return buildCosts[row.type] || 1500;
+};
+
+/**
+ * Calculate total build cost for a unit mix row
+ * @param {Object} row - Unit mix row
+ * @returns {number} Total build cost
+ */
+export const calcBuildCostTotal = (row) => {
+  const costPerM2 = calcBuildCost(row);
+  const sizeM2 = parseFloat(row.sizeM2) || 0;
+  const units = parseInt(row.units) || 0;
+  return costPerM2 * sizeM2 * units;
 };
