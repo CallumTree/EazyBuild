@@ -185,6 +185,14 @@ export function MixPhase({ projectId, onBack, onNext }) {
               {project.name} • Site: {siteAreaM2.toLocaleString()} m²{getUpliftText(multiplier)}
             </p>
           </div>
+          <button
+            onClick={handleAddRow}
+            disabled={mixRows.length >= 10}
+            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <span className="text-lg">+</span>
+            <span>Add Unit</span>
+          </button>
         </div>
 
         <div className="card-body space-y-6">
@@ -441,15 +449,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
         </div>
       </div>
 
-      {/* Floating Add Button - Top Right */}
-      <button
-        onClick={handleAddRow}
-        disabled={mixRows.length >= 10}
-        className="fixed top-4 right-4 w-12 h-12 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white rounded-full shadow-xl flex items-center justify-center text-2xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-110"
-        style={{ zIndex: 50 }}
-      >
-        +
-      </button>
+      
 
       {/* Fixed Bottom Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-sm border-t border-slate-700 p-4" style={{ zIndex: 50 }}>
