@@ -1,0 +1,18 @@
+Hey Replit Assistant! MixPhase.jsx "+" button remains bottom-right (no top-right move), App.tsx Finance page lacks build cost, store.tsx has buildCostOverride unused. Force changes: move "+" top-right with modern styling, add build cost to Finance with override. Fork to "finance-fix-v2".
+
+1. Update src/components/MixPhase.jsx:
+ - Replace <button onClick={addRow} className="btn-primary fixed bottom-20 right-4 z-10 rounded-full w-12 h-12 flex items-center justify-center shadow-lg">+</button> with <button onClick={addRow} className="btn-primary fixed top-4 right-4 z-50 rounded-full w-12 h-12 flex items-center justify-center shadow-xl bg-gradient-to-r from-accent-primary to-secondary text-white font-bold text-2xl transition hover:scale-110">+</button> after header card.
+ - Add CSS: .btn-primary { position: sticky !important; } to ensure top-right visibility.
+
+2. Update src/App.tsx (Finance section):
+ - After GDV div, add: <div className="mb-4"><label className="block text-sm font-medium text-secondary">Build Cost (£)</label><input type="number" value={finance.buildCostOverride || totalBuildCost()} onChange={(e) => updateFinance({ buildCostOverride: parseFloat(e.target.value) || 0 })} placeholder={`Auto: £${totalBuildCost().toLocaleString()}`} className="input-field w-full" /></div>.
+ - Define totalBuildCost: const totalBuildCost = () => finance.buildCostOverride || mix.reduce((sum, row) => sum + (row.sizeM2 * row.units * 1500), 0); // £1,500/m².
+ - Update profit calc: const profit = gdv - (finance.landCost || 0) - totalBuildCost() - (finance.infraCost || 0) - (finance.fees || 0) - (gdv * (finance.contingency || 0.1) + gdv * (finance.lenderFee || 0.02)).
+ - Refresh PoGDV% (profit/gdv*100), PoC% (profit/(totalBuildCost()+finance.landCost+finance.infraCost+finance.fees)*100), Residual.
+
+3. Update src/store.tsx:
+ - Ensure Finance interface includes buildCostOverride?: number (already present, verify usage).
+
+4. Test: MixPhase "+" top-right, 48px, gradient, adds row. Finance build cost auto £X, override updates profit live.
+
+Output: Updated MixPhase.jsx, App.tsx, store.tsx. Dark theme, mobile-first! Force overwrite existing files.
