@@ -412,12 +412,15 @@ body {
   scrollbar-color: var(--border-secondary) var(--bg-tertiary);
 }
 
-/* Stacked Visa-Style Cards */
+/* Stacked Visa-Style Cards - Google Wallet Style */
 .wallet-card {
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  transform-origin: center;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 0.3s ease-out,
+              box-shadow 0.3s ease-out;
+  transform-origin: center center;
   will-change: transform, opacity;
-  perspective: 1000px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Smooth scroll snap */
