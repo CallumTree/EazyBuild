@@ -289,7 +289,7 @@ export function Homepage() {
                 return (
                   <div
                     key={project.id}
-                    className={`wallet-card absolute rounded-xl cursor-pointer transition-all duration-300 ease-out ${
+                    className={`wallet-card absolute rounded-xl cursor-pointer transition-all duration-300 ease-out overflow-hidden ${
                       isCurrent ? 'shadow-2xl' : 'shadow-lg'
                     }`}
                     style={{
@@ -317,7 +317,7 @@ export function Homepage() {
                   >
                     {/* Outlined border with gradient */}
                     <div 
-                      className="absolute inset-0 rounded-xl p-[3px]"
+                      className="w-full h-full rounded-xl p-[3px]"
                       style={{
                         background: isNewCard 
                           ? 'linear-gradient(135deg, #64748b 0%, #475569 100%)' 
@@ -329,7 +329,7 @@ export function Homepage() {
                       }}
                     >
                       <div className="h-full w-full rounded-lg bg-slate-800 relative overflow-hidden">
-                      {/* Background image or default pattern */}
+                        {/* Background image or default pattern */}
                         {!isNewCard && project.image ? (
                           <img 
                             src={project.image} 
@@ -343,8 +343,8 @@ export function Homepage() {
                         {/* Glossy overlay */}
                         <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/10 backdrop-blur-[0.5px] rounded-lg"></div>
 
-                        {/* Card Content */}
-                        <div className="relative h-full p-4 flex flex-col justify-between z-10">
+                        {/* Card Content - Properly contained */}
+                        <div className="absolute inset-0 p-3.5 flex flex-col justify-between z-10 overflow-hidden">
                           {isNewCard ? (
                             <div className="flex flex-col items-center justify-center text-center h-full">
                               <div className="w-12 h-12 mb-2 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-xl shadow-lg">
@@ -356,26 +356,26 @@ export function Homepage() {
                           ) : (
                             <>
                               {/* Top Section - Brand/Actions */}
-                              <div className="flex items-start justify-between mb-2">
-                                <div className="w-8 h-8 rounded-md bg-white/20 backdrop-blur-md flex items-center justify-center text-base shadow-sm flex-shrink-0">
+                              <div className="flex items-start justify-between mb-1.5">
+                                <div className="w-7 h-7 rounded-md bg-white/20 backdrop-blur-md flex items-center justify-center text-sm shadow-sm flex-shrink-0">
                                   🏗️
                                 </div>
 
                                 {/* Action Buttons */}
-                                <div className="flex gap-1.5 flex-shrink-0">
+                                <div className="flex gap-1 flex-shrink-0">
                                   <button
                                     onClick={handleImageUpload}
-                                    className="w-7 h-7 flex items-center justify-center bg-white/25 hover:bg-white/40 rounded-md backdrop-blur-md transition-all shadow-sm"
+                                    className="w-6 h-6 flex items-center justify-center bg-white/25 hover:bg-white/40 rounded-md backdrop-blur-md transition-all shadow-sm text-[10px]"
                                     title="Upload image"
                                   >
-                                    <span className="text-xs">📷</span>
+                                    📷
                                   </button>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleDeleteProject(project.id);
                                     }}
-                                    className="w-7 h-7 flex items-center justify-center bg-white/25 hover:bg-red-500/90 rounded-md backdrop-blur-md transition-all shadow-sm text-white font-bold text-sm leading-none"
+                                    className="w-6 h-6 flex items-center justify-center bg-white/25 hover:bg-red-500/90 rounded-md backdrop-blur-md transition-all shadow-sm text-white font-bold text-xs leading-none"
                                     title="Delete project"
                                   >
                                     ×
@@ -384,34 +384,34 @@ export function Homepage() {
                               </div>
 
                               {/* Middle Section - Project Info */}
-                              <div className="flex-1 flex flex-col justify-center min-h-0">
-                                <h3 className="text-white font-bold text-base mb-1 truncate drop-shadow-lg tracking-tight">
+                              <div className="flex-1 flex flex-col justify-center min-h-0 mb-1.5">
+                                <h3 className="text-white font-bold text-sm mb-0.5 truncate drop-shadow-lg tracking-tight leading-tight">
                                   {project.name}
                                 </h3>
                                 {project.location && (
-                                  <p className="text-white/70 text-xs italic truncate drop-shadow">
+                                  <p className="text-white/70 text-[11px] italic truncate drop-shadow leading-tight">
                                     {project.location}
                                   </p>
                                 )}
                               </div>
 
                               {/* Bottom Section - Metrics */}
-                              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/20">
-                                <div className="min-w-0">
-                                  <div className="text-white/60 text-[9px] uppercase tracking-wide mb-0.5 truncate">Area</div>
-                                  <div className="text-white font-bold text-[10px] truncate">
+                              <div className="grid grid-cols-3 gap-1.5 pt-1.5 border-t border-white/20">
+                                <div className="min-w-0 overflow-hidden">
+                                  <div className="text-white/60 text-[8px] uppercase tracking-wide mb-0.5 truncate">Area</div>
+                                  <div className="text-white font-bold text-[9px] truncate leading-tight">
                                     {project.siteAreaM2 > 0 ? `${(project.siteAreaM2 / 10000).toFixed(2)}ha` : '-'}
                                   </div>
                                 </div>
-                                <div className="min-w-0">
-                                  <div className="text-white/60 text-[9px] uppercase tracking-wide mb-0.5 truncate">GDV</div>
-                                  <div className="text-white font-bold text-[10px] truncate">
+                                <div className="min-w-0 overflow-hidden">
+                                  <div className="text-white/60 text-[8px] uppercase tracking-wide mb-0.5 truncate">GDV</div>
+                                  <div className="text-white font-bold text-[9px] truncate leading-tight">
                                     {project.gdv ? `£${(project.gdv / 1000000).toFixed(1)}M` : '-'}
                                   </div>
                                 </div>
-                                <div className="min-w-0">
-                                  <div className="text-white/60 text-[9px] uppercase tracking-wide mb-0.5 truncate">Profit</div>
-                                  <div className="text-white font-bold text-[10px] truncate">
+                                <div className="min-w-0 overflow-hidden">
+                                  <div className="text-white/60 text-[8px] uppercase tracking-wide mb-0.5 truncate">Profit</div>
+                                  <div className="text-white font-bold text-[9px] truncate leading-tight">
                                     {project.profitMargin || project.profitTarget ? `${project.profitMargin || project.profitTarget}%` : '-'}
                                   </div>
                                 </div>
@@ -422,7 +422,7 @@ export function Homepage() {
 
                         {/* Chip decoration (Visa-style) */}
                         {!isNewCard && (
-                          <div className="absolute top-14 left-4 w-8 h-6 rounded-sm bg-gradient-to-br from-yellow-300 to-yellow-500 opacity-50 shadow-sm"></div>
+                          <div className="absolute top-12 left-3 w-7 h-5 rounded-sm bg-gradient-to-br from-yellow-300 to-yellow-500 opacity-40 shadow-sm"></div>
                         )}
                       </div>
                     </div>
