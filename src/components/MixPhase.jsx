@@ -367,7 +367,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
                               <div className="px-3 pb-3 pt-1 space-y-3">
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
-                                    <label className="block text-xs text-slate-400 mb-1">Cost/m² (£)</p>
+                                    <label className="block text-xs text-slate-400 mb-1">Cost/m² (£)</label>
                                     <input
                                       type="number"
                                       value={row.buildCostPerM2 || calcBuildCost(row)}
@@ -563,7 +563,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
                       <div className="px-3 pb-3 pt-1 space-y-3">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-xs text-slate-400 mb-1">Cost/m² (£)</p>
+                            <label className="block text-xs text-slate-400 mb-1">Cost/m² (£)</label>
                             <input
                               type="number"
                               value={row.buildCostPerM2 || calcBuildCost(row)}
