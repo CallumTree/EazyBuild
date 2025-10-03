@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { getProjects, saveProject, deleteProject, updateProject } from '../utils/storage';
 import { SitePhase } from './SitePhase';
@@ -23,8 +24,8 @@ export function Homepage() {
 
   const loadProjects = () => {
     const savedProjects = getProjects();
-    setProjects(savedProjects || []); // Fallback if null
-    console.log('Loaded projects:', savedProjects); // Debug data
+    setProjects(savedProjects || []);
+    console.log('Loaded projects:', savedProjects);
   };
 
   const handleInputChange = (field, value) => {
@@ -73,7 +74,6 @@ export function Homepage() {
     if (confirm('Are you sure you want to delete this project?')) {
       deleteProject(projectId);
       loadProjects();
-      // If the deleted project was the current one, reset to home
       if (selectedProjectId === projectId) {
         setSelectedProjectId(null);
         setCurrentPhase('home');
@@ -97,6 +97,32 @@ export function Homepage() {
     setSelectedProjectId(newId);
     setCurrentPhase('site');
     loadProjects();
+  };
+
+  const handleImageUpload = (projectId, e) => {
+    e.stopPropagation();
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          updateProject(projectId, { image: ev.target.result });
+          loadProjects();
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
+
+  const getBorderColor = (project) => {
+    const profit = project.profitMargin || project.profitTarget || 0;
+    if (profit >= 22) return '#22c55e';
+    if (profit >= 16) return '#f59e0b';
+    return '#ef4444';
   };
 
   // Site Phase Component
@@ -176,76 +202,76 @@ export function Homepage() {
           </div>
         </div>
 
-        {/* Your Projects Dashboard */}
+        {/* Your Projects Dashboard - Horizontal Scrolling Wallet Style */}
         <div className="card overflow-hidden">
           <div className="card-header">
             <span className="text-2xl">💳</span>
             <h2 className="card-title">Your Projects</h2>
           </div>
-          <div className="carousel-container w-full p-2 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900">
-            <div className="flex overflow-x-auto space-x-2 snap-x snap-mandatory scrollbar-thin" style={{ scrollBehavior: 'smooth', paddingBottom: '10px' }}>
+          <div className="w-full p-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900">
+            <div className="flex overflow-x-auto space-x-2 snap-x snap-mandatory scrollbar-thin" style={{ scrollBehavior: 'smooth', padding: '10px 0' }}>
               {projects.map(project => (
                 <div
                   key={project.id}
-                  className={`card w-40 h-20 rounded-2xl p-1.5 shadow-md border-4 cursor-pointer relative overflow-hidden ${
-                    (project.profitMargin || project.profitTarget || 0) >= 22 ? 'border-green-500' :
-                    (project.profitMargin || project.profitTarget || 0) >= 16 ? 'border-amber-500' :
-                    'border-red-500'
-                  }`}
+                  className="wallet-card w-40 h-20 rounded-2xl p-1.5 shadow-lg cursor-pointer relative flex-shrink-0"
+                  style={{
+                    border: `4px solid ${getBorderColor(project)}`,
+                    scrollSnapAlign: 'center',
+                    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)'
+                  }}
                   onClick={() => {
                     setSelectedProjectId(project.id);
                     setCurrentPhase('site');
                   }}
-                  style={{ scrollSnapAlign: 'center', flexShrink: 0 }}
                 >
-                  <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-                  <img
-                    src={project.image || '🏠'}
-                    className="w-full h-10 rounded-lg object-cover mb-0.5 z-10 relative"
-                    alt="Project"
-                  />
-                  <div className="text-primary font-bold text-xs z-10 relative line-clamp-1">{project.name}</div>
-                  <div className="text-muted text-[10px] italic z-10 relative line-clamp-1">{project.location}</div>
+                  <div className="flex flex-col h-full relative z-10">
+                    <img
+                      src={project.image || '🏠'}
+                      className="w-full h-10 rounded-lg object-cover mb-0.5"
+                      alt="Project"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextElementSibling.style.display = 'flex';
+                      }}
+                    />
+                    <div 
+                      className="w-full h-10 rounded-lg mb-0.5 items-center justify-center text-2xl bg-slate-700/50" 
+                      style={{ display: project.image ? 'none' : 'flex' }}
+                    >
+                      🏠
+                    </div>
+                    <div className="text-primary font-bold text-xs line-clamp-1">{project.name}</div>
+                    <div className="text-muted text-[10px] italic line-clamp-1">{project.location || 'No location'}</div>
+                  </div>
                   <button
-                    onClick={e => {
-                      e.stopPropagation();
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = 'image/*';
-                      input.onchange = e => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = ev => {
-                            updateProject(project.id, { image: ev.target.result });
-                            loadProjects();
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      };
-                      input.click();
-                    }}
-                    className="btn-ghost text-[8px] z-10 relative top-0.5 right-0.5"
+                    onClick={(e) => handleImageUpload(project.id, e)}
+                    className="absolute top-0.5 right-0.5 bg-slate-800/80 hover:bg-slate-700/90 text-white rounded px-1 text-[10px] z-20 transition-colors"
                   >
                     📷
                   </button>
                   <button
-                    onClick={e => {
+                    onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteProject(project.id);
                     }}
-                    className="btn-ghost text-[8px] text-white z-10 relative bottom-0.5 right-0.5"
+                    className="absolute bottom-0.5 right-0.5 bg-red-600/80 hover:bg-red-500/90 text-white rounded px-1 text-[10px] z-20 transition-colors"
                   >
                     ×
                   </button>
                 </div>
               ))}
+              
+              {/* New Project Card */}
               <div
-                className="card w-40 h-20 rounded-2xl p-1.5 shadow-md border-4 bg-gradient-to-br from-gray-500 to-gray-700 flex flex-col items-center justify-center cursor-pointer"
+                className="wallet-card w-40 h-20 rounded-2xl p-1.5 shadow-lg cursor-pointer relative flex-shrink-0 flex flex-col items-center justify-center"
+                style={{
+                  border: '4px solid #6b7280',
+                  scrollSnapAlign: 'center',
+                  background: 'linear-gradient(135deg, rgba(55, 65, 81, 0.95) 0%, rgba(75, 85, 99, 0.95) 100%)'
+                }}
                 onClick={handleNewProject}
-                style={{ scrollSnapAlign: 'center', flexShrink: 0 }}
               >
-                <div className="text-xl mb-0.5">🏠</div>
+                <div className="text-2xl mb-1">🏠</div>
                 <div className="text-white font-bold text-xs">New Project</div>
               </div>
             </div>
