@@ -42,6 +42,9 @@ export interface Project {
     targetProfitPct: string;
     landAcqCosts: string;
     buildCostOverride?: number;
+    landCost?: number;
+    infraCost?: number;
+    fees?: number;
   };
 }
 
@@ -156,6 +159,10 @@ const defaultProject: Project = {
     financeMonths: '0',
     targetProfitPct: '0',
     landAcqCosts: '0',
+    buildCostOverride: 0,
+    landCost: 0,
+    infraCost: 0,
+    fees: 0,
   },
 };
 

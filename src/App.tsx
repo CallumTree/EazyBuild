@@ -400,7 +400,17 @@ function ModernFinancePage() {
 
   const unitMix = project.unitMix || [];
   const gdv = totalSalesValue(unitMix, houseTypes);
-  const buildCost = calculateTotalBuildCost(unitMix, houseTypes, project); // Pass project for override
+  
+  // Calculate total build cost with override option
+  const totalBuildCost = () => {
+    if (finance.buildCostOverride && finance.buildCostOverride > 0) {
+      return finance.buildCostOverride;
+    }
+    // Auto calculate: £1,500/m² * total GIA
+    return totalGIA(unitMix, houseTypes) * 1500;
+  };
+  
+  const buildCost = totalBuildCost();
   const { marginPct } = margins(unitMix, houseTypes);
 
   // Calculate net developable area for finance calculations
@@ -596,17 +606,9 @@ function ModernFinancePage() {
               )}
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Build cost £/m²</label>
-                <NumberInput
-                  className="input-field"
-                  value={project.buildCostPerSqm || 1650}
-                  onChange={(value) => updateProject({ buildCostPerSqm: parseFloat(value) || 1650 })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Total Build Cost (£)</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Build Cost (£)</label>
                 <NumberInput
                   className="input-field"
                   value={finance.buildCostOverride || buildCost}
@@ -617,7 +619,9 @@ function ModernFinancePage() {
                   placeholder={`Auto: £${buildCost.toLocaleString()}`}
                 />
                 <p className="text-xs text-slate-500 mt-1">
-                  {finance.buildCostOverride ? 'Manual override' : `Auto: ${totalGIA(unitMix, houseTypes).toLocaleString()}m² × £${project.buildCostPerSqm || 1650}/m²`}
+                  {finance.buildCostOverride && finance.buildCostOverride > 0 
+                    ? 'Manual override' 
+                    : `Auto: ${totalGIA(unitMix, houseTypes).toLocaleString()}m² × £1,500/m²`}
                 </p>
               </div>
               <div>
