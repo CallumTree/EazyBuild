@@ -389,28 +389,31 @@ function ModernFinancePage() {
 
   // Initialize finance with default zero values if not present
   const finance = project.finance || {
-    feesPct: '0', // Default to 0
-    contPct: '0', // Default to 0
-    financeRatePct: '0', // Default to 0
-    financeMonths: '0', // Default to 0
-    targetProfitPct: '0', // Default to 0
-    landAcqCosts: '0', // Default to 0
-    buildCostOverride: 0, // Default to 0 for build cost override
+    feesPct: '0',
+    contPct: '0',
+    financeRatePct: '0',
+    financeMonths: '0',
+    targetProfitPct: '0',
+    landAcqCosts: '0',
+    buildCostOverride: undefined,
+    landCost: 0,
+    infraCost: 0,
+    fees: 0,
   };
 
   const unitMix = project.unitMix || [];
   const gdv = totalSalesValue(unitMix, houseTypes);
   
   // Calculate total build cost with override option
-  const totalBuildCost = () => {
+  const calculateBuildCost = () => {
     if (finance.buildCostOverride && finance.buildCostOverride > 0) {
       return finance.buildCostOverride;
     }
-    // Auto calculate: £1,500/m² * total GIA
-    return totalGIA(unitMix, houseTypes) * 1500;
+    // Auto calculate from house types' actual build costs
+    return calculateTotalBuildCost(unitMix, houseTypes, project);
   };
   
-  const buildCost = totalBuildCost();
+  const buildCost = calculateBuildCost();
   const { marginPct } = margins(unitMix, houseTypes);
 
   // Calculate net developable area for finance calculations
@@ -621,7 +624,7 @@ function ModernFinancePage() {
                 <p className="text-xs text-slate-500 mt-1">
                   {finance.buildCostOverride && finance.buildCostOverride > 0 
                     ? 'Manual override' 
-                    : `Auto: ${totalGIA(unitMix, houseTypes).toLocaleString()}m² × £1,500/m²`}
+                    : `Auto: calculated from unit mix build costs`}
                 </p>
               </div>
               <div>

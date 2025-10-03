@@ -159,7 +159,7 @@ const defaultProject: Project = {
     financeMonths: '0',
     targetProfitPct: '0',
     landAcqCosts: '0',
-    buildCostOverride: 0,
+    buildCostOverride: undefined,
     landCost: 0,
     infraCost: 0,
     fees: 0,
