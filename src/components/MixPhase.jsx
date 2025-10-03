@@ -172,6 +172,32 @@ export function MixPhase({ projectId, onBack, onNext }) {
     }
   ];
 
+  // Helper functions to calculate build cost (assuming these exist elsewhere or were intended to be here)
+  const calcBuildCost = (row) => {
+    const buildCostMap = {
+      '2-bed Semi/Terrace': 1450, '2-bed Detached': 1500, '3-bed Semi': 1500,
+      '3-bed Detached': 1550, '4-bed Detached': 1600, '2-bed Bungalow': 1550,
+      '3-bed Bungalow': 1600, 'Custom': 1500
+    };
+    const baseBuildCostPerM2 = buildCostMap[row.type] || 1500;
+    return baseBuildCostPerM2;
+  };
+
+  const calcBuildCostTotal = (row) => {
+    const baseBuildCostPerM2 = calcBuildCost(row);
+    const garageCostPerM2 = 1200;
+    let totalBuildCost = 0;
+    if (row.garage) {
+      const mainAreaM2 = row.sizeM2 - 15;
+      const garageCost = 15 * garageCostPerM2;
+      const mainCost = mainAreaM2 * baseBuildCostPerM2;
+      totalBuildCost = mainCost + garageCost;
+    } else {
+      totalBuildCost = row.sizeM2 * baseBuildCostPerM2;
+    }
+    return totalBuildCost;
+  };
+
   return (
     <div className="container py-8 pb-32">
       <div className="card">
@@ -337,6 +363,44 @@ export function MixPhase({ projectId, onBack, onNext }) {
                                   </span>
                                 </div>
                               </div>
+                              {/* Updated section for build cost input and slider */}
+                              <div className="px-3 pb-3 pt-1 space-y-3">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block text-xs text-slate-400 mb-1">Cost/m² (£)</p>
+                                    <input
+                                      type="number"
+                                      value={row.buildCostPerM2 || calcBuildCost(row)}
+                                      onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value) || null)}
+                                      className="input-field input-field-sm w-full"
+                                      placeholder={`Default ${calcBuildCost(row)}`}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs text-slate-400 mb-1">Total Build Cost</label>
+                                    <p className="text-lg font-semibold text-amber-400 mt-1">
+                                      £{calcBuildCostTotal(row).toLocaleString()}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-slate-400 mb-1">Quick Adjust (£1,000 - £2,500/m²)</label>
+                                  <input
+                                    type="range"
+                                    min="1000"
+                                    max="2500"
+                                    step="50"
+                                    value={row.buildCostPerM2 || calcBuildCost(row)}
+                                    onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value))}
+                                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500"
+                                  />
+                                  <div className="flex justify-between text-xs text-slate-500 mt-1">
+                                    <span>£1,000</span>
+                                    <span className="text-amber-400">£{(row.buildCostPerM2 || calcBuildCost(row)).toLocaleString()}</span>
+                                    <span>£2,500</span>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </td>
                         </tr>
@@ -418,7 +482,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
 
                       <div className="space-y-2">
                         <div>
-                          <label className="text-xs text-slate-400 mb-1 block">Units</label>
+                          <label className="text-xs text-slate-400 mb-1">Units</label>
                           <input
                             type="number"
                             value={row.units}
@@ -430,7 +494,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
 
                         <div className="flex items-end gap-3">
                           <div className="flex-1">
-                            <label className="text-xs text-slate-400 mb-1 block">Size (m²)</label>
+                            <label className="text-xs text-slate-400 mb-1">Size (m²)</label>
                             <input
                               type="number"
                               value={row.sizeM2}
@@ -492,6 +556,44 @@ export function MixPhase({ projectId, onBack, onNext }) {
                               {profitPct.toFixed(1)}%
                             </span>
                             <span>{profitPct >= 20 ? '🟢' : profitPct >= 10 ? '🟡' : '🔴'}</span>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Updated section for build cost input and slider for mobile */}
+                      <div className="px-3 pb-3 pt-1 space-y-3">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs text-slate-400 mb-1">Cost/m² (£)</p>
+                            <input
+                              type="number"
+                              value={row.buildCostPerM2 || calcBuildCost(row)}
+                              onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value) || null)}
+                              className="input-field input-field-sm w-full"
+                              placeholder={`Default ${calcBuildCost(row)}`}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-slate-400 mb-1">Total Build Cost</label>
+                            <p className="text-lg font-semibold text-amber-400 mt-1">
+                              £{calcBuildCostTotal(row).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-400 mb-1">Quick Adjust (£1,000 - £2,500/m²)</label>
+                          <input
+                            type="range"
+                            min="1000"
+                            max="2500"
+                            step="50"
+                            value={row.buildCostPerM2 || calcBuildCost(row)}
+                            onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value))}
+                            className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500"
+                          />
+                          <div className="flex justify-between text-xs text-slate-500 mt-1">
+                            <span>£1,000</span>
+                            <span className="text-amber-400">£{(row.buildCostPerM2 || calcBuildCost(row)).toLocaleString()}</span>
+                            <span>£2,500</span>
                           </div>
                         </div>
                       </div>
