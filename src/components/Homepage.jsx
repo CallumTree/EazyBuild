@@ -233,71 +233,103 @@ export function Homepage() {
           </div>
         </div>
 
-        {/* Projects Dashboard */}
+        {/* Projects Dashboard - Google Wallet Style */}
         {projects.length > 0 && (
           <div className="card">
             <div className="card-header">
-              <span className="text-2xl">📊</span>
+              <span className="text-2xl">💳</span>
               <h2 className="card-title">Your Projects</h2>
             </div>
             <div className="card-body">
-              <div className="flex overflow-x-auto space-x-4 pb-4">
+              <div className="flex overflow-x-auto space-x-4 pb-4 snap-x snap-mandatory">
                 {projects.map(project => {
-                  // Determine status border color based on profit target or other criteria
-                  const getStatusColor = () => {
-                    if (project.profitTarget >= 20) return 'border-green-500';
-                    if (project.profitTarget >= 15) return 'border-amber-500';
+                  // Determine border color based on profitMargin (from viability)
+                  const getBorderColor = () => {
+                    const margin = project.profitMargin || project.profitTarget || 0;
+                    if (margin >= 22) return 'border-green-500';
+                    if (margin >= 16) return 'border-amber-500';
                     return 'border-red-500';
+                  };
+
+                  const handleImageUpload = (e) => {
+                    e.stopPropagation();
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = (event) => {
+                      const file = event.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          updateProject(project.id, { image: ev.target.result });
+                          loadProjects();
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    };
+                    input.click();
                   };
 
                   return (
                     <div
                       key={project.id}
-                      className={`relative flex-shrink-0 w-64 h-40 rounded-xl p-4 shadow-lg border-4 ${getStatusColor()} bg-slate-700/50 cursor-pointer hover:bg-slate-700/70 transition-all`}
+                      className={`relative flex-shrink-0 w-64 h-32 rounded-xl p-3 shadow-lg border-4 ${getBorderColor()} bg-slate-700/50 cursor-pointer hover:bg-slate-700/70 transition-all snap-center`}
                       onClick={() => {
                         setSelectedProjectId(project.id);
                         setCurrentPhase('site');
                       }}
                     >
+                      {/* Image or Icon */}
+                      {project.image ? (
+                        <img 
+                          src={project.image} 
+                          className="w-full h-12 rounded object-cover mb-1" 
+                          alt={project.name}
+                        />
+                      ) : (
+                        <div className="text-3xl mb-1">🏠</div>
+                      )}
+                      
+                      {/* Project Name */}
+                      <div className="text-white font-semibold text-sm truncate">
+                        {project.name}
+                      </div>
+                      
+                      {/* Location */}
+                      {project.location && (
+                        <div className="text-slate-400 text-xs truncate">
+                          📍 {project.location}
+                        </div>
+                      )}
+
+                      {/* Image Upload Button */}
+                      <button
+                        onClick={handleImageUpload}
+                        className="absolute top-2 right-2 text-slate-400 hover:text-slate-200 text-lg w-6 h-6 flex items-center justify-center bg-slate-800/80 rounded"
+                        title="Upload image"
+                      >
+                        📷
+                      </button>
+
+                      {/* Delete Button */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteProject(project.id);
                         }}
-                        className="absolute top-2 right-2 text-red-400 hover:text-red-300 text-xl font-bold w-6 h-6 flex items-center justify-center"
+                        className="absolute bottom-2 right-2 text-red-400 hover:text-red-300 text-sm font-bold w-5 h-5 flex items-center justify-center"
+                        title="Delete project"
                       >
                         ×
                       </button>
-                      
-                      <div className="text-4xl mb-2">🏠</div>
-                      
-                      <div className="text-white font-semibold text-base truncate">
-                        {project.name}
-                      </div>
-                      
-                      {project.location && (
-                        <div className="text-slate-400 text-sm truncate">
-                          📍 {project.location}
-                        </div>
-                      )}
-                      
-                      <div className="flex gap-2 mt-1 text-xs text-slate-300">
-                        {project.siteAreaM2 > 0 && (
-                          <span className="truncate">{project.siteAreaM2.toLocaleString()} m²</span>
-                        )}
-                        {project.profitTarget && (
-                          <span>{project.profitTarget}%</span>
-                        )}
-                      </div>
                     </div>
                   );
                 })}
                 
                 {/* New Project Card */}
                 <div
-                  className="flex-shrink-0 w-64 h-40 rounded-xl p-4 shadow-lg border-4 border-slate-600 bg-slate-700/30 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-700/50 transition-all"
+                  className="flex-shrink-0 w-64 h-32 rounded-xl p-4 shadow-lg border-4 border-gray-500 bg-slate-700/30 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-700/50 transition-all snap-center"
                   onClick={() => {
-                    // Open the create form or auto-create and navigate
                     const newName = `Project ${projects.length + 1}`;
                     const newProject = saveProject({
                       name: newName,

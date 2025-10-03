@@ -40,6 +40,7 @@ export function updateProject(id, updates) {
     }
     
     // Merge updates, ensuring arrays like unitMix are properly replaced
+    // Handle image base64 data and other updates
     projects[projectIndex] = {
       ...projects[projectIndex],
       ...updates,
