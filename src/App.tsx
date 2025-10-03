@@ -16,7 +16,7 @@ import { computeTotals, formatCurrency } from "./finance";
 import MapShell from "./components/MapShell";
 import "./index.css";
 import { useViability } from './store/viability';
-import { netDevelopableArea, totalGIA, totalBuildCost, totalSalesValue, margins, clamp } from './lib/calc'; // Import new helpers
+import { netDevelopableArea, totalGIA, totalBuildCost as calculateTotalBuildCost, totalSalesValue, margins, clamp } from './lib/calc'; // Import new helpers
 
 // Placeholder for TotalsBar component (assuming it's defined elsewhere or will be created)
 const TotalsBar = () => {
@@ -31,7 +31,7 @@ const TotalsBar = () => {
   };
   const unitMix = project.unitMix || [];
   const gdv = totalSalesValue(unitMix, houseTypes);
-  const buildCost = totalBuildCost(unitMix, houseTypes);
+  const buildCost = calculateTotalBuildCost(unitMix, houseTypes, project); // Pass project for override
   const { marginPct } = margins(unitMix, houseTypes);
 
   const results = computeTotals(project, finance, houseTypes);
@@ -395,11 +395,12 @@ function ModernFinancePage() {
     financeMonths: '0', // Default to 0
     targetProfitPct: '0', // Default to 0
     landAcqCosts: '0', // Default to 0
+    buildCostOverride: 0, // Default to 0 for build cost override
   };
 
   const unitMix = project.unitMix || [];
   const gdv = totalSalesValue(unitMix, houseTypes);
-  const buildCost = totalBuildCost(unitMix, houseTypes);
+  const buildCost = calculateTotalBuildCost(unitMix, houseTypes, project); // Pass project for override
   const { marginPct } = margins(unitMix, houseTypes);
 
   // Calculate net developable area for finance calculations
@@ -418,7 +419,10 @@ function ModernFinancePage() {
       if (sensitivityMode === 'sale') {
         return { ...ht, saleValuePerSqm: ht.saleValuePerSqm * (1 + sensitivityValue / 100) };
       } else if (sensitivityMode === 'build') {
-        return { ...ht, buildCostPerSqm: ht.buildCostPerSqm * (1 + sensitivityValue / 100) };
+        // Adjusting build cost per sqm, but the overall build cost calculation is handled by totalBuildCost
+        // This sensitivity might be better applied directly to the totalBuildCost calculation if it were simpler
+        // For now, we'll assume this affects per-unit cost which then flows through to totalBuildCost
+        return { ...ht, buildCostPerUnit: (ht.buildCostPerUnit || 0) * (1 + sensitivityValue / 100) };
       }
       return ht;
     });
@@ -428,7 +432,7 @@ function ModernFinancePage() {
 
   const sensitivityResults = getSensitivityResults();
 
-  const updateFinance = (field: keyof typeof finance, value: string) => {
+  const updateFinance = (field: keyof typeof finance, value: string | number) => {
     updateProject({
       finance: { ...finance, [field]: value }
     });
@@ -474,7 +478,7 @@ function ModernFinancePage() {
     }
   };
 
-  const handleFinanceInputChange = (field: keyof typeof finance, value: string) => {
+  const handleFinanceInputChange = (field: keyof typeof finance, value: string | number) => {
     updateFinance(field, value);
   };
 
@@ -799,7 +803,7 @@ function OfferPage() {
   };
   const unitMix = project.unitMix || [];
   const gdv = totalSalesValue(unitMix, houseTypes);
-  const buildCost = totalBuildCost(unitMix, houseTypes);
+  const buildCost = calculateTotalBuildCost(unitMix, houseTypes, project); // Pass project for override
   const { marginPct } = margins(unitMix, houseTypes);
 
   const results = computeTotals(project, finance, houseTypes);
@@ -966,7 +970,7 @@ function ModernHomePage() {
   const finance = project.finance || { targetProfitPct: '0', feesPct: '0', contPct: '0', financeRatePct: '0', financeMonths: '0', landAcqCosts: '0' };
   const unitMix = project.unitMix || [];
   const gdv = totalSalesValue(unitMix, houseTypes);
-  const buildCost = totalBuildCost(unitMix, houseTypes);
+  const buildCost = calculateTotalBuildCost(unitMix, houseTypes, project); // Pass project for override
   const { marginPct } = margins(unitMix, houseTypes);
 
   const results = computeTotals(project, finance, houseTypes);

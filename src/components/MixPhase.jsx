@@ -446,8 +446,8 @@ export function MixPhase({ projectId, onBack, onNext }) {
       <button
         onClick={handleAddRow}
         disabled={mixRows.length >= 10}
-        className="fixed top-4 right-4 w-12 h-12 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white rounded-full shadow-xl flex items-center justify-center text-2xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-        style={{ zIndex: 20 }}
+        className="fixed top-4 right-4 w-12 h-12 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white rounded-full shadow-xl flex items-center justify-center text-2xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-110"
+        style={{ zIndex: 50 }}
       >
         +
       </button>

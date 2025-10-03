@@ -41,6 +41,7 @@ export interface Project {
     financeMonths: string;
     targetProfitPct: string;
     landAcqCosts: string;
+    buildCostOverride?: number;
   };
 }
 
