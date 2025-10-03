@@ -209,111 +209,141 @@ export function Homepage() {
                 return (
                   <div
                     key={project.id}
-                    className="wallet-card flex-shrink-0 w-80 h-48 relative rounded-2xl overflow-hidden cursor-pointer snap-start transition-all duration-300 hover:scale-105 shadow-2xl"
+                    className="wallet-card flex-shrink-0 w-80 h-48 relative rounded-2xl overflow-hidden cursor-pointer snap-start transition-all duration-300 hover:scale-105 shadow-md"
                     onClick={() => {
                       setSelectedProjectId(project.id);
                       setCurrentPhase('site');
                     }}
-                    style={{
-                      background: status.color === 'green' 
-                        ? 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)'
-                        : status.color === 'amber'
-                        ? 'linear-gradient(135deg, #c2410c 0%, #f59e0b 100%)'
-                        : 'linear-gradient(135deg, #991b1b 0%, #ef4444 100%)'
-                    }}
                   >
-                    {/* Decorative wave pattern overlay */}
-                    <div className="absolute inset-0 opacity-20">
-                      <svg className="w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="none">
-                        <path d="M0,100 Q100,50 200,100 T400,100 L400,200 L0,200 Z" fill="white"/>
-                      </svg>
-                    </div>
-
-                    {/* Card Content */}
-                    <div className="relative h-full p-6 flex flex-col justify-between">
-                      {/* Top Section - Logo/Brand Area */}
-                      <div className="flex items-start justify-between">
-                        <div className="w-12 h-12 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl">
-                          🏗️
-                        </div>
-                        
-                        {/* Action Buttons */}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={handleImageUpload}
-                            className="w-8 h-8 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-all text-white text-sm"
-                            title="Upload image"
-                          >
-                            📷
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteProject(project.id);
-                            }}
-                            className="w-8 h-8 flex items-center justify-center bg-white/20 hover:bg-red-500/80 rounded-lg backdrop-blur-sm transition-all text-white font-bold"
-                            title="Delete project"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Middle Section - Project Name */}
-                      <div>
-                        <h3 className="text-white font-bold text-2xl mb-1 truncate drop-shadow-lg">
-                          {project.name}
-                        </h3>
-                        {project.location && (
-                          <p className="text-white/90 text-sm truncate drop-shadow">
-                            {project.location}
-                          </p>
+                    {/* Gradient border wrapper */}
+                    <div 
+                      className="absolute inset-0 rounded-2xl p-[4px]"
+                      style={{
+                        background: status.color === 'green' 
+                          ? 'linear-gradient(135deg, #22c55e 0%, #10b981 100%)'
+                          : status.color === 'amber'
+                          ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                          : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                      }}
+                    >
+                      {/* Inner card content */}
+                      <div className="h-full w-full rounded-xl bg-slate-800 relative overflow-hidden">
+                        {/* Background image or default pattern */}
+                        {project.image ? (
+                          <img 
+                            src={project.image} 
+                            alt="Project" 
+                            className="absolute inset-0 w-full h-full object-cover opacity-40"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-900 opacity-60"></div>
                         )}
-                      </div>
+                        
+                        {/* Glossy overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20 backdrop-blur-[2px]"></div>
+                        
+                        {/* Card Content */}
+                        <div className="relative h-full p-5 flex flex-col justify-between z-10">
+                          {/* Top Section - Brand/Actions */}
+                          <div className="flex items-start justify-between">
+                            <div className="w-10 h-10 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shadow-sm">
+                              🏗️
+                            </div>
+                            
+                            {/* Action Buttons */}
+                            <div className="flex gap-2">
+                              <button
+                                onClick={handleImageUpload}
+                                className="w-8 h-8 flex items-center justify-center bg-white/25 hover:bg-white/40 rounded-lg backdrop-blur-md transition-all shadow-sm"
+                                title="Upload image"
+                              >
+                                <span className="text-base">📷</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteProject(project.id);
+                                }}
+                                className="w-8 h-8 flex items-center justify-center bg-white/25 hover:bg-red-500/90 rounded-lg backdrop-blur-md transition-all shadow-sm text-white font-bold text-lg"
+                                title="Delete project"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          </div>
 
-                      {/* Bottom Section - Key Metrics */}
-                      <div className="grid grid-cols-3 gap-3 pt-3 border-t border-white/20">
-                        <div>
-                          <div className="text-white/70 text-xs mb-1">Area</div>
-                          <div className="text-white font-bold text-sm">
-                            {project.siteAreaM2 > 0 ? `${(project.siteAreaM2 / 10000).toFixed(2)}ha` : '-'}
+                          {/* Middle Section - Project Info */}
+                          <div className="flex-1 flex flex-col justify-center">
+                            <h3 className="text-white font-bold text-xl mb-1 truncate drop-shadow-lg tracking-tight">
+                              {project.name}
+                            </h3>
+                            {project.location && (
+                              <p className="text-white/80 text-xs italic truncate drop-shadow">
+                                {project.location}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Bottom Section - Metrics */}
+                          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/15">
+                            <div>
+                              <div className="text-white/60 text-[10px] uppercase tracking-wider mb-0.5">Area</div>
+                              <div className="text-white font-bold text-xs">
+                                {project.siteAreaM2 > 0 ? `${(project.siteAreaM2 / 10000).toFixed(2)}ha` : '-'}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-white/60 text-[10px] uppercase tracking-wider mb-0.5">GDV</div>
+                              <div className="text-white font-bold text-xs">
+                                {project.gdv ? `£${(project.gdv / 1000000).toFixed(1)}M` : '-'}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-white/60 text-[10px] uppercase tracking-wider mb-0.5">Profit</div>
+                              <div className="text-white font-bold text-xs">
+                                {project.profitMargin || project.profitTarget ? `${project.profitMargin || project.profitTarget}%` : '-'}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <div>
-                          <div className="text-white/70 text-xs mb-1">GDV</div>
-                          <div className="text-white font-bold text-sm">
-                            {project.gdv ? `£${(project.gdv / 1000000).toFixed(1)}M` : '-'}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-white/70 text-xs mb-1">Profit</div>
-                          <div className="text-white font-bold text-sm">
-                            {project.profitMargin || project.profitTarget ? `${project.profitMargin || project.profitTarget}%` : '-'}
-                          </div>
-                        </div>
+
+                        {/* Chip decoration (Visa-style) */}
+                        <div className="absolute top-16 left-5 w-9 h-7 rounded-sm bg-gradient-to-br from-yellow-300 to-yellow-500 opacity-70 shadow-md"></div>
                       </div>
                     </div>
-
-                    {/* Chip/Card number style decoration */}
-                    <div className="absolute top-20 left-6 w-10 h-8 rounded bg-gradient-to-br from-yellow-200 to-yellow-400 opacity-60"></div>
                   </div>
                 );
               })}
               
               {/* New Project Card */}
               <div
-                className="wallet-card flex-shrink-0 w-80 h-48 relative rounded-2xl overflow-hidden cursor-pointer snap-start transition-all duration-300 hover:scale-105 border-4 border-dashed border-slate-600 hover:border-blue-500 shadow-xl"
+                className="wallet-card flex-shrink-0 w-80 h-48 relative rounded-2xl overflow-hidden cursor-pointer snap-start transition-all duration-300 hover:scale-105 shadow-md"
                 onClick={handleNewProject}
-                style={{
-                  background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.8) 100%)'
-                }}
               >
-                <div className="relative h-full flex flex-col items-center justify-center p-6 text-center">
-                  <div className="w-16 h-16 mb-3 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-3xl shadow-lg">
-                    ➕
+                {/* Gradient border wrapper */}
+                <div 
+                  className="absolute inset-0 rounded-2xl p-[4px]"
+                  style={{
+                    background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
+                  }}
+                >
+                  {/* Inner card content */}
+                  <div className="h-full w-full rounded-xl bg-slate-800 relative overflow-hidden">
+                    {/* Background pattern */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-900 opacity-60"></div>
+                    
+                    {/* Glossy overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/10 backdrop-blur-[2px]"></div>
+                    
+                    {/* Card Content */}
+                    <div className="relative h-full flex flex-col items-center justify-center p-6 text-center z-10">
+                      <div className="w-14 h-14 mb-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-2xl shadow-lg">
+                        ➕
+                      </div>
+                      <h3 className="text-white font-bold text-lg mb-1 drop-shadow-lg">New Project</h3>
+                      <p className="text-slate-300 text-xs italic">Start a development</p>
+                    </div>
                   </div>
-                  <h3 className="text-white font-bold text-lg mb-1">New Project</h3>
-                  <p className="text-slate-400 text-xs">Start a development</p>
                 </div>
               </div>
             </div>
