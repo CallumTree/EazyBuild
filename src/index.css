@@ -412,6 +412,35 @@ body {
   scrollbar-color: var(--border-secondary) var(--bg-tertiary);
 }
 
+/* Google Wallet Style Cards */
+.wallet-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+  will-change: transform;
+}
+
+.wallet-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  z-index: 10;
+}
+
+.wallet-card:active {
+  transform: translateY(-4px) scale(1.01);
+}
+
+/* Smooth scroll snap */
+@media (prefers-reduced-motion: no-preference) {
+  .snap-x {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Glow effect on hover */
+.wallet-card:hover {
+  box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.5), 
+              0 0 40px -10px currentColor;
+}
+
 /* Responsive Design - Improved for mobile */
 @media (max-width: 768px) {
   .container {

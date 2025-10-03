@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { getProjects, saveProject, deleteProject, updateProject } from '../utils/storage';
 import { SitePhase } from './SitePhase';
@@ -75,6 +76,19 @@ export function Homepage() {
     }
   };
 
+  const handleNewProject = () => {
+    const newName = `Project ${projects.length + 1}`;
+    const newProject = saveProject({
+      name: newName,
+      location: '',
+      siteAreaM2: 0,
+      profitTarget: 20
+    });
+    setSelectedProjectId(newProject.id);
+    setCurrentPhase('site');
+    loadProjects();
+  };
+
   // Site Phase Component
   if (currentPhase === 'site' && selectedProjectId) {
     return (
@@ -149,55 +163,223 @@ export function Homepage() {
           </div>
         </div>
 
-        {/* Create Project Form */}
-        <div className="card">
+        {/* Google Wallet Style Projects Dashboard */}
+        <div className="card overflow-hidden">
           <div className="card-header">
-            <span className="text-2xl">➕</span>
-            <h2 className="card-title">Create New Project</h2>
+            <span className="text-2xl">💳</span>
+            <h2 className="card-title">Your Projects</h2>
           </div>
-          <div className="card-body">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Project Name *
-                  </label>
-                  <input
-                    type="text"
-                    className="input-field"
-                    placeholder="e.g., Maple Grove Development"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Location
-                  </label>
-                  <input
-                    type="text"
-                    className="input-field"
-                    placeholder="e.g., Birmingham, West Midlands"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                  />
+          
+          {/* Horizontal Scrolling Container */}
+          <div className="relative bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6">
+            <div 
+              className="flex overflow-x-auto gap-6 pb-4 snap-x snap-mandatory scrollbar-thin"
+              style={{ scrollPaddingLeft: '1.5rem' }}
+            >
+              {projects.map(project => {
+                // Calculate profitability status (traffic light system)
+                const getProfitStatus = () => {
+                  const margin = project.profitMargin || project.profitTarget || 0;
+                  if (margin >= 22) return { color: 'green', label: 'Strong', border: 'border-green-500', glow: 'shadow-green-500/50' };
+                  if (margin >= 16) return { color: 'amber', label: 'Moderate', border: 'border-amber-500', glow: 'shadow-amber-500/50' };
+                  return { color: 'red', label: 'Weak', border: 'border-red-500', glow: 'shadow-red-500/50' };
+                };
+
+                const status = getProfitStatus();
+
+                const handleImageUpload = (e) => {
+                  e.stopPropagation();
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  input.onchange = (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        updateProject(project.id, { image: ev.target.result });
+                        loadProjects();
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  };
+                  input.click();
+                };
+
+                return (
+                  <div
+                    key={project.id}
+                    className={`wallet-card flex-shrink-0 w-96 h-56 relative rounded-2xl overflow-hidden cursor-pointer snap-start transition-all duration-300 hover:scale-105 border-4 ${status.border} shadow-2xl ${status.glow}`}
+                    onClick={() => {
+                      setSelectedProjectId(project.id);
+                      setCurrentPhase('site');
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.95) 100%)',
+                      backdropFilter: 'blur(10px)'
+                    }}
+                  >
+                    {/* Decorative Background Pattern */}
+                    <div className="absolute inset-0 opacity-10">
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
+                      <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500 rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2"></div>
+                    </div>
+
+                    {/* Card Content */}
+                    <div className="relative h-full p-6 flex flex-col">
+                      {/* Top Section - Image & Name */}
+                      <div className="flex items-start gap-4 mb-4">
+                        {project.image ? (
+                          <img 
+                            src={project.image} 
+                            className="w-24 h-24 rounded-xl object-cover shadow-lg ring-4 ring-white/20" 
+                            alt={project.name}
+                          />
+                        ) : (
+                          <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-5xl shadow-lg ring-4 ring-white/20">
+                            🏠
+                          </div>
+                        )}
+                        
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-bold text-xl mb-2 truncate">
+                            {project.name}
+                          </h3>
+                          
+                          {project.location && (
+                            <p className="text-slate-300 text-sm flex items-center gap-2 mb-2">
+                              <span>📍</span>
+                              <span className="truncate">{project.location}</span>
+                            </p>
+                          )}
+
+                          {/* Profitability Badge */}
+                          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${
+                            status.color === 'green' ? 'bg-green-500 text-white' :
+                            status.color === 'amber' ? 'bg-amber-500 text-white' :
+                            'bg-red-500 text-white'
+                          }`}>
+                            <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                            {status.label}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom Section - Stats */}
+                      <div className="mt-auto space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-400">Site Area</span>
+                          <span className="text-white font-semibold">
+                            {project.siteAreaM2 > 0 ? `${project.siteAreaM2.toLocaleString()}m²` : 'Not set'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-400">Profit Target</span>
+                          <span className={`font-bold ${
+                            status.color === 'green' ? 'text-green-400' :
+                            status.color === 'amber' ? 'text-amber-400' :
+                            'text-red-400'
+                          }`}>
+                            {project.profitMargin || project.profitTarget || 0}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="absolute top-4 right-4 flex gap-2">
+                        <button
+                          onClick={handleImageUpload}
+                          className="w-10 h-10 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-xl backdrop-blur-sm transition-all text-white text-lg"
+                          title="Upload image"
+                        >
+                          📷
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteProject(project.id);
+                          }}
+                          className="w-10 h-10 flex items-center justify-center bg-black/40 hover:bg-red-500 rounded-xl backdrop-blur-sm transition-all text-white font-bold text-xl"
+                          title="Delete project"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {/* New Project Card */}
+              <div
+                className="wallet-card flex-shrink-0 w-96 h-56 relative rounded-2xl overflow-hidden cursor-pointer snap-start transition-all duration-300 hover:scale-105 border-4 border-dashed border-slate-600 hover:border-blue-500 shadow-xl"
+                onClick={handleNewProject}
+                style={{
+                  background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(51, 65, 85, 0.5) 100%)',
+                  backdropFilter: 'blur(10px)'
+                }}
+              >
+                <div className="relative h-full flex flex-col items-center justify-center p-6 text-center">
+                  <div className="w-20 h-20 mb-4 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-4xl shadow-lg transform transition-transform group-hover:scale-110">
+                    ➕
+                  </div>
+                  <h3 className="text-white font-bold text-xl mb-2">Create New Project</h3>
+                  <p className="text-slate-400 text-sm">Start your next development</p>
                 </div>
               </div>
+            </div>
 
-              {/* Optional Fields Toggle */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setShowOptionals(!showOptionals)}
-                  className="btn-ghost text-sm"
-                >
-                  {showOptionals ? '▼' : '▶'} Optional Fields
-                </button>
+            {/* Scroll Indicator */}
+            {projects.length > 1 && (
+              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-2">
+                {projects.map((_, idx) => (
+                  <div key={idx} className="w-2 h-2 rounded-full bg-white/30"></div>
+                ))}
               </div>
+            )}
+          </div>
+        </div>
 
-              {showOptionals && (
+        {/* Create Project Form - Collapsed by default */}
+        <div className="card">
+          <button
+            onClick={() => setShowOptionals(!showOptionals)}
+            className="card-header w-full text-left hover:bg-slate-700/30 transition-colors cursor-pointer"
+          >
+            <span className="text-2xl">➕</span>
+            <h2 className="card-title">Create New Project (Advanced)</h2>
+            <span className="ml-auto text-slate-400">{showOptionals ? '▼' : '▶'}</span>
+          </button>
+          
+          {showOptionals && (
+            <div className="card-body">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Project Name *
+                    </label>
+                    <input
+                      type="text"
+                      className="input-field"
+                      placeholder="e.g., Maple Grove Development"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Location
+                    </label>
+                    <input
+                      type="text"
+                      className="input-field"
+                      placeholder="e.g., Birmingham, West Midlands"
+                      value={formData.location}
+                      onChange={(e) => handleInputChange('location', e.target.value)}
+                    />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       Estimated Site Area (m²)
@@ -223,170 +405,14 @@ export function Homepage() {
                     />
                   </div>
                 </div>
-              )}
 
-              <button type="submit" className="btn-primary">
-                <span>🚀</span>
-                Create Project
-              </button>
-            </form>
-          </div>
-        </div>
-
-        {/* Projects Dashboard - Wallet Style Cards */}
-        <div className="card">
-          <div className="card-header">
-            <span className="text-2xl">💳</span>
-            <h2 className="card-title">Your Projects</h2>
-          </div>
-          <div className="card-body p-0">
-            {/* Horizontal scrolling container */}
-            <div 
-              className="flex overflow-x-auto gap-4 px-6 py-6 snap-x snap-mandatory"
-              style={{
-                scrollbarWidth: 'thin',
-                WebkitOverflowScrolling: 'touch'
-              }}
-            >
-              {projects.map(project => {
-                // Determine border color based on profitMargin
-                const getBorderColor = () => {
-                  const margin = project.profitMargin || project.profitTarget || 0;
-                  if (margin >= 22) return 'border-l-green-500';
-                  if (margin >= 16) return 'border-l-amber-500';
-                  return 'border-l-red-500';
-                };
-
-                const handleImageUpload = (e) => {
-                  e.stopPropagation();
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.accept = 'image/*';
-                  input.onchange = (event) => {
-                    const file = event.target.files[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (ev) => {
-                        updateProject(project.id, { image: ev.target.result });
-                        loadProjects();
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  };
-                  input.click();
-                };
-
-                return (
-                  <div
-                    key={project.id}
-                    className={`relative flex-shrink-0 w-80 h-44 rounded-xl p-5 shadow-2xl border-l-8 ${getBorderColor()} bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 cursor-pointer hover:scale-[1.02] hover:shadow-3xl transition-all duration-300 snap-start`}
-                    onClick={() => {
-                      setSelectedProjectId(project.id);
-                      setCurrentPhase('site');
-                    }}
-                  >
-                    {/* Project Image/Icon Section */}
-                    <div className="flex items-start gap-4 mb-3">
-                      {project.image ? (
-                        <img 
-                          src={project.image} 
-                          className="w-20 h-20 rounded-lg object-cover shadow-lg ring-2 ring-slate-600" 
-                          alt={project.name}
-                        />
-                      ) : (
-                        <div className="w-20 h-20 rounded-lg bg-slate-900/50 flex items-center justify-center text-4xl shadow-lg">
-                          🏠
-                        </div>
-                      )}
-                      
-                      <div className="flex-1 min-w-0">
-                        {/* Project Name */}
-                        <h3 className="text-white font-bold text-lg truncate mb-1">
-                          {project.name}
-                        </h3>
-                        
-                        {/* Location */}
-                        {project.location && (
-                          <p className="text-slate-400 text-sm truncate flex items-center gap-1">
-                            <span>📍</span>
-                            <span>{project.location}</span>
-                          </p>
-                        )}
-
-                        {/* Project Stats */}
-                        <div className="flex gap-3 mt-2 text-xs">
-                          {project.siteAreaM2 > 0 && (
-                            <span className="text-slate-500">
-                              {project.siteAreaM2.toLocaleString()}m²
-                            </span>
-                          )}
-                          <span className={`font-semibold ${
-                            project.profitMargin >= 22 ? 'text-green-400' :
-                            project.profitMargin >= 16 ? 'text-amber-400' :
-                            'text-red-400'
-                          }`}>
-                            {project.profitMargin || project.profitTarget || 0}% target
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="absolute top-3 right-3 flex gap-2">
-                      <button
-                        onClick={handleImageUpload}
-                        className="w-8 h-8 flex items-center justify-center bg-slate-900/70 hover:bg-slate-900 rounded-lg backdrop-blur-sm transition-all text-slate-400 hover:text-white"
-                        title="Upload image"
-                      >
-                        📷
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteProject(project.id);
-                        }}
-                        className="w-8 h-8 flex items-center justify-center bg-slate-900/70 hover:bg-red-500 rounded-lg backdrop-blur-sm transition-all text-slate-400 hover:text-white font-bold"
-                        title="Delete project"
-                      >
-                        ×
-                      </button>
-                    </div>
-
-                    {/* Status Indicator */}
-                    <div className={`absolute bottom-3 right-3 px-2 py-1 rounded-full text-xs font-medium ${
-                      project.profitMargin >= 22 ? 'bg-green-500/20 text-green-400' :
-                      project.profitMargin >= 16 ? 'bg-amber-500/20 text-amber-400' :
-                      'bg-red-500/20 text-red-400'
-                    }`}>
-                      {project.profitMargin >= 22 ? 'Strong' : 
-                       project.profitMargin >= 16 ? 'Moderate' : 'Weak'}
-                    </div>
-                  </div>
-                );
-              })}
-              
-              {/* New Project Card */}
-              <div
-                className="flex-shrink-0 w-80 h-44 rounded-xl p-5 shadow-2xl border-4 border-dashed border-slate-600 bg-slate-800/30 flex flex-col items-center justify-center cursor-pointer hover:scale-[1.02] hover:bg-slate-700/40 hover:border-blue-500/50 transition-all duration-300 snap-start group"
-                onClick={() => {
-                  const newName = `Project ${projects.length + 1}`;
-                  const newProject = saveProject({
-                    name: newName,
-                    location: '',
-                    siteAreaM2: 0,
-                    profitTarget: 20
-                  });
-                  setSelectedProjectId(newProject.id);
-                  setCurrentPhase('site');
-                  loadProjects();
-                }}
-              >
-                <div className="text-6xl mb-3 group-hover:scale-110 transition-transform">➕</div>
-                <div className="text-slate-300 font-bold text-lg">New Project</div>
-                <div className="text-slate-500 text-sm mt-1">Click to create</div>
-              </div>
+                <button type="submit" className="btn-primary">
+                  <span>🚀</span>
+                  Create Project
+                </button>
+              </form>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
