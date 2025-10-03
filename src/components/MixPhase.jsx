@@ -213,70 +213,135 @@ export function MixPhase({ projectId, onBack, onNext }) {
                 <tbody className="bg-slate-800/30">
                   {mixRows.map(row => {
                     const displayType = row.garage ? row.type + ' (w/ Garage)' : row.type;
+
+                    // Define build cost per m² based on house type
+                    const buildCostMap = {
+                      '2-bed Semi/Terrace': 1450,
+                      '2-bed Detached': 1500,
+                      '3-bed Semi': 1500,
+                      '3-bed Detached': 1550,
+                      '4-bed Detached': 1600,
+                      '2-bed Bungalow': 1550,
+                      '3-bed Bungalow': 1600,
+                      'Custom': 1500 // Default for custom
+                    };
+
+                    const baseBuildCostPerM2 = buildCostMap[row.type] || 1500; // Fallback to 1500 if type not found
+                    const garageCostPerM2 = 1200; // Specific cost for garage per m²
+
+                    // Calculate total build cost, considering garage
+                    let totalBuildCost = 0;
+                    if (row.garage) {
+                      const mainAreaM2 = row.sizeM2 - 15; // Subtract garage area
+                      const garageCost = 15 * garageCostPerM2; // Cost for the 15m² garage
+                      const mainCost = mainAreaM2 * baseBuildCostPerM2; // Cost for the main living area
+                      totalBuildCost = mainCost + garageCost;
+                    } else {
+                      totalBuildCost = row.sizeM2 * baseBuildCostPerM2; // No garage, use base cost
+                    }
+
+                    const profit = (row.salesPrice || 0) - totalBuildCost;
+                    const profitPct = row.salesPrice > 0 ? (profit / row.salesPrice) * 100 : 0;
+
                     return (
-                      <tr key={row.id} className="border-t border-slate-700">
-                        <td className="py-2 px-3 w-[40%]">
-                          <select
-                            value={row.type}
-                            onChange={(e) => handleRowChange(row.id, 'type', e.target.value)}
-                            className="input-field input-field-sm w-full text-xs"
-                          >
-                            {UNIT_TYPES.map(type => (
-                              <option key={type} value={type}>{type}</option>
-                            ))}
-                          </select>
-                          <div className="text-xs text-slate-400 mt-1" title={displayType}>
-                            {displayType}
-                          </div>
-                        </td>
-                        <td className="py-2 px-3">
-                          <input
-                            type="number"
-                            value={row.units}
-                            onChange={(e) => handleRowChange(row.id, 'units', parseInt(e.target.value) || 0)}
-                            className="input-field input-field-sm w-20 text-center"
-                            min="0"
-                          />
-                        </td>
-                        <td className="py-2 px-3">
-                          <div className="flex items-center gap-2">
+                      <React.Fragment key={row.id}>
+                        <tr className="border-t border-slate-700">
+                          <td className="py-2 px-3 w-[40%]">
+                            <select
+                              value={row.type}
+                              onChange={(e) => handleRowChange(row.id, 'type', e.target.value)}
+                              className="input-field input-field-sm w-full text-xs"
+                            >
+                              {UNIT_TYPES.map(type => (
+                                <option key={type} value={type}>{type}</option>
+                              ))}
+                            </select>
+                            <div className="text-xs text-slate-400 mt-1" title={displayType}>
+                              {displayType}
+                            </div>
+                          </td>
+                          <td className="py-2 px-3">
                             <input
                               type="number"
-                              value={row.sizeM2}
-                              onChange={(e) => handleRowChange(row.id, 'sizeM2', parseInt(e.target.value) || 0)}
-                              className="input-field input-field-sm w-20"
+                              value={row.units}
+                              onChange={(e) => handleRowChange(row.id, 'units', parseInt(e.target.value) || 0)}
+                              className="input-field input-field-sm w-20 text-center"
                               min="0"
                             />
-                            <span className="text-xs text-slate-400">m²</span>
-                            <label className="flex items-center gap-1 text-xs text-slate-400 ml-2">
+                          </td>
+                          <td className="py-2 px-3">
+                            <div className="flex items-center gap-2">
                               <input
-                                type="checkbox"
-                                checked={row.garage}
-                                onChange={(e) => handleRowChange(row.id, 'garage', e.target.checked)}
-                                className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-brand-500"
+                                type="number"
+                                value={row.sizeM2}
+                                onChange={(e) => handleRowChange(row.id, 'sizeM2', parseInt(e.target.value) || 0)}
+                                className="input-field input-field-sm w-20"
+                                min="0"
                               />
-                              Garage
-                            </label>
-                          </div>
-                        </td>
-                        <td className="py-2 px-3 text-right">
-                          <div className="text-brand-400 font-medium">
-                            £{(row.salesPrice || 0).toLocaleString()}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            £{(row.baseSalesPrice || 0).toLocaleString()} base{getUpliftText(multiplier)}
-                          </div>
-                        </td>
-                        <td className="py-2 px-3 text-center">
-                          <button
-                            onClick={() => handleRemoveRow(row.id)}
-                            disabled={mixRows.length === 1}
-                            className="text-red-400 hover:text-red-300 disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            ✕
-                          </button>
-                        </td>
-                      </tr>
+                              <span className="text-xs text-slate-400">m²</span>
+                              <label className="flex items-center gap-1 text-xs text-slate-400 ml-2">
+                                <input
+                                  type="checkbox"
+                                  checked={row.garage}
+                                  onChange={(e) => handleRowChange(row.id, 'garage', e.target.checked)}
+                                  className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-brand-500"
+                                />
+                                Garage
+                              </label>
+                            </div>
+                          </td>
+                          <td className="py-2 px-3 text-right">
+                            <div className="text-brand-400 font-medium">
+                              £{(row.salesPrice || 0).toLocaleString()}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              £{(row.baseSalesPrice || 0).toLocaleString()} base{getUpliftText(multiplier)}
+                            </div>
+                          </td>
+                          <td className="py-2 px-3 text-center">
+                            <button
+                              onClick={() => handleRemoveRow(row.id)}
+                              disabled={mixRows.length === 1}
+                              className="text-red-400 hover:text-red-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              ✕
+                            </button>
+                          </td>
+                        </tr>
+                        <tr className="bg-slate-800/50">
+                          <td colSpan={5} className="py-3 px-4">
+                            <div className="grid grid-cols-3 gap-4 text-sm">
+                              <div>
+                                <div className="text-xs text-slate-400 mb-1">Build Cost</div>
+                                <div className="font-medium text-amber-400">£{totalBuildCost.toLocaleString()}</div>
+                                <div className="text-xs text-slate-500 mt-0.5">
+                                  {row.garage ? (
+                                    <>£{baseBuildCostPerM2}/m² + £{garageCostPerM2}/m² garage</>
+                                  ) : (
+                                    <>£{baseBuildCostPerM2}/m²</>
+                                  )}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-slate-400 mb-1">Profit per Unit</div>
+                                <div className={`font-medium ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                  £{profit.toLocaleString()}
+                                </div>
+                                <div className="text-xs text-slate-500 mt-0.5">Sales - Build</div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-slate-400 mb-1">Profit Margin</div>
+                                <div className={`font-medium ${profitPct >= 20 ? 'text-green-400' : profitPct >= 10 ? 'text-amber-400' : 'text-red-400'}`}>
+                                  {profitPct.toFixed(1)}%
+                                </div>
+                                <div className="text-xs text-slate-500 mt-0.5">
+                                  {profitPct >= 20 ? '🟢 Healthy' : profitPct >= 10 ? '🟡 Moderate' : '🔴 Low'}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      </React.Fragment>
                     );
                   })}
                   <tr className="border-t-2 border-slate-600 bg-slate-700/30 font-semibold">
@@ -294,6 +359,37 @@ export function MixPhase({ projectId, onBack, onNext }) {
             <div className="md:hidden space-y-3">
               {mixRows.map(row => {
                 const displayType = row.garage ? row.type + ' (w/ Garage)' : row.type;
+
+                // Define build cost per m² based on house type
+                const buildCostMap = {
+                  '2-bed Semi/Terrace': 1450,
+                  '2-bed Detached': 1500,
+                  '3-bed Semi': 1500,
+                  '3-bed Detached': 1550,
+                  '4-bed Detached': 1600,
+                  '2-bed Bungalow': 1550,
+                  '3-bed Bungalow': 1600,
+                  'Custom': 1500 // Default for custom
+                };
+
+                const baseBuildCostPerM2 = buildCostMap[row.type] || 1500; // Fallback to 1500 if type not found
+                const garageCostPerM2 = 1200; // Specific cost for garage per m²
+
+                // Calculate total build cost, considering garage
+                let totalBuildCost = 0;
+                if (row.garage) {
+                  const mainAreaM2 = row.sizeM2 - 15; // Subtract garage area
+                  const garageCost = 15 * garageCostPerM2; // Cost for the 15m² garage
+                  const mainCost = mainAreaM2 * baseBuildCostPerM2; // Cost for the main living area
+                  totalBuildCost = mainCost + garageCost;
+                } else {
+                  totalBuildCost = row.sizeM2 * baseBuildCostPerM2; // No garage, use base cost
+                }
+
+                const profit = (row.salesPrice || 0) - totalBuildCost;
+                const profitPct = row.salesPrice > 0 ? (profit / row.salesPrice) * 100 : 0;
+
+
                 return (
                   <div key={row.id} className="card bg-slate-800/50 border-slate-600">
                     <div className="card-body p-4 space-y-3">
@@ -366,6 +462,38 @@ export function MixPhase({ projectId, onBack, onNext }) {
                                 £{(row.baseSalesPrice || 0).toLocaleString()} base{getUpliftText(multiplier)}
                               </div>
                             </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Build Cost and Profit details for mobile */}
+                    <div className="bg-slate-800/70 p-4 border-t border-slate-700">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div className="text-xs text-slate-400 mb-1">Build Cost</div>
+                          <div className="font-medium text-amber-400">£{totalBuildCost.toLocaleString()}</div>
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            {row.garage ? (
+                              <>£{baseBuildCostPerM2}/m² + £{garageCostPerM2}/m² garage</>
+                            ) : (
+                              <>£{baseBuildCostPerM2}/m²</>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-slate-400 mb-1">Profit per Unit</div>
+                          <div className={`font-medium ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            £{profit.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-0.5">Sales - Build</div>
+                        </div>
+                        <div className="col-span-2"> {/* Span across both columns for profit margin */}
+                          <div className="text-xs text-slate-400 mb-1">Profit Margin</div>
+                          <div className={`font-medium ${profitPct >= 20 ? 'text-green-400' : profitPct >= 10 ? 'text-amber-400' : 'text-red-400'}`}>
+                            {profitPct.toFixed(1)}%
+                          </div>
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            {profitPct >= 20 ? '🟢 Healthy' : profitPct >= 10 ? '🟡 Moderate' : '🔴 Low'}
                           </div>
                         </div>
                       </div>
@@ -449,7 +577,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
         </div>
       </div>
 
-      
+
 
       {/* Fixed Bottom Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-sm border-t border-slate-700 p-4" style={{ zIndex: 50 }}>
