@@ -46,8 +46,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
       sizeM2,
       garage: false,
       baseSalesPrice: baseSales,
-      salesPrice: applyMultiplier(baseSales, multiplier),
-      buildCostPerM2: null
+      salesPrice: applyMultiplier(baseSales, multiplier)
     };
   }
 
@@ -88,7 +87,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
   };
 
   const handleLoadSuggestion = (suggestion) => {
-    setMixRows(suggestion.mix.map(item => ({ ...item, buildCostPerM2: null })));
+    setMixRows(suggestion.mix);
     setShowSuggestions(false);
   };
 
@@ -172,30 +171,6 @@ export function MixPhase({ projectId, onBack, onNext }) {
       ]
     }
   ];
-
-  const calcBuildCost = (row) => {
-    if (row.buildCostPerM2 && row.buildCostPerM2 !== null) return row.buildCostPerM2;
-
-    // Default costs based on house type
-    const buildCosts = {
-      '2-bed Semi/Terrace': 1450,
-      '2-bed Detached': 1500,
-      '3-bed Semi': 1500,
-      '3-bed Detached': 1550,
-      '4-bed Detached': 1600,
-      '2-bed Bungalow': 1550,
-      '3-bed Bungalow': 1600,
-    };
-
-    return buildCosts[row.type] || 1500;
-  };
-
-  const calcBuildCostTotal = (row) => {
-    const costPerM2 = calcBuildCost(row);
-    const sizeM2 = parseFloat(row.sizeM2) || 0;
-    const units = parseInt(row.units) || 0;
-    return costPerM2 * sizeM2 * units;
-  };
 
   return (
     <div className="container py-8 pb-32">
@@ -302,34 +277,6 @@ export function MixPhase({ projectId, onBack, onNext }) {
                           </button>
                         </td>
                       </tr>
-                      <tr key={`${row.id}-build`} className="border-t border-slate-700/50">
-                        <td colSpan={5} className="py-0 px-3">
-                          <details className="bg-slate-700/20 rounded-lg my-2">
-                            <summary className="cursor-pointer text-xs font-medium text-slate-300 hover:text-brand-400 transition-colors py-2 px-3 flex justify-between items-center">
-                              <span>Build Cost</span>
-                              <span className="text-sm font-semibold text-amber-400">£{calcBuildCostTotal(row).toLocaleString()}</span>
-                            </summary>
-                            <div className="px-3 pb-3 pt-1 grid grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-xs text-slate-400 mb-1">Cost/m² (£)</label>
-                                <input
-                                  type="number"
-                                  value={row.buildCostPerM2 || calcBuildCost(row)}
-                                  onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value) || null)}
-                                  className="input-field input-field-sm w-full"
-                                  placeholder={`Default ${calcBuildCost(row)}`}
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-xs text-slate-400 mb-1">Total Build Cost</label>
-                                <p className="text-lg font-semibold text-amber-400 mt-1">
-                                  £{calcBuildCostTotal(row).toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-                          </details>
-                        </td>
-                      </tr>
                     );
                   })}
                   <tr className="border-t-2 border-slate-600 bg-slate-700/30 font-semibold">
@@ -408,32 +355,6 @@ export function MixPhase({ projectId, onBack, onNext }) {
                           </label>
                         </div>
 
-                        {/* Build Cost - Collapsible */}
-                        <details className="bg-slate-700/30 rounded-lg p-3">
-                          <summary className="cursor-pointer text-xs font-medium text-slate-300 hover:text-brand-400 transition-colors flex justify-between items-center">
-                            <span>Build Cost</span>
-                            <span className="text-sm font-semibold text-amber-400">£{calcBuildCostTotal(row).toLocaleString()}</span>
-                          </summary>
-                          <div className="mt-3 space-y-3">
-                            <div>
-                              <label className="block text-xs text-slate-400 mb-1">Cost/m² (£)</label>
-                              <input
-                                type="number"
-                                value={row.buildCostPerM2 || calcBuildCost(row)}
-                                onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value) || null)}
-                                className="input-field w-full"
-                                placeholder={`Default ${calcBuildCost(row)}`}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs text-slate-400 mb-1">Total Build Cost</label>
-                              <p className="text-lg font-semibold text-amber-400">
-                                £{calcBuildCostTotal(row).toLocaleString()}
-                              </p>
-                            </div>
-                          </div>
-                        </details>
-
                         <div className="pt-2 border-t border-slate-700">
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-slate-400">Sales Price</span>
@@ -493,7 +414,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
             <div className="space-y-3 p-4 bg-slate-700/30 rounded-xl border border-slate-600">
               <h3 className="font-semibold text-white">Suggested Mixes (Adjusted for region):</h3>
               {suggestions.map((suggestion, idx) => {
-                const adjustedGDV = calcGDV(suggestion.mix.map(item => ({ ...item, buildCostPerM2: null })), multiplier);
+                const adjustedGDV = calcGDV(suggestion.mix, multiplier);
                 return (
                   <div
                     key={idx}
@@ -528,7 +449,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
         </div>
       </div>
 
-
+      
 
       {/* Fixed Bottom Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-sm border-t border-slate-700 p-4" style={{ zIndex: 50 }}>
