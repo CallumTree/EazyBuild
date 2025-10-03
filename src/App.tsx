@@ -606,6 +606,21 @@ function ModernFinancePage() {
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Total Build Cost (£)</label>
+                <NumberInput
+                  className="input-field"
+                  value={finance.buildCostOverride || buildCost}
+                  onChange={(value) => {
+                    const numValue = parseFloat(value) || 0;
+                    updateFinance('buildCostOverride', numValue);
+                  }}
+                  placeholder={`Auto: £${buildCost.toLocaleString()}`}
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  {finance.buildCostOverride ? 'Manual override' : `Auto: ${totalGIA(unitMix, houseTypes).toLocaleString()}m² × £${project.buildCostPerSqm || 1650}/m²`}
+                </p>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Fees %</label>
                 <NumberInput
                   className="input-field"
@@ -613,6 +628,9 @@ function ModernFinancePage() {
                   onChange={(value) => handleFinanceInputChange('feesPct', value)}
                 />
               </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Contingency %</label>
                 <NumberInput
@@ -621,9 +639,6 @@ function ModernFinancePage() {
                   onChange={(value) => handleFinanceInputChange('contPct', value)}
                 />
               </div>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Land acquisition costs (£)</label>
                 <NumberInput
@@ -632,6 +647,9 @@ function ModernFinancePage() {
                   onChange={(value) => handleFinanceInputChange('landAcqCosts', value)}
                 />
               </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Finance rate %</label>
                 <NumberInput

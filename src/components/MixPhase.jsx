@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { getProject, updateProject } from '../utils/storage';
 import { estSize, estBaseSales, applyMultiplier, calcGDV } from '../utils/calculators';
@@ -26,7 +25,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
       const projectData = getProject(projectId);
       if (projectData) {
         setProject(projectData);
-        
+
         if (projectData.unitMix && projectData.unitMix.length > 0) {
           setMixRows(projectData.unitMix);
         } else {
@@ -67,20 +66,20 @@ export function MixPhase({ projectId, onBack, onNext }) {
     setMixRows(mixRows.map(row => {
       if (row.id === id) {
         const updated = { ...row, [field]: value };
-        
+
         if (field === 'type') {
           updated.sizeM2 = estSize(value);
           updated.baseSalesPrice = estBaseSales(value, row.garage);
           updated.salesPrice = applyMultiplier(updated.baseSalesPrice, multiplier);
         }
-        
+
         if (field === 'garage') {
           const sizeAdjust = value ? 15 : (row.garage ? -15 : 0);
           updated.sizeM2 = row.sizeM2 + sizeAdjust;
           updated.baseSalesPrice = estBaseSales(row.type, value);
           updated.salesPrice = applyMultiplier(updated.baseSalesPrice, multiplier);
         }
-        
+
         return updated;
       }
       return row;
@@ -102,7 +101,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
       updateProject(projectId, {
         unitMix: mixRows
       });
-      
+
       alert('Unit mix saved!');
       onNext();
     } catch (error) {
@@ -124,7 +123,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
 
   const totalUnits = mixRows.reduce((sum, row) => sum + (parseInt(row.units) || 0), 0);
   const totalGDV = calcGDV(mixRows, multiplier);
-  
+
   const siteAreaM2 = project.siteAreaM2 || 0;
   const siteAreaHa = siteAreaM2 / 10000;
   const estDensity = siteAreaHa > 0 ? (totalUnits / siteAreaHa).toFixed(1) : 0;
@@ -187,7 +186,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
             </p>
           </div>
         </div>
-        
+
         <div className="card-body space-y-6">
           {/* Mobile: Card Stack - Desktop: Table */}
           <div className="space-y-3">
@@ -467,7 +466,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
               {isReady ? '🟢 Ready' : '🔴 Add units'}
             </div>
           </div>
-          
+
           <button
             onClick={() => setShowSuggestions(!showSuggestions)}
             className="btn-ghost text-xs px-3 py-2"

@@ -22,7 +22,13 @@ export function totalGIA(unitMix: UnitMix[], houseTypes: HouseType[]) {
   }, 0);
 }
 
-export function totalBuildCost(unitMix: UnitMix[], houseTypes: HouseType[]) {
+export function totalBuildCost(unitMix: UnitMix[], houseTypes: HouseType[], project?: any) {
+  // If there's a manual override, use it
+  if (project?.finance?.buildCostOverride) {
+    return project.finance.buildCostOverride;
+  }
+  
+  // Otherwise calculate from unit mix
   return unitMix.reduce((sum, mix) => {
     const houseType = houseTypes.find(ht => ht.id === mix.houseTypeId);
     return sum + (houseType ? houseType.floorAreaSqm * houseType.buildCostPerSqm * mix.count : 0);
