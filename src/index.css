@@ -420,8 +420,9 @@ body {
 }
 
 .wallet-card:hover {
-  transform: translateY(-8px) scale(1.02);
+  transform: translateY(-8px) scale(1.03);
   z-index: 10;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
 }
 
 .wallet-card:active {
@@ -433,12 +434,6 @@ body {
   .snap-x {
     scroll-behavior: smooth;
   }
-}
-
-/* Glow effect on hover */
-.wallet-card:hover {
-  box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.5), 
-              0 0 40px -10px currentColor;
 }
 
 /* Responsive Design - Improved for mobile */
