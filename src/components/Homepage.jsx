@@ -407,12 +407,12 @@ export function Homepage() {
             </div>
 
             {/* Scroll Indicator */}
-            {!isCurrent && projects.length > 1 && (
+            {projects.length > 1 && (
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-30">
                 {projects.map((_, idx) => (
                   <div
                     key={idx}
-                    className={`w-2 h-2 rounded-full transition-colors duration-300 ${
+                    className={`w-2 h-2 rounded-full transition-colors duration-300 cursor-pointer ${
                       currentIndex === idx ? 'bg-white' : 'bg-white/30'
                     }`}
                     onClick={() => goToProject(idx)}
