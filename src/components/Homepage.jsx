@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getProjects, saveProject, deleteProject, updateProject } from '../utils/storage';
 import { SitePhase } from './SitePhase';
 import { MixPhase } from './MixPhase';
+import { ViabilityPhase } from './ViabilityPhase';
 
 export function Homepage() {
   const [projects, setProjects] = useState([]);
@@ -100,21 +101,34 @@ export function Homepage() {
     );
   }
 
-  // Viability Phase placeholder
-  if (currentPhase === 'viability') {
+  // Viability Phase
+  if (currentPhase === 'viability' && selectedProjectId) {
+    return (
+      <ViabilityPhase
+        projectId={selectedProjectId}
+        onBack={() => setCurrentPhase('mix')}
+        onNext={() => setCurrentPhase('report')}
+      />
+    );
+  }
+
+  // Report Phase placeholder
+  if (currentPhase === 'report' && selectedProjectId) {
     return (
       <div className="container py-8">
         <div className="card">
           <div className="card-header">
-            <span className="text-2xl">💰</span>
-            <h2 className="card-title">Viability Phase: Coming Soon</h2>
+            <span className="text-2xl">📄</span>
+            <h2 className="card-title">Report Phase: Coming Soon</h2>
           </div>
           <div className="card-body space-y-6">
-            <p className="text-slate-300">Viability analysis coming soon!</p>
-            <p className="text-slate-400">Project ID: {selectedProjectId}</p>
+            <p className="text-slate-300">Generate comprehensive offer packs and reports!</p>
+            <button className="btn-primary">
+              📥 Generate Offer Pack (PDF)
+            </button>
             <div className="flex gap-4">
-              <button onClick={() => setCurrentPhase('mix')} className="btn-secondary">
-                ← Back to Mix
+              <button onClick={() => setCurrentPhase('viability')} className="btn-secondary">
+                ← Back to Viability
               </button>
               <button onClick={() => {
                 setCurrentPhase('home');

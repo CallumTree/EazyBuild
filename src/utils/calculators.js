@@ -96,3 +96,91 @@ export const adjustGarage = (currentSize, hasGarage, hadGarage) => {
   }
   return currentSize;
 };
+
+/**
+ * Calculate viability metrics
+ * @param {number} gdv - Gross Development Value
+ * @param {Object} costs - Costs object {land, build, infra, fees}
+ * @param {Object} adders - Adders object {contingency, lender}
+ * @param {number} targetPogdv - Target profit on GDV %
+ * @returns {Object} Viability results
+ */
+export const calcViability = (gdv, costs, adders, targetPogdv = 20) => {
+  const baseCosts = costs.land + costs.build + costs.infra + costs.fees;
+  const contingencyAmount = baseCosts * adders.contingency;
+  const lenderAmount = (baseCosts + contingencyAmount) * adders.lender;
+  const totalCosts = baseCosts + contingencyAmount + lenderAmount;
+  
+  const profit = gdv - totalCosts;
+  const pogdv = gdv > 0 ? (profit / gdv) * 100 : 0;
+  const poc = totalCosts > 0 ? (profit / totalCosts) * 100 : 0;
+  const residual = profit - (gdv * targetPogdv / 100);
+  
+  return {
+    profit,
+    pogdv,
+    poc,
+    residual,
+    totalCosts,
+    contingencyAmount,
+    lenderAmount
+  };
+};
+
+/**
+ * Get viability status and improvement levers
+ * @param {Object} results - Viability results
+ * @param {Object} costs - Costs object
+ * @param {number} s106Amount - S106 amount
+ * @param {number} architectFee - Architect fee
+ * @param {number} landCost - Land cost
+ * @returns {Object} Status info with levers
+ */
+export const getStatusAndLevers = (results, costs, s106Amount, architectFee, landCost) => {
+  const { pogdv, poc, residual } = results;
+  
+  if (pogdv >= 20 && poc >= 15 && residual >= 0) {
+    return {
+      status: 'viable',
+      message: 'Project is viable! Targets met.',
+      levers: []
+    };
+  }
+  
+  if (pogdv >= 15 && residual >= 0) {
+    // Calculate potential savings
+    const levers = [];
+    
+    if (s106Amount > 0) {
+      const s106Saving = s106Amount * 0.05;
+      levers.push('Cut S106 by 5% (saves £' + Math.round(s106Saving).toLocaleString() + ')');
+    }
+    
+    if (architectFee > 10000) {
+      const archSaving = architectFee * 0.1;
+      levers.push('Trim architect by 10% (saves £' + Math.round(archSaving).toLocaleString() + ')');
+    }
+    
+    if (landCost > 0) {
+      const landSaving = landCost * 0.05;
+      levers.push('Negotiate land down 5% (saves £' + Math.round(landSaving).toLocaleString() + ')');
+    }
+    
+    const totalSavings = (s106Amount * 0.05) + (architectFee * 0.1) + (landCost * 0.05);
+    
+    return {
+      status: 'amber',
+      message: 'At risk - Save £' + Math.round(totalSavings).toLocaleString() + ' to improve margins:',
+      levers: levers.slice(0, 3)
+    };
+  }
+  
+  return {
+    status: 'red',
+    message: 'Project unviable - Significant revisions needed',
+    levers: [
+      'Increase sales values or reduce costs substantially',
+      'Reconsider site acquisition or planning strategy'
+    ]
+  };
+};
