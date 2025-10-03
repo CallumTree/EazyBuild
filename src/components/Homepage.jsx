@@ -241,47 +241,78 @@ export function Homepage() {
               <h2 className="card-title">Your Projects</h2>
             </div>
             <div className="card-body">
-              <div className="grid gap-4">
-                {projects.map(project => (
-                  <div key={project.id} className="p-4 bg-slate-700/30 rounded-xl border border-slate-600 hover:border-slate-500 transition-colors">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-lg text-white">{project.name}</h3>
-                        {project.location && (
-                          <p className="text-slate-400 text-sm">📍 {project.location}</p>
-                        )}
-                        <div className="flex gap-4 mt-2 text-sm text-slate-300">
-                          {project.siteAreaM2 > 0 && (
-                            <span>🏞️ {project.siteAreaM2.toLocaleString()} m²</span>
-                          )}
-                          {project.profitTarget && (
-                            <span>💰 {project.profitTarget}% target</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-slate-500 mt-1">
-                          Created: {new Date(project.createdAt).toLocaleDateString()}
-                        </p>
+              <div className="flex overflow-x-auto space-x-4 pb-4">
+                {projects.map(project => {
+                  // Determine status border color based on profit target or other criteria
+                  const getStatusColor = () => {
+                    if (project.profitTarget >= 20) return 'border-green-500';
+                    if (project.profitTarget >= 15) return 'border-amber-500';
+                    return 'border-red-500';
+                  };
+
+                  return (
+                    <div
+                      key={project.id}
+                      className={`relative flex-shrink-0 w-64 h-40 rounded-xl p-4 shadow-lg border-4 ${getStatusColor()} bg-slate-700/50 cursor-pointer hover:bg-slate-700/70 transition-all`}
+                      onClick={() => {
+                        setSelectedProjectId(project.id);
+                        setCurrentPhase('site');
+                      }}
+                    >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteProject(project.id);
+                        }}
+                        className="absolute top-2 right-2 text-red-400 hover:text-red-300 text-xl font-bold w-6 h-6 flex items-center justify-center"
+                      >
+                        ×
+                      </button>
+                      
+                      <div className="text-4xl mb-2">🏠</div>
+                      
+                      <div className="text-white font-semibold text-base truncate">
+                        {project.name}
                       </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setSelectedProjectId(project.id);
-                            setCurrentPhase('site');
-                          }}
-                          className="btn-primary text-sm"
-                        >
-                          Open
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProject(project.id)}
-                          className="btn-ghost text-sm text-red-400 hover:text-red-300"
-                        >
-                          Delete
-                        </button>
+                      
+                      {project.location && (
+                        <div className="text-slate-400 text-sm truncate">
+                          📍 {project.location}
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2 mt-1 text-xs text-slate-300">
+                        {project.siteAreaM2 > 0 && (
+                          <span className="truncate">{project.siteAreaM2.toLocaleString()} m²</span>
+                        )}
+                        {project.profitTarget && (
+                          <span>{project.profitTarget}%</span>
+                        )}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+                
+                {/* New Project Card */}
+                <div
+                  className="flex-shrink-0 w-64 h-40 rounded-xl p-4 shadow-lg border-4 border-slate-600 bg-slate-700/30 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-700/50 transition-all"
+                  onClick={() => {
+                    // Open the create form or auto-create and navigate
+                    const newName = `Project ${projects.length + 1}`;
+                    const newProject = saveProject({
+                      name: newName,
+                      location: '',
+                      siteAreaM2: 0,
+                      profitTarget: 20
+                    });
+                    setSelectedProjectId(newProject.id);
+                    setCurrentPhase('site');
+                    loadProjects();
+                  }}
+                >
+                  <div className="text-4xl mb-2">🏠</div>
+                  <div className="text-slate-300 font-medium">New Project</div>
+                </div>
               </div>
             </div>
           </div>
