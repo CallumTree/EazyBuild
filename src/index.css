@@ -412,21 +412,12 @@ body {
   scrollbar-color: var(--border-secondary) var(--bg-tertiary);
 }
 
-/* Google Wallet Style Cards */
+/* Stacked Visa-Style Cards */
 .wallet-card {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: center;
-  will-change: transform;
-}
-
-.wallet-card:hover {
-  transform: translateY(-8px) scale(1.03);
-  z-index: 10;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-}
-
-.wallet-card:active {
-  transform: translateY(-4px) scale(1.01);
+  will-change: transform, opacity;
+  perspective: 1000px;
 }
 
 /* Smooth scroll snap */
