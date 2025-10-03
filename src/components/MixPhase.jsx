@@ -310,32 +310,31 @@ export function MixPhase({ projectId, onBack, onNext }) {
                         </tr>
                         <tr className="bg-slate-800/50">
                           <td colSpan={5} className="py-3 px-4">
-                            <div className="grid grid-cols-3 gap-4 text-sm">
-                              <div>
-                                <div className="text-xs text-slate-400 mb-1">Build Cost</div>
-                                <div className="font-medium text-amber-400">£{totalBuildCost.toLocaleString()}</div>
-                                <div className="text-xs text-slate-500 mt-0.5">
-                                  {row.garage ? (
-                                    <>£{baseBuildCostPerM2}/m² + £{garageCostPerM2}/m² garage</>
-                                  ) : (
-                                    <>£{baseBuildCostPerM2}/m²</>
-                                  )}
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-6">
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-xs text-slate-400">Build Cost:</span>
+                                  <span className="font-semibold text-amber-400">£{totalBuildCost.toLocaleString()}</span>
+                                  <span className="text-xs text-slate-500">
+                                    ({row.garage ? `£${baseBuildCostPerM2}/m² + £${garageCostPerM2}/m² garage` : `£${baseBuildCostPerM2}/m²`})
+                                  </span>
                                 </div>
-                              </div>
-                              <div>
-                                <div className="text-xs text-slate-400 mb-1">Profit per Unit</div>
-                                <div className={`font-medium ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                  £{profit.toLocaleString()}
+                                <div className="h-6 w-px bg-slate-600"></div>
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-xs text-slate-400">Profit:</span>
+                                  <span className={`font-semibold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    £{profit.toLocaleString()}
+                                  </span>
                                 </div>
-                                <div className="text-xs text-slate-500 mt-0.5">Sales - Build</div>
-                              </div>
-                              <div>
-                                <div className="text-xs text-slate-400 mb-1">Profit Margin</div>
-                                <div className={`font-medium ${profitPct >= 20 ? 'text-green-400' : profitPct >= 10 ? 'text-amber-400' : 'text-red-400'}`}>
-                                  {profitPct.toFixed(1)}%
-                                </div>
-                                <div className="text-xs text-slate-500 mt-0.5">
-                                  {profitPct >= 20 ? '🟢 Healthy' : profitPct >= 10 ? '🟡 Moderate' : '🔴 Low'}
+                                <div className="h-6 w-px bg-slate-600"></div>
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-xs text-slate-400">Margin:</span>
+                                  <span className={`font-semibold ${profitPct >= 20 ? 'text-green-400' : profitPct >= 10 ? 'text-amber-400' : 'text-red-400'}`}>
+                                    {profitPct.toFixed(1)}%
+                                  </span>
+                                  <span className="text-xs">
+                                    {profitPct >= 20 ? '🟢' : profitPct >= 10 ? '🟡' : '🔴'}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -467,33 +466,32 @@ export function MixPhase({ projectId, onBack, onNext }) {
                       </div>
                     </div>
                     {/* Build Cost and Profit details for mobile */}
-                    <div className="bg-slate-800/70 p-4 border-t border-slate-700">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <div className="text-xs text-slate-400 mb-1">Build Cost</div>
-                          <div className="font-medium text-amber-400">£{totalBuildCost.toLocaleString()}</div>
-                          <div className="text-xs text-slate-500 mt-0.5">
-                            {row.garage ? (
-                              <>£{baseBuildCostPerM2}/m² + £{garageCostPerM2}/m² garage</>
-                            ) : (
-                              <>£{baseBuildCostPerM2}/m²</>
-                            )}
+                    <div className="bg-slate-800/70 p-3 border-t border-slate-700">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-slate-400">Build Cost</span>
+                          <div className="text-right">
+                            <div className="font-semibold text-amber-400">£{totalBuildCost.toLocaleString()}</div>
+                            <div className="text-xs text-slate-500">
+                              {row.garage ? `£${baseBuildCostPerM2}/m² + garage` : `£${baseBuildCostPerM2}/m²`}
+                            </div>
                           </div>
                         </div>
-                        <div>
-                          <div className="text-xs text-slate-400 mb-1">Profit per Unit</div>
-                          <div className={`font-medium ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <div className="h-px bg-slate-600"></div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-slate-400">Profit per Unit</span>
+                          <span className={`font-semibold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             £{profit.toLocaleString()}
-                          </div>
-                          <div className="text-xs text-slate-500 mt-0.5">Sales - Build</div>
+                          </span>
                         </div>
-                        <div className="col-span-2"> {/* Span across both columns for profit margin */}
-                          <div className="text-xs text-slate-400 mb-1">Profit Margin</div>
-                          <div className={`font-medium ${profitPct >= 20 ? 'text-green-400' : profitPct >= 10 ? 'text-amber-400' : 'text-red-400'}`}>
-                            {profitPct.toFixed(1)}%
-                          </div>
-                          <div className="text-xs text-slate-500 mt-0.5">
-                            {profitPct >= 20 ? '🟢 Healthy' : profitPct >= 10 ? '🟡 Moderate' : '🔴 Low'}
+                        <div className="h-px bg-slate-600"></div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-slate-400">Margin</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`font-semibold ${profitPct >= 20 ? 'text-green-400' : profitPct >= 10 ? 'text-amber-400' : 'text-red-400'}`}>
+                              {profitPct.toFixed(1)}%
+                            </span>
+                            <span>{profitPct >= 20 ? '🟢' : profitPct >= 10 ? '🟡' : '🔴'}</span>
                           </div>
                         </div>
                       </div>
