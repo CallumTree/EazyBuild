@@ -233,138 +233,161 @@ export function Homepage() {
           </div>
         </div>
 
-        {/* Projects Dashboard - Google Wallet Style with Horizontal Scroll */}
-        {projects.length > 0 && (
-          <div className="card">
-            <div className="card-header">
-              <span className="text-2xl">💳</span>
-              <h2 className="card-title">Your Projects</h2>
-            </div>
-            <div className="card-body p-0">
-              {/* Horizontal scrolling container with custom scrollbar */}
-              <div 
-                className="flex overflow-x-auto space-x-4 px-6 py-6 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800"
-                style={{
-                  scrollbarWidth: 'thin',
-                  WebkitOverflowScrolling: 'touch'
-                }}
-              >
-                {projects.map(project => {
-                  // Determine border color based on profitMargin (from viability)
-                  const getBorderColor = () => {
-                    const margin = project.profitMargin || project.profitTarget || 0;
-                    if (margin >= 22) return 'border-green-500';
-                    if (margin >= 16) return 'border-amber-500';
-                    return 'border-red-500';
-                  };
+        {/* Projects Dashboard - Wallet Style Cards */}
+        <div className="card">
+          <div className="card-header">
+            <span className="text-2xl">💳</span>
+            <h2 className="card-title">Your Projects</h2>
+          </div>
+          <div className="card-body p-0">
+            {/* Horizontal scrolling container */}
+            <div 
+              className="flex overflow-x-auto gap-4 px-6 py-6 snap-x snap-mandatory"
+              style={{
+                scrollbarWidth: 'thin',
+                WebkitOverflowScrolling: 'touch'
+              }}
+            >
+              {projects.map(project => {
+                // Determine border color based on profitMargin
+                const getBorderColor = () => {
+                  const margin = project.profitMargin || project.profitTarget || 0;
+                  if (margin >= 22) return 'border-l-green-500';
+                  if (margin >= 16) return 'border-l-amber-500';
+                  return 'border-l-red-500';
+                };
 
-                  const handleImageUpload = (e) => {
-                    e.stopPropagation();
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = 'image/*';
-                    input.onchange = (event) => {
-                      const file = event.target.files[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                          updateProject(project.id, { image: ev.target.result });
-                          loadProjects();
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    };
-                    input.click();
+                const handleImageUpload = (e) => {
+                  e.stopPropagation();
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  input.onchange = (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        updateProject(project.id, { image: ev.target.result });
+                        loadProjects();
+                      };
+                      reader.readAsDataURL(file);
+                    }
                   };
+                  input.click();
+                };
 
-                  return (
-                    <div
-                      key={project.id}
-                      className={`relative flex-shrink-0 w-72 h-40 rounded-2xl p-4 shadow-xl border-4 ${getBorderColor()} bg-gradient-to-br from-slate-700 to-slate-800 cursor-pointer hover:scale-105 hover:shadow-2xl transition-all duration-200 snap-start`}
-                      onClick={() => {
-                        setSelectedProjectId(project.id);
-                        setCurrentPhase('site');
-                      }}
-                    >
-                      {/* Image or Icon */}
+                return (
+                  <div
+                    key={project.id}
+                    className={`relative flex-shrink-0 w-80 h-44 rounded-xl p-5 shadow-2xl border-l-8 ${getBorderColor()} bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 cursor-pointer hover:scale-[1.02] hover:shadow-3xl transition-all duration-300 snap-start`}
+                    onClick={() => {
+                      setSelectedProjectId(project.id);
+                      setCurrentPhase('site');
+                    }}
+                  >
+                    {/* Project Image/Icon Section */}
+                    <div className="flex items-start gap-4 mb-3">
                       {project.image ? (
                         <img 
                           src={project.image} 
-                          className="w-full h-16 rounded-lg object-cover mb-2 shadow-md" 
+                          className="w-20 h-20 rounded-lg object-cover shadow-lg ring-2 ring-slate-600" 
                           alt={project.name}
                         />
                       ) : (
-                        <div className="text-4xl mb-2 text-center">🏠</div>
-                      )}
-                      
-                      {/* Project Name */}
-                      <div className="text-white font-bold text-base truncate mb-1">
-                        {project.name}
-                      </div>
-                      
-                      {/* Location */}
-                      {project.location && (
-                        <div className="text-slate-300 text-xs truncate flex items-center gap-1">
-                          <span>📍</span>
-                          <span>{project.location}</span>
+                        <div className="w-20 h-20 rounded-lg bg-slate-900/50 flex items-center justify-center text-4xl shadow-lg">
+                          🏠
                         </div>
                       )}
+                      
+                      <div className="flex-1 min-w-0">
+                        {/* Project Name */}
+                        <h3 className="text-white font-bold text-lg truncate mb-1">
+                          {project.name}
+                        </h3>
+                        
+                        {/* Location */}
+                        {project.location && (
+                          <p className="text-slate-400 text-sm truncate flex items-center gap-1">
+                            <span>📍</span>
+                            <span>{project.location}</span>
+                          </p>
+                        )}
 
-                      {/* Status indicator dot */}
-                      <div className={`absolute top-3 left-3 w-3 h-3 rounded-full ${
-                        project.profitMargin >= 22 ? 'bg-green-500' :
-                        project.profitMargin >= 16 ? 'bg-amber-500' :
-                        'bg-red-500'
-                      } shadow-lg`}></div>
+                        {/* Project Stats */}
+                        <div className="flex gap-3 mt-2 text-xs">
+                          {project.siteAreaM2 > 0 && (
+                            <span className="text-slate-500">
+                              {project.siteAreaM2.toLocaleString()}m²
+                            </span>
+                          )}
+                          <span className={`font-semibold ${
+                            project.profitMargin >= 22 ? 'text-green-400' :
+                            project.profitMargin >= 16 ? 'text-amber-400' :
+                            'text-red-400'
+                          }`}>
+                            {project.profitMargin || project.profitTarget || 0}% target
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-                      {/* Image Upload Button */}
+                    {/* Action Buttons */}
+                    <div className="absolute top-3 right-3 flex gap-2">
                       <button
                         onClick={handleImageUpload}
-                        className="absolute top-3 right-3 text-slate-300 hover:text-white text-base w-7 h-7 flex items-center justify-center bg-slate-900/60 hover:bg-slate-900/80 rounded-lg backdrop-blur-sm transition-all"
+                        className="w-8 h-8 flex items-center justify-center bg-slate-900/70 hover:bg-slate-900 rounded-lg backdrop-blur-sm transition-all text-slate-400 hover:text-white"
                         title="Upload image"
                       >
                         📷
                       </button>
-
-                      {/* Delete Button */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteProject(project.id);
                         }}
-                        className="absolute bottom-3 right-3 text-red-400 hover:text-red-300 text-lg font-bold w-6 h-6 flex items-center justify-center bg-slate-900/60 hover:bg-slate-900/80 rounded-lg backdrop-blur-sm transition-all"
+                        className="w-8 h-8 flex items-center justify-center bg-slate-900/70 hover:bg-red-500 rounded-lg backdrop-blur-sm transition-all text-slate-400 hover:text-white font-bold"
                         title="Delete project"
                       >
                         ×
                       </button>
                     </div>
-                  );
-                })}
-                
-                {/* New Project Card */}
-                <div
-                  className="flex-shrink-0 w-72 h-40 rounded-2xl p-4 shadow-xl border-4 border-slate-600 border-dashed bg-slate-800/50 flex flex-col items-center justify-center cursor-pointer hover:scale-105 hover:bg-slate-700/50 hover:border-slate-500 transition-all duration-200 snap-start"
-                  onClick={() => {
-                    const newName = `Project ${projects.length + 1}`;
-                    const newProject = saveProject({
-                      name: newName,
-                      location: '',
-                      siteAreaM2: 0,
-                      profitTarget: 20
-                    });
-                    setSelectedProjectId(newProject.id);
-                    setCurrentPhase('site');
-                    loadProjects();
-                  }}
-                >
-                  <div className="text-5xl mb-2">➕</div>
-                  <div className="text-slate-300 font-semibold">New Project</div>
-                  <div className="text-slate-500 text-xs mt-1">Click to create</div>
-                </div>
+
+                    {/* Status Indicator */}
+                    <div className={`absolute bottom-3 right-3 px-2 py-1 rounded-full text-xs font-medium ${
+                      project.profitMargin >= 22 ? 'bg-green-500/20 text-green-400' :
+                      project.profitMargin >= 16 ? 'bg-amber-500/20 text-amber-400' :
+                      'bg-red-500/20 text-red-400'
+                    }`}>
+                      {project.profitMargin >= 22 ? 'Strong' : 
+                       project.profitMargin >= 16 ? 'Moderate' : 'Weak'}
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {/* New Project Card */}
+              <div
+                className="flex-shrink-0 w-80 h-44 rounded-xl p-5 shadow-2xl border-4 border-dashed border-slate-600 bg-slate-800/30 flex flex-col items-center justify-center cursor-pointer hover:scale-[1.02] hover:bg-slate-700/40 hover:border-blue-500/50 transition-all duration-300 snap-start group"
+                onClick={() => {
+                  const newName = `Project ${projects.length + 1}`;
+                  const newProject = saveProject({
+                    name: newName,
+                    location: '',
+                    siteAreaM2: 0,
+                    profitTarget: 20
+                  });
+                  setSelectedProjectId(newProject.id);
+                  setCurrentPhase('site');
+                  loadProjects();
+                }}
+              >
+                <div className="text-6xl mb-3 group-hover:scale-110 transition-transform">➕</div>
+                <div className="text-slate-300 font-bold text-lg">New Project</div>
+                <div className="text-slate-500 text-sm mt-1">Click to create</div>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
