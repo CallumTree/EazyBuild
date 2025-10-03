@@ -302,6 +302,34 @@ export function MixPhase({ projectId, onBack, onNext }) {
                           </button>
                         </td>
                       </tr>
+                      <tr key={`${row.id}-build`} className="border-t border-slate-700/50">
+                        <td colSpan={5} className="py-0 px-3">
+                          <details className="bg-slate-700/20 rounded-lg my-2">
+                            <summary className="cursor-pointer text-xs font-medium text-slate-300 hover:text-brand-400 transition-colors py-2 px-3 flex justify-between items-center">
+                              <span>Build Cost</span>
+                              <span className="text-sm font-semibold text-amber-400">£{calcBuildCostTotal(row).toLocaleString()}</span>
+                            </summary>
+                            <div className="px-3 pb-3 pt-1 grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs text-slate-400 mb-1">Cost/m² (£)</label>
+                                <input
+                                  type="number"
+                                  value={row.buildCostPerM2 || calcBuildCost(row)}
+                                  onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value) || null)}
+                                  className="input-field input-field-sm w-full"
+                                  placeholder={`Default ${calcBuildCost(row)}`}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-slate-400 mb-1">Total Build Cost</label>
+                                <p className="text-lg font-semibold text-amber-400 mt-1">
+                                  £{calcBuildCostTotal(row).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </details>
+                        </td>
+                      </tr>
                     );
                   })}
                   <tr className="border-t-2 border-slate-600 bg-slate-700/30 font-semibold">
