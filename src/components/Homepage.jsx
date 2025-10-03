@@ -233,15 +233,22 @@ export function Homepage() {
           </div>
         </div>
 
-        {/* Projects Dashboard - Google Wallet Style */}
+        {/* Projects Dashboard - Google Wallet Style with Horizontal Scroll */}
         {projects.length > 0 && (
           <div className="card">
             <div className="card-header">
               <span className="text-2xl">💳</span>
               <h2 className="card-title">Your Projects</h2>
             </div>
-            <div className="card-body">
-              <div className="flex overflow-x-auto space-x-4 pb-4 snap-x snap-mandatory">
+            <div className="card-body p-0">
+              {/* Horizontal scrolling container with custom scrollbar */}
+              <div 
+                className="flex overflow-x-auto space-x-4 px-6 py-6 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800"
+                style={{
+                  scrollbarWidth: 'thin',
+                  WebkitOverflowScrolling: 'touch'
+                }}
+              >
                 {projects.map(project => {
                   // Determine border color based on profitMargin (from viability)
                   const getBorderColor = () => {
@@ -273,7 +280,7 @@ export function Homepage() {
                   return (
                     <div
                       key={project.id}
-                      className={`relative flex-shrink-0 w-64 h-32 rounded-xl p-3 shadow-lg border-4 ${getBorderColor()} bg-slate-700/50 cursor-pointer hover:bg-slate-700/70 transition-all snap-center`}
+                      className={`relative flex-shrink-0 w-72 h-40 rounded-2xl p-4 shadow-xl border-4 ${getBorderColor()} bg-gradient-to-br from-slate-700 to-slate-800 cursor-pointer hover:scale-105 hover:shadow-2xl transition-all duration-200 snap-start`}
                       onClick={() => {
                         setSelectedProjectId(project.id);
                         setCurrentPhase('site');
@@ -283,29 +290,37 @@ export function Homepage() {
                       {project.image ? (
                         <img 
                           src={project.image} 
-                          className="w-full h-12 rounded object-cover mb-1" 
+                          className="w-full h-16 rounded-lg object-cover mb-2 shadow-md" 
                           alt={project.name}
                         />
                       ) : (
-                        <div className="text-3xl mb-1">🏠</div>
+                        <div className="text-4xl mb-2 text-center">🏠</div>
                       )}
                       
                       {/* Project Name */}
-                      <div className="text-white font-semibold text-sm truncate">
+                      <div className="text-white font-bold text-base truncate mb-1">
                         {project.name}
                       </div>
                       
                       {/* Location */}
                       {project.location && (
-                        <div className="text-slate-400 text-xs truncate">
-                          📍 {project.location}
+                        <div className="text-slate-300 text-xs truncate flex items-center gap-1">
+                          <span>📍</span>
+                          <span>{project.location}</span>
                         </div>
                       )}
+
+                      {/* Status indicator dot */}
+                      <div className={`absolute top-3 left-3 w-3 h-3 rounded-full ${
+                        project.profitMargin >= 22 ? 'bg-green-500' :
+                        project.profitMargin >= 16 ? 'bg-amber-500' :
+                        'bg-red-500'
+                      } shadow-lg`}></div>
 
                       {/* Image Upload Button */}
                       <button
                         onClick={handleImageUpload}
-                        className="absolute top-2 right-2 text-slate-400 hover:text-slate-200 text-lg w-6 h-6 flex items-center justify-center bg-slate-800/80 rounded"
+                        className="absolute top-3 right-3 text-slate-300 hover:text-white text-base w-7 h-7 flex items-center justify-center bg-slate-900/60 hover:bg-slate-900/80 rounded-lg backdrop-blur-sm transition-all"
                         title="Upload image"
                       >
                         📷
@@ -317,7 +332,7 @@ export function Homepage() {
                           e.stopPropagation();
                           handleDeleteProject(project.id);
                         }}
-                        className="absolute bottom-2 right-2 text-red-400 hover:text-red-300 text-sm font-bold w-5 h-5 flex items-center justify-center"
+                        className="absolute bottom-3 right-3 text-red-400 hover:text-red-300 text-lg font-bold w-6 h-6 flex items-center justify-center bg-slate-900/60 hover:bg-slate-900/80 rounded-lg backdrop-blur-sm transition-all"
                         title="Delete project"
                       >
                         ×
@@ -328,7 +343,7 @@ export function Homepage() {
                 
                 {/* New Project Card */}
                 <div
-                  className="flex-shrink-0 w-64 h-32 rounded-xl p-4 shadow-lg border-4 border-gray-500 bg-slate-700/30 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-700/50 transition-all snap-center"
+                  className="flex-shrink-0 w-72 h-40 rounded-2xl p-4 shadow-xl border-4 border-slate-600 border-dashed bg-slate-800/50 flex flex-col items-center justify-center cursor-pointer hover:scale-105 hover:bg-slate-700/50 hover:border-slate-500 transition-all duration-200 snap-start"
                   onClick={() => {
                     const newName = `Project ${projects.length + 1}`;
                     const newProject = saveProject({
@@ -342,8 +357,9 @@ export function Homepage() {
                     loadProjects();
                   }}
                 >
-                  <div className="text-4xl mb-2">🏠</div>
-                  <div className="text-slate-300 font-medium">New Project</div>
+                  <div className="text-5xl mb-2">➕</div>
+                  <div className="text-slate-300 font-semibold">New Project</div>
+                  <div className="text-slate-500 text-xs mt-1">Click to create</div>
                 </div>
               </div>
             </div>
