@@ -46,7 +46,8 @@ export function MixPhase({ projectId, onBack, onNext }) {
       sizeM2,
       garage: false,
       baseSalesPrice: baseSales,
-      salesPrice: applyMultiplier(baseSales, multiplier)
+      salesPrice: applyMultiplier(baseSales, multiplier),
+      buildCostPerM2: null // Will use default from calcBuildCost
     };
   }
 
@@ -71,6 +72,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
           updated.sizeM2 = estSize(value);
           updated.baseSalesPrice = estBaseSales(value, row.garage);
           updated.salesPrice = applyMultiplier(updated.baseSalesPrice, multiplier);
+          updated.buildCostPerM2 = null; // Reset to default for new type
         }
 
         if (field === 'garage') {
@@ -174,6 +176,11 @@ export function MixPhase({ projectId, onBack, onNext }) {
 
   // Helper functions to calculate build cost (assuming these exist elsewhere or were intended to be here)
   const calcBuildCost = (row) => {
+    // If custom buildCostPerM2 is set, use it; otherwise use default
+    if (row.buildCostPerM2 && row.buildCostPerM2 > 0) {
+      return row.buildCostPerM2;
+    }
+    
     const buildCostMap = {
       '2-bed Semi/Terrace': 1450, '2-bed Detached': 1500, '3-bed Semi': 1500,
       '3-bed Detached': 1550, '4-bed Detached': 1600, '2-bed Bungalow': 1550,
