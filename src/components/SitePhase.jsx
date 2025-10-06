@@ -244,7 +244,7 @@ export function SitePhase({ projectId, onBack, onNext }) {
   const isReady = postcode.trim().length > 0 && siteAreaM2 > 0;
 
   return (
-    <div className="container py-8 pb-24">
+    <div className="container py-8">
       <div className="card">
         <div className="card-header">
           <button onClick={onBack} className="btn-secondary">
@@ -365,7 +365,6 @@ export function SitePhase({ projectId, onBack, onNext }) {
           </div>
         </div>
       </div>
-
-      </div>
+    </div>
   );
 }
