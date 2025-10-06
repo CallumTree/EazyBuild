@@ -358,6 +358,29 @@ body {
   filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
 }
 
+/* Navigation Tooltip */
+.nav-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  border-radius: 0.5rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease-in-out;
+  z-index: 60;
+}
+
+.group:hover .nav-tooltip {
+  opacity: 1;
+}
+
 /* Tooltip Styles */
 .nav-tooltip {
   position: absolute;
