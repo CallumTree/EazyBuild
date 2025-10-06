@@ -278,31 +278,29 @@ export function MixPhase({ projectId, onBack, onNext }) {
 
                     return (
                       <React.Fragment key={row.id}>
-                        <tr className="border-t border-slate-700">
-                          <td className="py-2 px-3 w-[40%]">
+                        <tr className="border-t border-slate-700 hover:bg-slate-700/20 transition-colors">
+                          <td className="py-3 px-3 w-[40%]">
                             <select
                               value={row.type}
                               onChange={(e) => handleRowChange(row.id, 'type', e.target.value)}
-                              className="input-field input-field-sm w-full text-xs"
+                              className="input-field input-field-sm w-full text-xs font-medium"
                             >
                               {UNIT_TYPES.map(type => (
                                 <option key={type} value={type}>{type}</option>
                               ))}
                             </select>
-                            <div className="text-xs text-slate-400 mt-1" title={displayType}>
-                              {displayType}
-                            </div>
+                            {row.garage && <div className="text-xs text-slate-500 mt-0.5">+ Garage (15m²)</div>}
                           </td>
-                          <td className="py-2 px-3">
+                          <td className="py-3 px-3">
                             <input
                               type="number"
                               value={row.units}
                               onChange={(e) => handleRowChange(row.id, 'units', parseInt(e.target.value) || 0)}
-                              className="input-field input-field-sm w-20 text-center"
+                              className="input-field input-field-sm w-20 text-center font-semibold"
                               min="0"
                             />
                           </td>
-                          <td className="py-2 px-3">
+                          <td className="py-3 px-3">
                             <div className="flex items-center gap-2">
                               <input
                                 type="number"
@@ -312,7 +310,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
                                 min="0"
                               />
                               <span className="text-xs text-slate-400">m²</span>
-                              <label className="flex items-center gap-1 text-xs text-slate-400 ml-2">
+                              <label className="flex items-center gap-1 text-xs text-slate-400 ml-2 cursor-pointer hover:text-slate-300">
                                 <input
                                   type="checkbox"
                                   checked={row.garage}
@@ -323,15 +321,32 @@ export function MixPhase({ projectId, onBack, onNext }) {
                               </label>
                             </div>
                           </td>
-                          <td className="py-2 px-3 text-right">
-                            <div className="text-brand-400 font-medium">
+                          <td className="py-3 px-3 text-right">
+                            <div className="text-brand-400 font-bold text-sm">
                               £{(row.salesPrice || 0).toLocaleString()}
                             </div>
-                            <div className="text-xs text-slate-500">
-                              £{(row.baseSalesPrice || 0).toLocaleString()} base{getUpliftText(multiplier)}
+                            <div className="flex items-center justify-end gap-2 mt-0.5">
+                              <span className={`text-xs font-medium ${profitPct >= 20 ? 'text-green-400' : profitPct >= 10 ? 'text-amber-400' : 'text-red-400'}`}>
+                                {profitPct.toFixed(0)}%
+                              </span>
+                              <span className="text-xs">
+                                {profitPct >= 20 ? '🟢' : profitPct >= 10 ? '🟡' : '🔴'}
+                              </span>
                             </div>
                           </td>
-                          <td className="py-2 px-3 text-center">
+                          <td className="py-3 px-3 text-center">
+                            <button
+                              onClick={() => {
+                                const detailsRow = document.getElementById(`details-${row.id}`);
+                                if (detailsRow) {
+                                  detailsRow.classList.toggle('hidden');
+                                }
+                              }}
+                              className="text-slate-400 hover:text-slate-300 mr-2 text-sm"
+                              title="Toggle details"
+                            >
+                              ⚙️
+                            </button>
                             <button
                               onClick={() => handleRemoveRow(row.id)}
                               disabled={mixRows.length === 1}
@@ -341,57 +356,61 @@ export function MixPhase({ projectId, onBack, onNext }) {
                             </button>
                           </td>
                         </tr>
-                        <tr className="bg-slate-800/50">
-                          <td colSpan={5} className="py-3 px-4">
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-6">
-                                <div className="flex items-baseline gap-2">
-                                  <span className="text-xs text-slate-400">Build Cost:</span>
-                                  <span className="font-semibold text-amber-400">£{totalBuildCost.toLocaleString()}</span>
-                                  <span className="text-xs text-slate-500">
-                                    ({row.garage ? `£${baseBuildCostPerM2}/m² + £${garageCostPerM2}/m² garage` : `£${baseBuildCostPerM2}/m²`})
-                                  </span>
+                        <tr id={`details-${row.id}`} className="hidden bg-slate-800/70 border-t border-slate-600">
+                          <td colSpan={5} className="py-4 px-4">
+                            <div className="space-y-4">
+                              {/* Build Cost & Profit Summary */}
+                              <div className="grid grid-cols-3 gap-4 pb-3 border-b border-slate-600">
+                                <div>
+                                  <div className="text-xs text-slate-400 mb-1">Build Cost</div>
+                                  <div className="font-semibold text-amber-400">£{totalBuildCost.toLocaleString()}</div>
+                                  <div className="text-xs text-slate-500 mt-0.5">
+                                    {row.garage ? `£${baseBuildCostPerM2}/m² + garage` : `£${baseBuildCostPerM2}/m²`}
+                                  </div>
                                 </div>
-                                <div className="h-6 w-px bg-slate-600"></div>
-                                <div className="flex items-baseline gap-2">
-                                  <span className="text-xs text-slate-400">Profit:</span>
-                                  <span className={`font-semibold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                <div>
+                                  <div className="text-xs text-slate-400 mb-1">Profit per Unit</div>
+                                  <div className={`font-semibold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                                     £{profit.toLocaleString()}
-                                  </span>
+                                  </div>
+                                  <div className="text-xs text-slate-500 mt-0.5">
+                                    {profitPct.toFixed(1)}% margin
+                                  </div>
                                 </div>
-                                <div className="h-6 w-px bg-slate-600"></div>
-                                <div className="flex items-baseline gap-2">
-                                  <span className="text-xs text-slate-400">Margin:</span>
-                                  <span className={`font-semibold ${profitPct >= 20 ? 'text-green-400' : profitPct >= 10 ? 'text-amber-400' : 'text-red-400'}`}>
-                                    {profitPct.toFixed(1)}%
-                                  </span>
-                                  <span className="text-xs">
-                                    {profitPct >= 20 ? '🟢' : profitPct >= 10 ? '🟡' : '🔴'}
-                                  </span>
+                                <div>
+                                  <div className="text-xs text-slate-400 mb-1">Total Revenue</div>
+                                  <div className="font-semibold text-brand-400">
+                                    £{((row.salesPrice || 0) * (row.units || 0)).toLocaleString()}
+                                  </div>
+                                  <div className="text-xs text-slate-500 mt-0.5">
+                                    {row.units || 0} units
+                                  </div>
                                 </div>
                               </div>
-                              {/* Updated section for build cost input and slider */}
-                              <div className="px-3 pb-3 pt-1 space-y-3">
+
+                              {/* Build Cost Adjustments */}
+                              <div>
+                                <div className="text-sm font-medium text-slate-300 mb-3">Adjust Build Costs</div>
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
-                                    <label className="block text-xs text-slate-400 mb-1">Cost/m² (£)</label>
+                                    <label className="block text-xs text-slate-400 mb-1.5">Cost per m² (£)</label>
                                     <input
                                       type="number"
                                       value={row.buildCostPerM2 || calcBuildCost(row)}
                                       onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value) || null)}
                                       className="input-field input-field-sm w-full"
-                                      placeholder={`Default ${calcBuildCost(row)}`}
+                                      placeholder={`Default £${calcBuildCost(row)}`}
                                     />
                                   </div>
                                   <div>
-                                    <label className="block text-xs text-slate-400 mb-1">Total Build Cost</label>
-                                    <p className="text-lg font-semibold text-amber-400 mt-1">
+                                    <label className="block text-xs text-slate-400 mb-1.5">Total Build Cost</label>
+                                    <div className="text-lg font-semibold text-amber-400 mt-1.5">
                                       £{calcBuildCostTotal(row).toLocaleString()}
-                                    </p>
+                                    </div>
                                   </div>
                                 </div>
-                                <div>
-                                  <label className="block text-xs text-slate-400 mb-1">Quick Adjust (£1,000 - £2,500/m²)</label>
+                                <div className="mt-3">
+                                  <label className="block text-xs text-slate-400 mb-2">Quick Adjust (£1,000 - £2,500/m²)</label>
                                   <input
                                     type="range"
                                     min="1000"
@@ -401,9 +420,9 @@ export function MixPhase({ projectId, onBack, onNext }) {
                                     onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value))}
                                     className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500"
                                   />
-                                  <div className="flex justify-between text-xs text-slate-500 mt-1">
+                                  <div className="flex justify-between text-xs text-slate-500 mt-1.5">
                                     <span>£1,000</span>
-                                    <span className="text-amber-400">£{(row.buildCostPerM2 || calcBuildCost(row)).toLocaleString()}</span>
+                                    <span className="text-amber-400 font-medium">£{(row.buildCostPerM2 || calcBuildCost(row)).toLocaleString()}/m²</span>
                                     <span>£2,500</span>
                                   </div>
                                 </div>
@@ -426,7 +445,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
             </div>
 
             {/* Mobile: Card Stack (hidden on desktop) */}
-            <div className="md:hidden space-y-3">
+            <div className="md:hidden space-y-4">
               {mixRows.map(row => {
                 const displayType = row.garage ? row.type + ' (w/ Garage)' : row.type;
 
@@ -439,44 +458,41 @@ export function MixPhase({ projectId, onBack, onNext }) {
                   '4-bed Detached': 1600,
                   '2-bed Bungalow': 1550,
                   '3-bed Bungalow': 1600,
-                  'Custom': 1500 // Default for custom
+                  'Custom': 1500
                 };
 
-                const baseBuildCostPerM2 = buildCostMap[row.type] || 1500; // Fallback to 1500 if type not found
-                const garageCostPerM2 = 1200; // Specific cost for garage per m²
+                const baseBuildCostPerM2 = buildCostMap[row.type] || 1500;
+                const garageCostPerM2 = 1200;
 
-                // Calculate total build cost, considering garage
                 let totalBuildCost = 0;
                 if (row.garage) {
-                  const mainAreaM2 = row.sizeM2 - 15; // Subtract garage area
-                  const garageCost = 15 * garageCostPerM2; // Cost for the 15m² garage
-                  const mainCost = mainAreaM2 * baseBuildCostPerM2; // Cost for the main living area
+                  const mainAreaM2 = row.sizeM2 - 15;
+                  const garageCost = 15 * garageCostPerM2;
+                  const mainCost = mainAreaM2 * baseBuildCostPerM2;
                   totalBuildCost = mainCost + garageCost;
                 } else {
-                  totalBuildCost = row.sizeM2 * baseBuildCostPerM2; // No garage, use base cost
+                  totalBuildCost = row.sizeM2 * baseBuildCostPerM2;
                 }
 
                 const profit = (row.salesPrice || 0) - totalBuildCost;
                 const profitPct = row.salesPrice > 0 ? (profit / row.salesPrice) * 100 : 0;
 
-
                 return (
-                  <div key={row.id} className="card bg-slate-800/50 border-slate-600">
-                    <div className="card-body p-4 space-y-3">
+                  <div key={row.id} className="card bg-slate-800/50 border-slate-600 overflow-hidden">
+                    {/* Main Card Content */}
+                    <div className="p-4 space-y-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
                           <select
                             value={row.type}
                             onChange={(e) => handleRowChange(row.id, 'type', e.target.value)}
-                            className="input-field input-field-sm w-full mb-2"
+                            className="input-field input-field-sm w-full font-medium"
                           >
                             {UNIT_TYPES.map(type => (
                               <option key={type} value={type}>{type}</option>
                             ))}
                           </select>
-                          <div className="font-bold text-white text-sm">
-                            {displayType}
-                          </div>
+                          {row.garage && <div className="text-xs text-slate-500 mt-1">+ Garage (15m²)</div>}
                         </div>
                         <button
                           onClick={() => handleRemoveRow(row.id)}
@@ -487,120 +503,123 @@ export function MixPhase({ projectId, onBack, onNext }) {
                         </button>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-xs text-slate-400 mb-1">Units</label>
+                          <label className="block text-xs text-slate-400 mb-1.5">Units</label>
                           <input
                             type="number"
                             value={row.units}
                             onChange={(e) => handleRowChange(row.id, 'units', parseInt(e.target.value) || 0)}
+                            className="input-field input-field-sm w-full text-center font-semibold"
+                            min="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-400 mb-1.5">Size (m²)</label>
+                          <input
+                            type="number"
+                            value={row.sizeM2}
+                            onChange={(e) => handleRowChange(row.id, 'sizeM2', parseInt(e.target.value) || 0)}
                             className="input-field input-field-sm w-full"
                             min="0"
                           />
                         </div>
-
-                        <div className="flex items-end gap-3">
-                          <div className="flex-1">
-                            <label className="text-xs text-slate-400 mb-1">Size (m²)</label>
-                            <input
-                              type="number"
-                              value={row.sizeM2}
-                              onChange={(e) => handleRowChange(row.id, 'sizeM2', parseInt(e.target.value) || 0)}
-                              className="input-field input-field-sm w-full"
-                              min="0"
-                            />
-                          </div>
-                          <label className="flex items-center gap-2 pb-2">
-                            <input
-                              type="checkbox"
-                              checked={row.garage}
-                              onChange={(e) => handleRowChange(row.id, 'garage', e.target.checked)}
-                              className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-brand-500"
-                            />
-                            <span className="text-xs text-slate-300">Garage<br/>(+15m²/£20k)</span>
-                          </label>
-                        </div>
-
-                        <div className="pt-2 border-t border-slate-700">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs text-slate-400">Sales Price</span>
-                            <div className="text-right">
-                              <div className="text-lg font-semibold text-brand-400">
-                                £{(row.salesPrice || 0).toLocaleString()}
-                              </div>
-                              <div className="text-xs text-slate-500">
-                                £{(row.baseSalesPrice || 0).toLocaleString()} base{getUpliftText(multiplier)}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
                       </div>
-                    </div>
-                    {/* Build Cost and Profit details for mobile */}
-                    <div className="bg-slate-800/70 p-3 border-t border-slate-700">
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-slate-400">Build Cost</span>
-                          <div className="text-right">
-                            <div className="font-semibold text-amber-400">£{totalBuildCost.toLocaleString()}</div>
-                            <div className="text-xs text-slate-500">
-                              {row.garage ? `£${baseBuildCostPerM2}/m² + garage` : `£${baseBuildCostPerM2}/m²`}
-                            </div>
+
+                      <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/30 p-2 rounded-lg transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={row.garage}
+                          onChange={(e) => handleRowChange(row.id, 'garage', e.target.checked)}
+                          className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-brand-500"
+                        />
+                        <span className="text-sm text-slate-300">Include Garage (+15m² / +£20k)</span>
+                      </label>
+
+                      {/* Key Metrics */}
+                      <div className="pt-3 border-t border-slate-700 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-slate-400">Sales Price</span>
+                          <div className="text-lg font-bold text-brand-400">
+                            £{(row.salesPrice || 0).toLocaleString()}
                           </div>
                         </div>
-                        <div className="h-px bg-slate-600"></div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-slate-400">Profit per Unit</span>
-                          <span className={`font-semibold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            £{profit.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="h-px bg-slate-600"></div>
-                        <div className="flex items-center justify-between">
+                        <div className="flex justify-between items-center">
                           <span className="text-xs text-slate-400">Margin</span>
                           <div className="flex items-center gap-2">
                             <span className={`font-semibold ${profitPct >= 20 ? 'text-green-400' : profitPct >= 10 ? 'text-amber-400' : 'text-red-400'}`}>
-                              {profitPct.toFixed(1)}%
+                              {profitPct.toFixed(0)}%
                             </span>
                             <span>{profitPct >= 20 ? '🟢' : profitPct >= 10 ? '🟡' : '🔴'}</span>
                           </div>
                         </div>
                       </div>
-                      {/* Updated section for build cost input and slider for mobile */}
-                      <div className="px-3 pb-3 pt-1 space-y-3">
-                        <div className="grid grid-cols-2 gap-4">
+
+                      {/* Toggle Details Button */}
+                      <button
+                        onClick={() => {
+                          const detailsDiv = document.getElementById(`mobile-details-${row.id}`);
+                          if (detailsDiv) {
+                            detailsDiv.classList.toggle('hidden');
+                          }
+                        }}
+                        className="w-full btn-ghost text-xs py-2 mt-2"
+                      >
+                        ⚙️ Adjust Build Costs
+                      </button>
+                    </div>
+
+                    {/* Collapsible Details Section */}
+                    <div id={`mobile-details-${row.id}`} className="hidden bg-slate-800/90 border-t border-slate-600">
+                      <div className="p-4 space-y-4">
+                        {/* Summary */}
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs text-slate-400 mb-1">Cost/m² (£)</label>
+                            <div className="text-xs text-slate-400 mb-1">Build Cost</div>
+                            <div className="font-semibold text-amber-400">£{totalBuildCost.toLocaleString()}</div>
+                            <div className="text-xs text-slate-500 mt-0.5">
+                              £{baseBuildCostPerM2}/m²
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-slate-400 mb-1">Profit/Unit</div>
+                            <div className={`font-semibold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              £{profit.toLocaleString()}
+                            </div>
+                            <div className="text-xs text-slate-500 mt-0.5">
+                              {profitPct.toFixed(1)}% margin
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Adjustments */}
+                        <div className="space-y-3 pt-3 border-t border-slate-600">
+                          <div>
+                            <label className="block text-xs text-slate-400 mb-1.5">Cost per m² (£)</label>
                             <input
                               type="number"
                               value={row.buildCostPerM2 || calcBuildCost(row)}
                               onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value) || null)}
                               className="input-field input-field-sm w-full"
-                              placeholder={`Default ${calcBuildCost(row)}`}
+                              placeholder={`Default £${calcBuildCost(row)}`}
                             />
                           </div>
                           <div>
-                            <label className="block text-xs text-slate-400 mb-1">Total Build Cost</label>
-                            <p className="text-lg font-semibold text-amber-400 mt-1">
-                              £{calcBuildCostTotal(row).toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-400 mb-1">Quick Adjust (£1,000 - £2,500/m²)</label>
-                          <input
-                            type="range"
-                            min="1000"
-                            max="2500"
-                            step="50"
-                            value={row.buildCostPerM2 || calcBuildCost(row)}
-                            onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value))}
-                            className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500"
-                          />
-                          <div className="flex justify-between text-xs text-slate-500 mt-1">
-                            <span>£1,000</span>
-                            <span className="text-amber-400">£{(row.buildCostPerM2 || calcBuildCost(row)).toLocaleString()}</span>
-                            <span>£2,500</span>
+                            <label className="block text-xs text-slate-400 mb-2">Quick Adjust (£1,000 - £2,500/m²)</label>
+                            <input
+                              type="range"
+                              min="1000"
+                              max="2500"
+                              step="50"
+                              value={row.buildCostPerM2 || calcBuildCost(row)}
+                              onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value))}
+                              className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500"
+                            />
+                            <div className="flex justify-between text-xs text-slate-500 mt-1.5">
+                              <span>£1,000</span>
+                              <span className="text-amber-400 font-medium">£{(row.buildCostPerM2 || calcBuildCost(row)).toLocaleString()}/m²</span>
+                              <span>£2,500</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -611,15 +630,15 @@ export function MixPhase({ projectId, onBack, onNext }) {
 
               {/* Mobile Total Card */}
               <div className="card bg-slate-700/50 border-slate-500">
-                <div className="card-body p-4">
+                <div className="p-4">
                   <div className="flex justify-between items-center">
                     <div>
-                      <div className="text-xs text-slate-400">Total Units</div>
-                      <div className="text-xl font-bold text-brand-400">{totalUnits}</div>
+                      <div className="text-xs text-slate-400 mb-1">Total Units</div>
+                      <div className="text-2xl font-bold text-brand-400">{totalUnits}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs text-slate-400">Total GDV</div>
-                      <div className="text-xl font-bold text-brand-400">£{totalGDV.toLocaleString()}</div>
+                      <div className="text-xs text-slate-400 mb-1">Total GDV</div>
+                      <div className="text-2xl font-bold text-brand-400">£{totalGDV.toLocaleString()}</div>
                     </div>
                   </div>
                 </div>
