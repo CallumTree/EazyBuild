@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { getProject, updateProject } from '../utils/storage';
 import { estSize, estBaseSales, applyMultiplier, calcGDV } from '../utils/calculators';
@@ -17,6 +18,12 @@ export function MixPhase({ projectId, onBack, onNext }) {
   const [project, setProject] = useState(null);
   const [mixRows, setMixRows] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [inputsExpanded, setInputsExpanded] = useState(true);
+  const [derivedExpanded, setDerivedExpanded] = useState(false);
+  const [totalsExpanded, setTotalsExpanded] = useState(true);
+  const [editingRowId, setEditingRowId] = useState(null);
+  const [searchFilter, setSearchFilter] = useState('');
 
   const multiplier = project?.multiplier || 1.0;
 
@@ -35,6 +42,12 @@ export function MixPhase({ projectId, onBack, onNext }) {
     }
   }, [projectId]);
 
+  useEffect(() => {
+    if (showAdvanced) {
+      setDerivedExpanded(true);
+    }
+  }, [showAdvanced]);
+
   function createEmptyRow() {
     const type = '2-bed Semi/Terrace';
     const sizeM2 = estSize(type);
@@ -47,7 +60,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
       garage: false,
       baseSalesPrice: baseSales,
       salesPrice: applyMultiplier(baseSales, multiplier),
-      buildCostPerM2: null // Will use default from calcBuildCost
+      buildCostPerM2: null
     };
   }
 
@@ -72,7 +85,7 @@ export function MixPhase({ projectId, onBack, onNext }) {
           updated.sizeM2 = estSize(value);
           updated.baseSalesPrice = estBaseSales(value, row.garage);
           updated.salesPrice = applyMultiplier(updated.baseSalesPrice, multiplier);
-          updated.buildCostPerM2 = null; // Reset to default for new type
+          updated.buildCostPerM2 = null;
         }
 
         if (field === 'garage') {
@@ -111,6 +124,34 @@ export function MixPhase({ projectId, onBack, onNext }) {
     }
   };
 
+  const calcBuildCost = (row) => {
+    if (row.buildCostPerM2 && row.buildCostPerM2 > 0) {
+      return row.buildCostPerM2;
+    }
+    
+    const buildCostMap = {
+      '2-bed Semi/Terrace': 1450, '2-bed Detached': 1500, '3-bed Semi': 1500,
+      '3-bed Detached': 1550, '4-bed Detached': 1600, '2-bed Bungalow': 1550,
+      '3-bed Bungalow': 1600, 'Custom': 1500
+    };
+    return buildCostMap[row.type] || 1500;
+  };
+
+  const calcBuildCostTotal = (row) => {
+    const baseBuildCostPerM2 = calcBuildCost(row);
+    const garageCostPerM2 = 1200;
+    let totalBuildCost = 0;
+    if (row.garage) {
+      const mainAreaM2 = row.sizeM2 - 15;
+      const garageCost = 15 * garageCostPerM2;
+      const mainCost = mainAreaM2 * baseBuildCostPerM2;
+      totalBuildCost = mainCost + garageCost;
+    } else {
+      totalBuildCost = row.sizeM2 * baseBuildCostPerM2;
+    }
+    return totalBuildCost;
+  };
+
   if (!project) {
     return (
       <div className="container py-8">
@@ -123,8 +164,17 @@ export function MixPhase({ projectId, onBack, onNext }) {
     );
   }
 
+  const filteredRows = mixRows.filter(row => 
+    row.type.toLowerCase().includes(searchFilter.toLowerCase())
+  );
+
   const totalUnits = mixRows.reduce((sum, row) => sum + (parseInt(row.units) || 0), 0);
   const totalGDV = calcGDV(mixRows, multiplier);
+  const totalGIA = mixRows.reduce((sum, row) => sum + (row.sizeM2 * (row.units || 0)), 0);
+  const totalBuildCostSum = mixRows.reduce((sum, row) => sum + (calcBuildCostTotal(row) * (row.units || 0)), 0);
+  const totalProfit = totalGDV - totalBuildCostSum;
+  const profitOnGDV = totalGDV > 0 ? (totalProfit / totalGDV) * 100 : 0;
+  const profitOnCost = totalBuildCostSum > 0 ? (totalProfit / totalBuildCostSum) * 100 : 0;
 
   const siteAreaM2 = project.siteAreaM2 || 0;
   const siteAreaHa = siteAreaM2 / 10000;
@@ -134,12 +184,13 @@ export function MixPhase({ projectId, onBack, onNext }) {
 
   const isReady = totalUnits > 0;
 
-  const getUpliftText = (multiplier) => {
-    if (multiplier === 1.0) return '';
-    const pct = Math.round((multiplier - 1) * 100);
-    if (pct > 0) return ' (+' + pct + '%)';
-    return ' (' + pct + '%)';
+  const getStatusChip = () => {
+    if (profitOnGDV >= 20) return { color: 'bg-green-500/20 text-green-400 border-green-500/30', text: 'GREEN • Viable', icon: '🟢' };
+    if (profitOnGDV >= 15) return { color: 'bg-amber-500/20 text-amber-400 border-amber-500/30', text: 'AMBER • Marginal', icon: '🟡' };
+    return { color: 'bg-red-500/20 text-red-400 border-red-500/30', text: 'RED • Review', icon: '🔴' };
   };
+
+  const statusChip = getStatusChip();
 
   const suggestions = [
     {
@@ -174,539 +225,527 @@ export function MixPhase({ projectId, onBack, onNext }) {
     }
   ];
 
-  // Helper functions to calculate build cost (assuming these exist elsewhere or were intended to be here)
-  const calcBuildCost = (row) => {
-    // If custom buildCostPerM2 is set, use it; otherwise use default
-    if (row.buildCostPerM2 && row.buildCostPerM2 > 0) {
-      return row.buildCostPerM2;
-    }
-    
-    const buildCostMap = {
-      '2-bed Semi/Terrace': 1450, '2-bed Detached': 1500, '3-bed Semi': 1500,
-      '3-bed Detached': 1550, '4-bed Detached': 1600, '2-bed Bungalow': 1550,
-      '3-bed Bungalow': 1600, 'Custom': 1500
-    };
-    const baseBuildCostPerM2 = buildCostMap[row.type] || 1500;
-    return baseBuildCostPerM2;
-  };
-
-  const calcBuildCostTotal = (row) => {
-    const baseBuildCostPerM2 = calcBuildCost(row);
-    const garageCostPerM2 = 1200;
-    let totalBuildCost = 0;
-    if (row.garage) {
-      const mainAreaM2 = row.sizeM2 - 15;
-      const garageCost = 15 * garageCostPerM2;
-      const mainCost = mainAreaM2 * baseBuildCostPerM2;
-      totalBuildCost = mainCost + garageCost;
-    } else {
-      totalBuildCost = row.sizeM2 * baseBuildCostPerM2;
-    }
-    return totalBuildCost;
-  };
-
   return (
     <div className="container py-8 pb-32">
-      <div className="card">
+      {/* Header */}
+      <div className="card mb-6">
         <div className="card-header">
           <button onClick={onBack} className="btn-secondary">
             ← Back
           </button>
           <div className="flex-1">
-            <h1 className="card-title">Mix Phase: Optimal Unit Mix</h1>
+            <h1 className="card-title">Unit Mix Phase</h1>
             <p className="text-slate-400 text-sm mt-1">
-              {project.name} • Site: {siteAreaM2.toLocaleString()} m²{getUpliftText(multiplier)}
+              {project.name} • {siteAreaM2.toLocaleString()} m²
             </p>
           </div>
           <button
-            onClick={handleAddRow}
-            disabled={mixRows.length >= 10}
-            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className={`btn-ghost text-sm ${showAdvanced ? 'bg-slate-700' : ''}`}
+            title="Toggle advanced columns"
           >
-            <span className="text-lg">+</span>
-            <span>Add Unit</span>
+            ⚙️ {showAdvanced ? 'Hide' : 'Show'} Advanced
           </button>
         </div>
+      </div>
 
-        <div className="card-body space-y-6">
-          {/* Mobile: Card Stack - Desktop: Table */}
-          <div className="space-y-3">
-            {/* Desktop Table (hidden on mobile) */}
-            <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-700">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-700/50">
-                  <tr>
-                    <th className="text-left py-3 px-3 text-slate-300 w-[40%]">Type</th>
-                    <th className="text-center py-3 px-3 text-slate-300">Units</th>
-                    <th className="text-left py-3 px-3 text-slate-300">Details</th>
-                    <th className="text-right py-3 px-3 text-slate-300 w-[20%]">Sales £/unit</th>
-                    <th className="text-center py-3 px-3 text-slate-300 w-[10%]">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-slate-800/30">
-                  {mixRows.map(row => {
-                    const displayType = row.garage ? row.type + ' (w/ Garage)' : row.type;
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Left: Sections */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Density Banner */}
+          {totalUnits > 0 && (
+            <div className={`p-4 rounded-xl border ${densityHigh ? 'bg-amber-500/10 border-amber-500/30' : 'bg-green-500/10 border-green-500/30'}`}>
+              <div className="flex items-center gap-2 text-sm">
+                <span>{densityHigh ? '🟡' : '🟢'}</span>
+                <strong>Estimated density:</strong> {estDensity} dph
+                <span className="text-slate-400 ml-2">LA typical: {laAvgDensity} dph</span>
+              </div>
+            </div>
+          )}
 
-                    // Define build cost per m² based on house type
-                    const buildCostMap = {
-                      '2-bed Semi/Terrace': 1450,
-                      '2-bed Detached': 1500,
-                      '3-bed Semi': 1500,
-                      '3-bed Detached': 1550,
-                      '4-bed Detached': 1600,
-                      '2-bed Bungalow': 1550,
-                      '3-bed Bungalow': 1600,
-                      'Custom': 1500 // Default for custom
-                    };
+          {/* Section A: Inputs */}
+          <div className="card">
+            <button
+              onClick={() => setInputsExpanded(!inputsExpanded)}
+              className="card-header w-full text-left hover:bg-slate-700/30 transition-colors cursor-pointer"
+              aria-label={inputsExpanded ? 'Collapse Inputs' : 'Expand Inputs'}
+            >
+              <span className="text-2xl">📝</span>
+              <h2 className="card-title">Inputs</h2>
+              <span className="ml-auto text-slate-400">{inputsExpanded ? '▼' : '▶'}</span>
+            </button>
 
-                    const baseBuildCostPerM2 = buildCostMap[row.type] || 1500; // Fallback to 1500 if type not found
-                    const garageCostPerM2 = 1200; // Specific cost for garage per m²
+            {inputsExpanded && (
+              <div className="card-body space-y-4">
+                {/* Controls */}
+                <div className="flex gap-3 items-center">
+                  <input
+                    type="text"
+                    placeholder="Search unit types..."
+                    value={searchFilter}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    className="input-field input-field-sm flex-1"
+                  />
+                  <button
+                    onClick={handleAddRow}
+                    disabled={mixRows.length >= 10}
+                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    + Add Row
+                  </button>
+                  <button
+                    onClick={() => setShowSuggestions(!showSuggestions)}
+                    className="btn-ghost"
+                    title="AI Mix Suggestions"
+                  >
+                    💡
+                  </button>
+                </div>
 
-                    // Calculate total build cost, considering garage
-                    let totalBuildCost = 0;
-                    if (row.garage) {
-                      const mainAreaM2 = row.sizeM2 - 15; // Subtract garage area
-                      const garageCost = 15 * garageCostPerM2; // Cost for the 15m² garage
-                      const mainCost = mainAreaM2 * baseBuildCostPerM2; // Cost for the main living area
-                      totalBuildCost = mainCost + garageCost;
-                    } else {
-                      totalBuildCost = row.sizeM2 * baseBuildCostPerM2; // No garage, use base cost
-                    }
-
-                    const profit = (row.salesPrice || 0) - totalBuildCost;
-                    const profitPct = row.salesPrice > 0 ? (profit / row.salesPrice) * 100 : 0;
-
-                    return (
-                      <React.Fragment key={row.id}>
-                        <tr className="border-t border-slate-700 hover:bg-slate-700/20 transition-colors">
-                          <td className="py-3 px-3 w-[40%]">
-                            <select
-                              value={row.type}
-                              onChange={(e) => handleRowChange(row.id, 'type', e.target.value)}
-                              className="input-field input-field-sm w-full text-xs font-medium"
-                            >
-                              {UNIT_TYPES.map(type => (
-                                <option key={type} value={type}>{type}</option>
-                              ))}
-                            </select>
-                            {row.garage && <div className="text-xs text-slate-500 mt-0.5">+ Garage (15m²)</div>}
-                          </td>
-                          <td className="py-3 px-3">
-                            <input
-                              type="number"
-                              value={row.units}
-                              onChange={(e) => handleRowChange(row.id, 'units', parseInt(e.target.value) || 0)}
-                              className="input-field input-field-sm w-20 text-center font-semibold"
-                              min="0"
-                            />
-                          </td>
-                          <td className="py-3 px-3">
-                            <div className="flex items-center gap-2">
+                {/* Table */}
+                {filteredRows.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    No unit types added yet. Click "Add Row" or "💡" for suggestions.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-xl border border-slate-700">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-700/50 sticky top-0 z-10">
+                        <tr>
+                          <th className="text-left py-3 px-3 text-slate-300 font-medium" title="Type: Unit type">Type</th>
+                          <th className="text-right py-3 px-3 text-slate-300 font-medium" title="Units: Number of units">Units</th>
+                          <th className="text-right py-3 px-3 text-slate-300 font-medium" title="Size (m²): Floor area">Size (m²)</th>
+                          {showAdvanced && (
+                            <th className="text-right py-3 px-3 text-slate-300 font-medium" title="Size (ft²): Floor area in square feet">Size (ft²)</th>
+                          )}
+                          <th className="text-right py-3 px-3 text-slate-300 font-medium" title="Sales £/unit: Market sale price per dwelling">Sales £/unit</th>
+                          {showAdvanced && (
+                            <th className="text-right py-3 px-3 text-slate-300 font-medium" title="Build Cost/m²: Construction cost per square meter">Build £/m²</th>
+                          )}
+                          <th className="text-center py-3 px-3 text-slate-300 font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-slate-800/30">
+                        {filteredRows.map((row, idx) => (
+                          <tr key={row.id} className={`border-t border-slate-700 hover:bg-slate-700/20 transition-colors ${idx % 2 === 0 ? 'bg-slate-800/10' : ''}`}>
+                            <td className="py-4 px-3">
+                              <select
+                                value={row.type}
+                                onChange={(e) => handleRowChange(row.id, 'type', e.target.value)}
+                                className="input-field input-field-sm w-full font-medium"
+                              >
+                                {UNIT_TYPES.map(type => (
+                                  <option key={type} value={type}>{type}</option>
+                                ))}
+                              </select>
+                              {row.garage && <div className="text-xs text-slate-500 mt-1">+ Garage (15m²)</div>}
+                            </td>
+                            <td className="py-4 px-3 text-right">
+                              <input
+                                type="number"
+                                value={row.units}
+                                onChange={(e) => handleRowChange(row.id, 'units', parseInt(e.target.value) || 0)}
+                                className="input-field input-field-sm w-20 text-right font-mono font-semibold ml-auto"
+                                min="0"
+                              />
+                            </td>
+                            <td className="py-4 px-3 text-right">
                               <input
                                 type="number"
                                 value={row.sizeM2}
                                 onChange={(e) => handleRowChange(row.id, 'sizeM2', parseInt(e.target.value) || 0)}
-                                className="input-field input-field-sm w-20"
+                                className="input-field input-field-sm w-24 text-right font-mono ml-auto"
                                 min="0"
                               />
-                              <span className="text-xs text-slate-400">m²</span>
-                              <label className="flex items-center gap-1 text-xs text-slate-400 ml-2 cursor-pointer hover:text-slate-300">
+                            </td>
+                            {showAdvanced && (
+                              <td className="py-4 px-3 text-right">
+                                <span className="font-mono text-slate-400">{Math.round(row.sizeM2 * 10.764)}</span>
+                              </td>
+                            )}
+                            <td className="py-4 px-3 text-right">
+                              <input
+                                type="number"
+                                value={row.salesPrice}
+                                onChange={(e) => handleRowChange(row.id, 'salesPrice', parseInt(e.target.value) || 0)}
+                                className="input-field input-field-sm w-32 text-right font-mono ml-auto"
+                                min="0"
+                                step="1000"
+                              />
+                            </td>
+                            {showAdvanced && (
+                              <td className="py-4 px-3 text-right">
                                 <input
-                                  type="checkbox"
-                                  checked={row.garage}
-                                  onChange={(e) => handleRowChange(row.id, 'garage', e.target.checked)}
-                                  className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-brand-500"
+                                  type="number"
+                                  value={row.buildCostPerM2 || calcBuildCost(row)}
+                                  onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value) || null)}
+                                  className="input-field input-field-sm w-24 text-right font-mono ml-auto"
+                                  placeholder={calcBuildCost(row).toString()}
                                 />
-                                Garage
-                              </label>
-                            </div>
-                          </td>
-                          <td className="py-3 px-3 text-right">
-                            <div className="text-brand-400 font-bold text-sm">
-                              £{(row.salesPrice || 0).toLocaleString()}
-                            </div>
-                            <div className="flex items-center justify-end gap-2 mt-0.5">
-                              <span className={`text-xs font-medium ${profitPct >= 20 ? 'text-green-400' : profitPct >= 10 ? 'text-amber-400' : 'text-red-400'}`}>
-                                {profitPct.toFixed(0)}%
-                              </span>
-                              <span className="text-xs">
-                                {profitPct >= 20 ? '🟢' : profitPct >= 10 ? '🟡' : '🔴'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-3 text-center">
-                            <button
-                              onClick={() => {
-                                const detailsRow = document.getElementById(`details-${row.id}`);
-                                if (detailsRow) {
-                                  detailsRow.classList.toggle('hidden');
-                                }
-                              }}
-                              className="text-slate-400 hover:text-slate-300 mr-2 text-sm"
-                              title="Toggle details"
-                            >
-                              ⚙️
-                            </button>
-                            <button
-                              onClick={() => handleRemoveRow(row.id)}
-                              disabled={mixRows.length === 1}
-                              className="text-red-400 hover:text-red-300 disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                              ✕
-                            </button>
-                          </td>
-                        </tr>
-                        <tr id={`details-${row.id}`} className="hidden bg-slate-800/70 border-t border-slate-600">
-                          <td colSpan={5} className="py-4 px-4">
-                            <div className="space-y-4">
-                              {/* Build Cost & Profit Summary */}
-                              <div className="grid grid-cols-3 gap-4 pb-3 border-b border-slate-600">
-                                <div>
-                                  <div className="text-xs text-slate-400 mb-1">Build Cost</div>
-                                  <div className="font-semibold text-amber-400">£{totalBuildCost.toLocaleString()}</div>
-                                  <div className="text-xs text-slate-500 mt-0.5">
-                                    {row.garage ? `£${baseBuildCostPerM2}/m² + garage` : `£${baseBuildCostPerM2}/m²`}
-                                  </div>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-slate-400 mb-1">Profit per Unit</div>
-                                  <div className={`font-semibold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                    £{profit.toLocaleString()}
-                                  </div>
-                                  <div className="text-xs text-slate-500 mt-0.5">
-                                    {profitPct.toFixed(1)}% margin
-                                  </div>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-slate-400 mb-1">Total Revenue</div>
-                                  <div className="font-semibold text-brand-400">
-                                    £{((row.salesPrice || 0) * (row.units || 0)).toLocaleString()}
-                                  </div>
-                                  <div className="text-xs text-slate-500 mt-0.5">
-                                    {row.units || 0} units
-                                  </div>
-                                </div>
+                              </td>
+                            )}
+                            <td className="py-4 px-3 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => setEditingRowId(row.id)}
+                                  className="text-slate-400 hover:text-slate-300 text-sm"
+                                  title="Edit row"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveRow(row.id)}
+                                  disabled={mixRows.length === 1}
+                                  className="text-red-400 hover:text-red-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                                  title="Delete row"
+                                >
+                                  ✕
+                                </button>
                               </div>
-
-                              {/* Build Cost Adjustments */}
-                              <div>
-                                <div className="text-sm font-medium text-slate-300 mb-3">Adjust Build Costs</div>
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <label className="block text-xs text-slate-400 mb-1.5">Cost per m² (£)</label>
-                                    <input
-                                      type="number"
-                                      value={row.buildCostPerM2 || calcBuildCost(row)}
-                                      onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value) || null)}
-                                      className="input-field input-field-sm w-full"
-                                      placeholder={`Default £${calcBuildCost(row)}`}
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs text-slate-400 mb-1.5">Total Build Cost</label>
-                                    <div className="text-lg font-semibold text-amber-400 mt-1.5">
-                                      £{calcBuildCostTotal(row).toLocaleString()}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="mt-3">
-                                  <label className="block text-xs text-slate-400 mb-2">Quick Adjust (£1,000 - £2,500/m²)</label>
-                                  <input
-                                    type="range"
-                                    min="1000"
-                                    max="2500"
-                                    step="50"
-                                    value={row.buildCostPerM2 || calcBuildCost(row)}
-                                    onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value))}
-                                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500"
-                                  />
-                                  <div className="flex justify-between text-xs text-slate-500 mt-1.5">
-                                    <span>£1,000</span>
-                                    <span className="text-amber-400 font-medium">£{(row.buildCostPerM2 || calcBuildCost(row)).toLocaleString()}/m²</span>
-                                    <span>£2,500</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      </React.Fragment>
-                    );
-                  })}
-                  <tr className="border-t-2 border-slate-600 bg-slate-700/30 font-semibold">
-                    <td className="py-3 px-3 text-white">Total</td>
-                    <td className="py-3 px-3 text-center text-brand-400">{totalUnits}</td>
-                    <td className="py-3 px-3"></td>
-                    <td className="py-3 px-3 text-right text-brand-400">£{totalGDV.toLocaleString()}</td>
-                    <td></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile: Card Stack (hidden on desktop) */}
-            <div className="md:hidden space-y-4">
-              {mixRows.map(row => {
-                const displayType = row.garage ? row.type + ' (w/ Garage)' : row.type;
-
-                // Define build cost per m² based on house type
-                const buildCostMap = {
-                  '2-bed Semi/Terrace': 1450,
-                  '2-bed Detached': 1500,
-                  '3-bed Semi': 1500,
-                  '3-bed Detached': 1550,
-                  '4-bed Detached': 1600,
-                  '2-bed Bungalow': 1550,
-                  '3-bed Bungalow': 1600,
-                  'Custom': 1500
-                };
-
-                const baseBuildCostPerM2 = buildCostMap[row.type] || 1500;
-                const garageCostPerM2 = 1200;
-
-                let totalBuildCost = 0;
-                if (row.garage) {
-                  const mainAreaM2 = row.sizeM2 - 15;
-                  const garageCost = 15 * garageCostPerM2;
-                  const mainCost = mainAreaM2 * baseBuildCostPerM2;
-                  totalBuildCost = mainCost + garageCost;
-                } else {
-                  totalBuildCost = row.sizeM2 * baseBuildCostPerM2;
-                }
-
-                const profit = (row.salesPrice || 0) - totalBuildCost;
-                const profitPct = row.salesPrice > 0 ? (profit / row.salesPrice) * 100 : 0;
-
-                return (
-                  <div key={row.id} className="card bg-slate-800/50 border-slate-600 overflow-hidden">
-                    {/* Main Card Content */}
-                    <div className="p-4 space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <select
-                            value={row.type}
-                            onChange={(e) => handleRowChange(row.id, 'type', e.target.value)}
-                            className="input-field input-field-sm w-full font-medium"
-                          >
-                            {UNIT_TYPES.map(type => (
-                              <option key={type} value={type}>{type}</option>
-                            ))}
-                          </select>
-                          {row.garage && <div className="text-xs text-slate-500 mt-1">+ Garage (15m²)</div>}
-                        </div>
-                        <button
-                          onClick={() => handleRemoveRow(row.id)}
-                          disabled={mixRows.length === 1}
-                          className="text-red-400 hover:text-red-300 disabled:opacity-30 disabled:cursor-not-allowed text-lg"
-                        >
-                          ✕
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs text-slate-400 mb-1.5">Units</label>
-                          <input
-                            type="number"
-                            value={row.units}
-                            onChange={(e) => handleRowChange(row.id, 'units', parseInt(e.target.value) || 0)}
-                            className="input-field input-field-sm w-full text-center font-semibold"
-                            min="0"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-400 mb-1.5">Size (m²)</label>
-                          <input
-                            type="number"
-                            value={row.sizeM2}
-                            onChange={(e) => handleRowChange(row.id, 'sizeM2', parseInt(e.target.value) || 0)}
-                            className="input-field input-field-sm w-full"
-                            min="0"
-                          />
-                        </div>
-                      </div>
-
-                      <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/30 p-2 rounded-lg transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={row.garage}
-                          onChange={(e) => handleRowChange(row.id, 'garage', e.target.checked)}
-                          className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-brand-500"
-                        />
-                        <span className="text-sm text-slate-300">Include Garage (+15m² / +£20k)</span>
-                      </label>
-
-                      {/* Key Metrics */}
-                      <div className="pt-3 border-t border-slate-700 space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-slate-400">Sales Price</span>
-                          <div className="text-lg font-bold text-brand-400">
-                            £{(row.salesPrice || 0).toLocaleString()}
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-slate-400">Margin</span>
-                          <div className="flex items-center gap-2">
-                            <span className={`font-semibold ${profitPct >= 20 ? 'text-green-400' : profitPct >= 10 ? 'text-amber-400' : 'text-red-400'}`}>
-                              {profitPct.toFixed(0)}%
-                            </span>
-                            <span>{profitPct >= 20 ? '🟢' : profitPct >= 10 ? '🟡' : '🔴'}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Toggle Details Button */}
-                      <button
-                        onClick={() => {
-                          const detailsDiv = document.getElementById(`mobile-details-${row.id}`);
-                          if (detailsDiv) {
-                            detailsDiv.classList.toggle('hidden');
-                          }
-                        }}
-                        className="w-full btn-ghost text-xs py-2 mt-2"
-                      >
-                        ⚙️ Adjust Build Costs
-                      </button>
-                    </div>
-
-                    {/* Collapsible Details Section */}
-                    <div id={`mobile-details-${row.id}`} className="hidden bg-slate-800/90 border-t border-slate-600">
-                      <div className="p-4 space-y-4">
-                        {/* Summary */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <div className="text-xs text-slate-400 mb-1">Build Cost</div>
-                            <div className="font-semibold text-amber-400">£{totalBuildCost.toLocaleString()}</div>
-                            <div className="text-xs text-slate-500 mt-0.5">
-                              £{baseBuildCostPerM2}/m²
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-slate-400 mb-1">Profit/Unit</div>
-                            <div className={`font-semibold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              £{profit.toLocaleString()}
-                            </div>
-                            <div className="text-xs text-slate-500 mt-0.5">
-                              {profitPct.toFixed(1)}% margin
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Adjustments */}
-                        <div className="space-y-3 pt-3 border-t border-slate-600">
-                          <div>
-                            <label className="block text-xs text-slate-400 mb-1.5">Cost per m² (£)</label>
-                            <input
-                              type="number"
-                              value={row.buildCostPerM2 || calcBuildCost(row)}
-                              onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value) || null)}
-                              className="input-field input-field-sm w-full"
-                              placeholder={`Default £${calcBuildCost(row)}`}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs text-slate-400 mb-2">Quick Adjust (£1,000 - £2,500/m²)</label>
-                            <input
-                              type="range"
-                              min="1000"
-                              max="2500"
-                              step="50"
-                              value={row.buildCostPerM2 || calcBuildCost(row)}
-                              onChange={(e) => handleRowChange(row.id, 'buildCostPerM2', parseFloat(e.target.value))}
-                              className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500"
-                            />
-                            <div className="flex justify-between text-xs text-slate-500 mt-1.5">
-                              <span>£1,000</span>
-                              <span className="text-amber-400 font-medium">£{(row.buildCostPerM2 || calcBuildCost(row)).toLocaleString()}/m²</span>
-                              <span>£2,500</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                );
-              })}
+                )}
 
-              {/* Mobile Total Card */}
-              <div className="card bg-slate-700/50 border-slate-500">
-                <div className="p-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="text-xs text-slate-400 mb-1">Total Units</div>
-                      <div className="text-2xl font-bold text-brand-400">{totalUnits}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-slate-400 mb-1">Total GDV</div>
-                      <div className="text-2xl font-bold text-brand-400">£{totalGDV.toLocaleString()}</div>
-                    </div>
-                  </div>
+                {/* Garage Toggle (mobile-friendly) */}
+                <div className="pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/30 p-3 rounded-lg transition-colors w-fit">
+                    <input
+                      type="checkbox"
+                      checked={mixRows.some(r => r.garage)}
+                      onChange={(e) => {
+                        const newGarageState = e.target.checked;
+                        setMixRows(mixRows.map(row => ({
+                          ...row,
+                          garage: newGarageState,
+                          sizeM2: newGarageState ? row.sizeM2 + 15 : row.sizeM2 - 15
+                        })));
+                      }}
+                      className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-brand-500"
+                    />
+                    <span className="text-sm text-slate-300">Add garages to all units</span>
+                  </label>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Density Badge */}
-          <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
-            <div className="text-sm space-y-2">
-              <div className="flex items-center gap-2">
-                <span className={densityHigh ? 'text-amber-400' : 'text-green-400'}>
-                  {densityHigh ? '🟡' : '🟢'}
-                </span>
-                <strong>Est. Density:</strong> {estDensity} units/ha
+          {/* Section B: Derived */}
+          <div className="card">
+            <button
+              onClick={() => setDerivedExpanded(!derivedExpanded)}
+              className="card-header w-full text-left hover:bg-slate-700/30 transition-colors cursor-pointer"
+              aria-label={derivedExpanded ? 'Collapse Derived' : 'Expand Derived'}
+            >
+              <span className="text-2xl">📊</span>
+              <h2 className="card-title">Derived</h2>
+              <span className="ml-auto text-slate-400">{derivedExpanded ? '▼' : '▶'}</span>
+            </button>
+
+            {derivedExpanded && (
+              <div className="card-body">
+                {totalUnits === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    Populate Units to calculate.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-xl border border-slate-700">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-700/50 sticky top-0 z-10">
+                        <tr>
+                          <th className="text-left py-3 px-3 text-slate-300 font-medium">Type</th>
+                          <th className="text-right py-3 px-3 text-slate-300 font-medium">GIA (m²)</th>
+                          <th className="text-right py-3 px-3 text-slate-300 font-medium">GDV</th>
+                          <th className="text-right py-3 px-3 text-slate-300 font-medium">Build Cost</th>
+                          <th className="text-right py-3 px-3 text-slate-300 font-medium">Profit</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-slate-800/30">
+                        {mixRows.filter(r => r.units > 0).map((row, idx) => {
+                          const gia = row.sizeM2 * row.units;
+                          const gdv = row.salesPrice * row.units;
+                          const buildCost = calcBuildCostTotal(row) * row.units;
+                          const profit = gdv - buildCost;
+                          return (
+                            <tr key={row.id} className={`border-t border-slate-700 ${idx % 2 === 0 ? 'bg-slate-800/10' : ''}`}>
+                              <td className="py-4 px-3">{row.type} {row.garage && '+ Garage'}</td>
+                              <td className="py-4 px-3 text-right font-mono">{gia.toLocaleString()}</td>
+                              <td className="py-4 px-3 text-right font-mono text-brand-400">£{gdv.toLocaleString()}</td>
+                              <td className="py-4 px-3 text-right font-mono text-amber-400">£{buildCost.toLocaleString()}</td>
+                              <td className={`py-4 px-3 text-right font-mono ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                £{profit.toLocaleString()}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
-              {densityHigh && (
-                <p className="text-slate-500 text-xs">
-                  Tip: Consider bungalows for balance
-                </p>
-              )}
-            </div>
+            )}
           </div>
 
-          {/* Suggestions Modal */}
-          {showSuggestions && (
-            <div className="space-y-3 p-4 bg-slate-700/30 rounded-xl border border-slate-600">
-              <h3 className="font-semibold text-white">Suggested Mixes (Adjusted for region):</h3>
-              {suggestions.map((suggestion, idx) => {
-                const adjustedGDV = calcGDV(suggestion.mix, multiplier);
-                return (
-                  <div
-                    key={idx}
-                    className="p-3 bg-slate-800/50 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer"
-                    onClick={() => {
-                      if (confirm('Load "' + suggestion.name + '"? This will replace your current mix.')) {
-                        handleLoadSuggestion(suggestion);
-                      }
-                    }}
-                  >
-                    <div className="flex justify-between items-start">
+          {/* Section C: Totals */}
+          <div className="card">
+            <button
+              onClick={() => setTotalsExpanded(!totalsExpanded)}
+              className="card-header w-full text-left hover:bg-slate-700/30 transition-colors cursor-pointer"
+              aria-label={totalsExpanded ? 'Collapse Totals' : 'Expand Totals'}
+            >
+              <span className="text-2xl">💰</span>
+              <h2 className="card-title">Totals</h2>
+              <span className="ml-auto text-slate-400">{totalsExpanded ? '▼' : '▶'}</span>
+            </button>
+
+            {totalsExpanded && (
+              <div className="card-body">
+                {totalUnits === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    Populate Units to calculate.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4 p-4 bg-slate-700/30 rounded-xl">
                       <div>
-                        <h4 className="font-medium text-white">{suggestion.name}</h4>
-                        <p className="text-sm text-slate-400">{suggestion.description}</p>
+                        <div className="text-xs text-slate-400 mb-1">Total Units</div>
+                        <div className="text-2xl font-bold font-mono text-white">{totalUnits}</div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-brand-400">£{(adjustedGDV / 1000000).toFixed(1)}m</p>
-                        <p className="text-xs text-slate-500">GDV</p>
+                      <div>
+                        <div className="text-xs text-slate-400 mb-1">Total GIA</div>
+                        <div className="text-2xl font-bold font-mono text-white">{totalGIA.toLocaleString()} m²</div>
+                        <div className="text-xs text-slate-500">{Math.round(totalGIA * 10.764).toLocaleString()} ft²</div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 p-4 bg-slate-700/30 rounded-xl">
+                      <div>
+                        <div className="text-xs text-slate-400 mb-1">Total GDV</div>
+                        <div className="text-2xl font-bold font-mono text-brand-400">£{totalGDV.toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-400 mb-1">Total Build Cost</div>
+                        <div className="text-2xl font-bold font-mono text-amber-400">£{totalBuildCostSum.toLocaleString()}</div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-slate-700/30 rounded-xl">
+                      <div className="text-xs text-slate-400 mb-1">Profit</div>
+                      <div className={`text-3xl font-bold font-mono ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        £{totalProfit.toLocaleString()}
+                      </div>
+                      <div className="flex gap-4 mt-2 text-sm">
+                        <div>
+                          <span className="text-slate-400">PoGDV:</span>
+                          <span className="ml-2 font-mono font-semibold">{profitOnGDV.toFixed(1)}%</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400">PoC:</span>
+                          <span className="ml-2 font-mono font-semibold">{profitOnCost.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
+                      <div className="text-xs text-slate-400 mb-2">Residual Land Value</div>
+                      <div className="text-xl font-bold font-mono text-purple-400">
+                        {totalProfit > 0 ? `£${totalProfit.toLocaleString()}` : '—'}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        {totalProfit > 0 ? 'Max land value (profit target not set)' : 'Will populate when profit target is set'}
                       </div>
                     </div>
                   </div>
-                );
-              })}
-              <button
-                onClick={() => setShowSuggestions(false)}
-                className="btn-ghost text-sm w-full"
-              >
-                Close
-              </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Suggestions */}
+          {showSuggestions && (
+            <div className="card">
+              <div className="card-header">
+                <span className="text-2xl">💡</span>
+                <h3 className="card-title">Suggested Mixes</h3>
+                <button onClick={() => setShowSuggestions(false)} className="ml-auto text-slate-400 hover:text-slate-300">✕</button>
+              </div>
+              <div className="card-body space-y-3">
+                {suggestions.map((suggestion, idx) => {
+                  const adjustedGDV = calcGDV(suggestion.mix, multiplier);
+                  return (
+                    <div
+                      key={idx}
+                      className="p-4 bg-slate-700/30 rounded-xl border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer"
+                      onClick={() => {
+                        if (confirm(`Load "${suggestion.name}"? This will replace your current mix.`)) {
+                          handleLoadSuggestion(suggestion);
+                        }
+                      }}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-medium text-white">{suggestion.name}</h4>
+                          <p className="text-sm text-slate-400">{suggestion.description}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-brand-400 font-mono">£{(adjustedGDV / 1000000).toFixed(1)}m</p>
+                          <p className="text-xs text-slate-500">GDV</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
+
+        {/* Right: Summary Panel (Fixed on desktop) */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-8 space-y-4">
+            <div className="card">
+              <div className="card-header">
+                <span className="text-2xl">📈</span>
+                <h3 className="card-title">Summary</h3>
+              </div>
+              <div className="card-body space-y-4">
+                {totalUnits === 0 ? (
+                  <div className="text-center py-8 text-slate-400 text-sm">
+                    Add units to see summary
+                  </div>
+                ) : (
+                  <>
+                    <div className={`p-3 rounded-xl border ${statusChip.color}`}>
+                      <div className="flex items-center gap-2 font-semibold">
+                        <span>{statusChip.icon}</span>
+                        <span>{statusChip.text}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center pb-2 border-b border-slate-700">
+                        <span className="text-slate-400 text-sm">GDV</span>
+                        <span className="font-bold font-mono text-brand-400">£{(totalGDV / 1000000).toFixed(2)}m</span>
+                      </div>
+                      <div className="flex justify-between items-center pb-2 border-b border-slate-700">
+                        <span className="text-slate-400 text-sm">Total Costs</span>
+                        <span className="font-bold font-mono text-amber-400">£{(totalBuildCostSum / 1000000).toFixed(2)}m</span>
+                      </div>
+                      <div className="flex justify-between items-center pb-2 border-b border-slate-700">
+                        <span className="text-slate-400 text-sm">Profit</span>
+                        <span className={`font-bold font-mono ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          £{(totalProfit / 1000000).toFixed(2)}m
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center pb-2 border-b border-slate-700">
+                        <span className="text-slate-400 text-sm">PoGDV %</span>
+                        <span className="font-bold font-mono text-white">{profitOnGDV.toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400 text-sm">PoC %</span>
+                        <span className="font-bold font-mono text-white">{profitOnCost.toFixed(1)}%</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-700">
+                      <div className="text-xs text-slate-500 space-y-1">
+                        <p>• Profit target: 20% PoGDV</p>
+                        <p>• Land cost: Unknown → residual mode</p>
+                        <p>• Regional uplift: {((multiplier - 1) * 100).toFixed(0)}%</p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-
+      {/* Row Edit Modal */}
+      {editingRowId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setEditingRowId(null)}>
+          <div className="card max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="card-header">
+              <span className="text-2xl">✏️</span>
+              <h3 className="card-title">Edit Unit</h3>
+              <button onClick={() => setEditingRowId(null)} className="ml-auto text-slate-400 hover:text-slate-300">✕</button>
+            </div>
+            <div className="card-body space-y-4">
+              {mixRows.filter(r => r.id === editingRowId).map(row => (
+                <div key={row.id} className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Type</label>
+                    <select
+                      value={row.type}
+                      onChange={(e) => handleRowChange(row.id, 'type', e.target.value)}
+                      className="input-field w-full"
+                    >
+                      {UNIT_TYPES.map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-slate-400 mb-2">Units</label>
+                      <input
+                        type="number"
+                        value={row.units}
+                        onChange={(e) => handleRowChange(row.id, 'units', parseInt(e.target.value) || 0)}
+                        className="input-field w-full"
+                        min="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-slate-400 mb-2">Size (m²)</label>
+                      <input
+                        type="number"
+                        value={row.sizeM2}
+                        onChange={(e) => handleRowChange(row.id, 'sizeM2', parseInt(e.target.value) || 0)}
+                        className="input-field w-full"
+                        min="0"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Sales £/unit</label>
+                    <input
+                      type="number"
+                      value={row.salesPrice}
+                      onChange={(e) => handleRowChange(row.id, 'salesPrice', parseInt(e.target.value) || 0)}
+                      className="input-field w-full"
+                      min="0"
+                      step="1000"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/30 p-3 rounded-lg transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={row.garage}
+                      onChange={(e) => handleRowChange(row.id, 'garage', e.target.checked)}
+                      className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-brand-500"
+                    />
+                    <span className="text-sm text-slate-300">Include Garage (+15m² / +£20k)</span>
+                  </label>
+                  <button
+                    onClick={() => setEditingRowId(null)}
+                    className="btn-primary w-full"
+                  >
+                    Done
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Fixed Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-sm border-t border-slate-700 p-4" style={{ zIndex: 50 }}>
+      <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-sm border-t border-slate-700 p-4 z-50">
         <div className="container mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
@@ -716,18 +755,10 @@ export function MixPhase({ projectId, onBack, onNext }) {
             >
               Next: Viability
             </button>
-            <div className={'text-xs ' + (isReady ? 'text-green-400' : 'text-red-400')}>
+            <div className={`text-xs ${isReady ? 'text-green-400' : 'text-red-400'}`}>
               {isReady ? '🟢 Ready' : '🔴 Add units'}
             </div>
           </div>
-
-          <button
-            onClick={() => setShowSuggestions(!showSuggestions)}
-            className="btn-ghost text-xs px-3 py-2"
-            title="AI Ideas"
-          >
-            💡
-          </button>
         </div>
       </div>
     </div>
