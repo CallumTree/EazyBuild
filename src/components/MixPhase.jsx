@@ -387,6 +387,13 @@ export function MixPhase({ projectId, onBack, onNext }) {
                             <td className="py-4 px-3 text-center">
                               <div className="flex items-center justify-center gap-2">
                                 <button
+                                  onClick={() => handleRowChange(row.id, 'garage', !row.garage)}
+                                  className={`text-sm ${row.garage ? 'text-blue-400 hover:text-blue-300' : 'text-slate-400 hover:text-slate-300'}`}
+                                  title={row.garage ? 'Remove garage' : 'Add garage (+15m²)'}
+                                >
+                                  🚗
+                                </button>
+                                <button
                                   onClick={() => setEditingRowId(row.id)}
                                   className="text-slate-400 hover:text-slate-300 text-sm"
                                   title="Edit row"
@@ -409,26 +416,6 @@ export function MixPhase({ projectId, onBack, onNext }) {
                     </table>
                   </div>
                 )}
-
-                {/* Garage Toggle (mobile-friendly) */}
-                <div className="pt-2">
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/30 p-3 rounded-lg transition-colors w-fit">
-                    <input
-                      type="checkbox"
-                      checked={mixRows.some(r => r.garage)}
-                      onChange={(e) => {
-                        const newGarageState = e.target.checked;
-                        setMixRows(mixRows.map(row => ({
-                          ...row,
-                          garage: newGarageState,
-                          sizeM2: newGarageState ? row.sizeM2 + 15 : row.sizeM2 - 15
-                        })));
-                      }}
-                      className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-brand-500"
-                    />
-                    <span className="text-sm text-slate-300">Add garages to all units</span>
-                  </label>
-                </div>
               </div>
             )}
           </div>
